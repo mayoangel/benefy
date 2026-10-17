@@ -1,0 +1,47 @@
+services:
+  # Base de datos PostgreSQL para el entorno de desarrollo
+  db:
+    image: postgres:15-alpine
+    container_name: benefy-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-benefy_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-benefy_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-benefy_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # Backend (API REST en Django)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: benefy-backend
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_HOST=db
+      - DB_NAME=${POSTGRES_DB:-benefy_db}
+      - DB_USER=${POSTGRES_USER:-benefy_user}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-benefy_pass}
+    depends_on:
+      - db
+
+  # Servicio de Inteligencia Artificial (Python/FastAPI o Flask)
+  benef-ai:
+    build:
+      context: ./benef-ai
+      dockerfile: Dockerfile
+    container_name: benefy-ai
+    volumes:
+      - ./benef-ai:/app
+    ports:
+      - "5000:5000"
+
+volumes:
+  postgres_data:

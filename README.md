@@ -1,46 +1,74 @@
 # Benefy
 
-Especificacion de requisitos de software - Rev 1.0
+Benefy es una plataforma SaaS B2B para que los negocios diseñen y gestionen
+programas de lealtad basados en puntos, sellos y cupones. También contempla
+colaboraciones de cross-marketing entre negocios y una experiencia de
+autoservicio para el cliente final.
 
-## Descripcion del Proyecto
+> **Estado actual:** el repositorio se encuentra en la fase de estructura
+> inicial. Las carpetas de aplicación todavía no contienen código ejecutable.
 
-Benefy es una solucion SaaS (Software as a Service) B2B enfocada en el sector de servicios. Su objetivo es proporcionar una plataforma centralizada donde los negocios pueden diseñar y gestionar sus dinamicas de lealtad (puntos, sellos y cupones de descuento), orientada al autoservicio del cliente final. 
+## Estructura actual
 
-El sistema fomenta colaboraciones B2B (Cross-Marketing) permitiendo que dos negocios se enlacen para ofrecer recompensas compartidas.
+| Carpeta | Propósito |
+| --- | --- |
+| [`backend`](./backend/README.md) | API, lógica de negocio, persistencia e integraciones del servidor. |
+| [`benef-ai`](./benef-ai/README.md) | Componentes y servicios de inteligencia artificial de Benefy. |
+| [`docs`](./docs/README.md) | Especificaciones y documentación funcional del producto. |
+| [`frontend-web`](./frontend-web/README.md) | Dashboard web para la administración de comercios. |
+| [`hardware`](./hardware/README.md) | Firmware e integración de dispositivos IoT y ESP32-S3. |
+| [`mobile-app`](./mobile-app/README.md) | Aplicación móvil para clientes finales y gestión de recompensas. |
 
-## Arquitectura del Sistema
+Los archivos de configuración actuales son:
 
-El proyecto esta compuesto por cuatro pilares principales:
+- [`compose.yaml`](./compose.yaml): reservado para la orquestación local de
+  servicios; todavía no define servicios.
+- [`.gitignore`](./.gitignore): exclusiones para Python, JavaScript,
+  React Native, IoT y herramientas de desarrollo.
 
-1. Backend (Django REST Framework): API centralizada que maneja la logica de negocio, el flujo de transacciones, la base de datos relacional y la integracion con servicios de terceros.
-2. Dashboard Web (React): Panel administrativo de inteligencia de negocio para los dueños de comercios afiliados.
-3. Aplicacion Movil (React Native): Plataforma orientada al consumidor final para el escaneo de codigos QR/NFC y gestion de recompensas.
-4. Infraestructura IoT: Integracion con microcontroladores ESP32-S3 como estaciones inteligentes de registro y asistentes IA (ESP-CLAW).
+## Arquitectura prevista
 
-## Tecnologias Principales
+1. **Backend:** API centralizada para usuarios, comercios, programas de
+   lealtad, transacciones, recompensas y webhooks.
+2. **Dashboard web:** administración de comercios, métricas y configuración de
+   campañas.
+3. **Aplicación móvil:** interacción del cliente con códigos QR/NFC y
+   recompensas.
+4. **IA e IoT:** asistentes y estaciones inteligentes basadas en ESP32-S3.
 
-* Backend: Python, Django, Django REST Framework.
-* Base de Datos: PostgreSQL (Supabase).
-* Frontend Administrativo: React, Tailwind CSS.
-* Frontend Movil: React Native.
-* Hardware IoT: Microcontroladores ESP32-S3.
-* Integraciones Externas:
-  - Autenticacion: Firebase Auth (Google OAuth 2.0 / JWT).
-  - Notificaciones: Firebase Cloud Messaging (FCM).
-  - Pasarela de Pagos: Stripe (Suscripciones B2B).
-  - Almacenamiento Multimedia: Cloudinary.
-  - Monitoreo de Errores: Sentry.
+## Tecnologías previstas
 
-## Estructura del Repositorio
+- Python, Django y Django REST Framework.
+- PostgreSQL mediante Supabase.
+- React y Tailwind CSS para el dashboard web.
+- React Native para la aplicación móvil.
+- ESP32-S3 para los dispositivos IoT.
+- Firebase Auth y Firebase Cloud Messaging.
+- Stripe para suscripciones B2B.
+- Cloudinary para contenido multimedia.
+- Sentry para monitoreo de errores.
 
-* /backend: Contiene el proyecto Django dockerizado, gestion de API, modelos de Supabase y webhooks de Stripe.
-* /frontend-web: Contiene el proyecto React para el dashboard de administradores de comercios.
-* /mobile-app: Contiene el proyecto React Native para la aplicacion del cliente final.
-* /iot-firmware: Contiene el codigo fuente para los dispositivos ESP32-S3.
+Estas tecnologías describen la dirección del producto; deben considerarse
+propuestas hasta que aparezcan sus configuraciones y dependencias en cada
+subproyecto.
 
-## Requisitos Previos
+## Documentación
 
-* Docker y Docker Compose (para despliegue local del backend).
-* Node.js (v18+) y gestor de paquetes (npm o yarn).
-* Entorno de desarrollo para React Native (Android Studio para la fase 1).
-* Variables de entorno configuradas para Stripe, Firebase, Supabase y Cloudinary.
+La especificación de requisitos del producto está disponible en
+[`docs/Benefy SRS.pdf`](./docs/Benefy%20SRS.pdf). La documentación específica de
+cada área se mantiene en el README de su carpeta.
+
+## Próximos pasos
+
+1. Definir la configuración y los servicios de desarrollo local en
+   `compose.yaml`.
+2. Inicializar el backend, el dashboard web, la aplicación móvil y los
+   componentes de IA e IoT.
+3. Añadir las variables de entorno y documentar su configuración sin incluir
+   secretos en el repositorio.
+
+## Requisitos previstos
+
+Cuando los subproyectos estén inicializados, se requerirán Docker y Docker
+Compose, Node.js 18 o superior, un entorno de desarrollo para React Native y
+las credenciales de los servicios externos definidos por cada componente.
