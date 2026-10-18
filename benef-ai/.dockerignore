@@ -1,0 +1,9 @@
+# Caché de Python
+__pycache__/
+*.py[cod]
+
+# Variables de entorno
+.env
+
+# Metadatos de git
+.git/

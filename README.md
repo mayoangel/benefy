@@ -5,8 +5,9 @@ programas de lealtad basados en puntos, sellos y cupones. También contempla
 colaboraciones de cross-marketing entre negocios y una experiencia de
 autoservicio para el cliente final.
 
-> **Estado actual:** el repositorio se encuentra en la fase de estructura
-> inicial. Las carpetas de aplicación todavía no contienen código ejecutable.
+> **Estado actual:** el backend (Django), el servicio de IA (FastAPI) y la
+> orquestación local (`compose.yaml`) ya tienen una base ejecutable. El
+> dashboard web, la aplicación móvil y el hardware todavía no contienen código.
 
 ## Estructura actual
 
@@ -21,10 +22,25 @@ autoservicio para el cliente final.
 
 Los archivos de configuración actuales son:
 
-- [`compose.yaml`](./compose.yaml): reservado para la orquestación local de
-  servicios; todavía no define servicios.
+- [`compose.yaml`](./compose.yaml): orquestación local de los servicios
+  `db` (PostgreSQL 15), `backend` (Django) y `benef-ai` (FastAPI).
 - [`.gitignore`](./.gitignore): exclusiones para Python, JavaScript,
   React Native, IoT y herramientas de desarrollo.
+
+## Inicio rápido (entorno local)
+
+1. Crea los archivos de entorno a partir de los ejemplos si aún no existen:
+   `.env`, `backend/.env` y `benef-ai/.env`.
+2. Levanta los servicios desde la raíz del repositorio:
+
+   ```bash
+   docker compose up --build
+   ```
+
+3. Verifica que los servicios respondan:
+   - Backend (Django): <http://localhost:8000>
+   - Servicio de IA (FastAPI): <http://localhost:5000>
+4. Detén la ejecución con `Ctrl + C`.
 
 ## Arquitectura prevista
 
@@ -60,15 +76,14 @@ cada área se mantiene en el README de su carpeta.
 
 ## Próximos pasos
 
-1. Definir la configuración y los servicios de desarrollo local en
-   `compose.yaml`.
-2. Inicializar el backend, el dashboard web, la aplicación móvil y los
-   componentes de IA e IoT.
-3. Añadir las variables de entorno y documentar su configuración sin incluir
-   secretos en el repositorio.
+1. Definir los primeros modelos de negocio y endpoints del backend.
+2. Inicializar el dashboard web, la aplicación móvil y los componentes de
+   hardware/IoT.
+3. Integrar la autenticación y los servicios externos (Stripe, Firebase,
+   Supabase).
 
 ## Requisitos previstos
 
-Cuando los subproyectos estén inicializados, se requerirán Docker y Docker
-Compose, Node.js 18 o superior, un entorno de desarrollo para React Native y
-las credenciales de los servicios externos definidos por cada componente.
+Para el entorno local actual solo se requieren Docker y Docker Compose. Los
+subproyectos pendientes (dashboard web, aplicación móvil y hardware)
+documentarán sus propios requisitos cuando se inicialicen.
