@@ -1,7 +1,6 @@
 # Frontend web
 
-Esta carpeta contendrá el dashboard web de Benefy para la administración de
-comercios afiliados.
+Dashboard web de Benefy para la administración de comercios afiliados.
 
 ## Responsabilidades previstas
 
@@ -11,9 +10,26 @@ comercios afiliados.
 
 ## Estado actual
 
-La carpeta está reservada para el proyecto React. Actualmente no contiene
-código, dependencias ni comandos de ejecución.
+Proyecto inicializado con React, TypeScript y Vite. La estructura base es
+`src/` (código fuente), `index.html` y `vite.config.ts`.
 
-## Tecnologías previstas
+Las variables de entorno usan el prefijo `VITE_` y Vite las carga
+automáticamente desde `frontend-web/.env` (generado a partir de
+`.env.example`); en el código se leen con `import.meta.env`.
 
-React y Tailwind CSS, sujetas a confirmación al inicializar el proyecto.
+## Cómo ejecutar
+
+```bash
+npm install
+npm run dev       # servidor de desarrollo en http://localhost:5173
+```
+
+Otros comandos disponibles:
+
+- `npm run build`: compilación de producción (`tsc -b` + `vite build`).
+- `npm run preview`: vista previa del build de producción.
+- `npm run lint`: análisis estático con oxlint.
+
+## Tecnologías
+
+React, TypeScript y Vite. Tailwind CSS está previsto para fases posteriores.

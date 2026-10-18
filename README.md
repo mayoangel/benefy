@@ -5,8 +5,10 @@ programas de lealtad basados en puntos, sellos y cupones. También contempla
 colaboraciones de cross-marketing entre negocios y una experiencia de
 autoservicio para el cliente final.
 
-> **Estado actual:** el repositorio se encuentra en la fase de estructura
-> inicial. Las carpetas de aplicación todavía no contienen código ejecutable.
+> **Estado actual:** el backend (Django), el servicio de IA (FastAPI), el
+> dashboard web (React + Vite), la aplicación móvil (Expo + TypeScript) y la
+> orquestación local (`compose.yaml`) ya tienen una base ejecutable. El
+> hardware todavía no contiene código.
 
 ## Estructura actual
 
@@ -21,10 +23,33 @@ autoservicio para el cliente final.
 
 Los archivos de configuración actuales son:
 
-- [`compose.yaml`](./compose.yaml): reservado para la orquestación local de
-  servicios; todavía no define servicios.
+- [`compose.yaml`](./compose.yaml): orquestación local de los servicios
+  `db` (PostgreSQL 15), `backend` (Django) y `benef-ai` (FastAPI).
 - [`.gitignore`](./.gitignore): exclusiones para Python, JavaScript,
   React Native, IoT y herramientas de desarrollo.
+
+## Inicio rápido (entorno local)
+
+1. Crea los archivos de entorno a partir de los ejemplos si aún no existen:
+   `.env`, `backend/.env`, `benef-ai/.env`, `frontend-web/.env` y
+   `mobile-app/.env`.
+2. Levanta los servicios de backend desde la raíz del repositorio:
+
+   ```bash
+   docker compose up --build
+   ```
+
+3. Verifica que los servicios respondan:
+   - Backend (Django): <http://localhost:8000>
+   - Servicio de IA (FastAPI): <http://localhost:5000>
+4. (Opcional) Arranca el dashboard web y la app móvil por separado:
+
+   ```bash
+   cd frontend-web && npm run dev      # http://localhost:5173
+   cd mobile-app && npm run start      # Metro en http://localhost:8081
+   ```
+
+5. Detén los servicios con `Ctrl + C`.
 
 ## Arquitectura prevista
 
@@ -60,15 +85,15 @@ cada área se mantiene en el README de su carpeta.
 
 ## Próximos pasos
 
-1. Definir la configuración y los servicios de desarrollo local en
-   `compose.yaml`.
-2. Inicializar el backend, el dashboard web, la aplicación móvil y los
-   componentes de IA e IoT.
-3. Añadir las variables de entorno y documentar su configuración sin incluir
-   secretos en el repositorio.
+1. Definir los modelos de negocio en la app `core` de Django y los primeros
+   endpoints de la API.
+2. Inicializar los componentes de hardware/IoT.
+3. Integrar la autenticación y los servicios externos (Stripe, Firebase,
+   Supabase).
 
-## Requisitos previstos
+## Requisitos
 
-Cuando los subproyectos estén inicializados, se requerirán Docker y Docker
-Compose, Node.js 18 o superior, un entorno de desarrollo para React Native y
-las credenciales de los servicios externos definidos por cada componente.
+- Docker y Docker Compose para el backend, el servicio de IA y PostgreSQL.
+- Node.js 22 o superior para el dashboard web y la aplicación móvil (probado
+  con Node v22.17.0). El hardware documentará sus requisitos cuando se
+  inicialice.

@@ -1,0 +1,7 @@
+# Microservicio de IA de Benefy (FastAPI + Uvicorn)
+fastapi==0.143.3
+uvicorn[standard]==0.54.0
+
+# Utilidades del servicio
+python-dotenv==1.2.4
+requests==2.34.2
