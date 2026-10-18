@@ -1,7 +1,6 @@
 # Aplicación móvil
 
-Esta carpeta contendrá la aplicación móvil de Benefy orientada al cliente
-final.
+Aplicación móvil de Benefy orientada al cliente final.
 
 ## Responsabilidades previstas
 
@@ -11,10 +10,23 @@ final.
 
 ## Estado actual
 
-La carpeta está reservada para el proyecto React Native. Actualmente no
-contiene código, dependencias ni comandos de ejecución.
+Proyecto inicializado con React Native y Expo (TypeScript, plantilla
+`blank-typescript`). El punto de entrada es `App.tsx`.
 
-## Tecnologías previstas
+Las variables de entorno usan el prefijo `EXPO_PUBLIC_` y Expo las carga
+desde `mobile-app/.env` (generado a partir de `.env.example`).
 
-React Native, con el entorno de desarrollo móvil que se defina al inicializar
-el proyecto.
+## Cómo ejecutar
+
+```bash
+npm run start     # Metro en http://localhost:8081
+```
+
+Desde el menú de Expo puedes abrir la app en Expo Go (dispositivo físico),
+un emulador de Android/iOS (`npm run android` / `npm run ios`) o la versión
+web (`npm run web`).
+
+## Tecnologías
+
+React Native y Expo (SDK 58). La navegación y el enrutado se definirán al
+iniciar el desarrollo de pantallas.

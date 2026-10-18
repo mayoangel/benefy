@@ -5,9 +5,10 @@ programas de lealtad basados en puntos, sellos y cupones. También contempla
 colaboraciones de cross-marketing entre negocios y una experiencia de
 autoservicio para el cliente final.
 
-> **Estado actual:** el backend (Django), el servicio de IA (FastAPI) y la
+> **Estado actual:** el backend (Django), el servicio de IA (FastAPI), el
+> dashboard web (React + Vite), la aplicación móvil (Expo + TypeScript) y la
 > orquestación local (`compose.yaml`) ya tienen una base ejecutable. El
-> dashboard web, la aplicación móvil y el hardware todavía no contienen código.
+> hardware todavía no contiene código.
 
 ## Estructura actual
 
@@ -30,8 +31,9 @@ Los archivos de configuración actuales son:
 ## Inicio rápido (entorno local)
 
 1. Crea los archivos de entorno a partir de los ejemplos si aún no existen:
-   `.env`, `backend/.env` y `benef-ai/.env`.
-2. Levanta los servicios desde la raíz del repositorio:
+   `.env`, `backend/.env`, `benef-ai/.env`, `frontend-web/.env` y
+   `mobile-app/.env`.
+2. Levanta los servicios de backend desde la raíz del repositorio:
 
    ```bash
    docker compose up --build
@@ -40,7 +42,14 @@ Los archivos de configuración actuales son:
 3. Verifica que los servicios respondan:
    - Backend (Django): <http://localhost:8000>
    - Servicio de IA (FastAPI): <http://localhost:5000>
-4. Detén la ejecución con `Ctrl + C`.
+4. (Opcional) Arranca el dashboard web y la app móvil por separado:
+
+   ```bash
+   cd frontend-web && npm run dev      # http://localhost:5173
+   cd mobile-app && npm run start      # Metro en http://localhost:8081
+   ```
+
+5. Detén los servicios con `Ctrl + C`.
 
 ## Arquitectura prevista
 
@@ -76,14 +85,15 @@ cada área se mantiene en el README de su carpeta.
 
 ## Próximos pasos
 
-1. Definir los primeros modelos de negocio y endpoints del backend.
-2. Inicializar el dashboard web, la aplicación móvil y los componentes de
-   hardware/IoT.
+1. Definir los modelos de negocio en la app `core` de Django y los primeros
+   endpoints de la API.
+2. Inicializar los componentes de hardware/IoT.
 3. Integrar la autenticación y los servicios externos (Stripe, Firebase,
    Supabase).
 
-## Requisitos previstos
+## Requisitos
 
-Para el entorno local actual solo se requieren Docker y Docker Compose. Los
-subproyectos pendientes (dashboard web, aplicación móvil y hardware)
-documentarán sus propios requisitos cuando se inicialicen.
+- Docker y Docker Compose para el backend, el servicio de IA y PostgreSQL.
+- Node.js 22 o superior para el dashboard web y la aplicación móvil (probado
+  con Node v22.17.0). El hardware documentará sus requisitos cuando se
+  inicialice.
