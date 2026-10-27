@@ -70,3 +70,10 @@ Thumbs.db
 # =========================
 *.log
 sentry-debug.meta
+
+# =========================
+# AI / Workflow / ML
+# =========================
+
+AGENTS.md
+CLAUDE.md
