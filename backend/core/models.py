@@ -231,7 +231,7 @@ class PlanSuscripcion(models.Model):
     status = models.BooleanField(default=True)
 
     def __str__(self):
-        return f"{self.nombre} ({self.get_intervalo_display()}) - ${self.precio}"
+        return f"{self.nombre} ({self.get_intervalo_display()})"
 
 ESTADOS_SUSCRIPCION = (
     ('activa', 'Activa'),
@@ -253,7 +253,7 @@ class Suscripcion(models.Model):
     plan = models.ForeignKey(PlanSuscripcion, on_delete=models.PROTECT)
 
     def __str__(self):
-        return f"{self.negocio.nombre} - {self.plan.nombre} ({self.get_estado_display()})"
+        return f"{self.negocio.nombre} - {self.plan.nombre} ({self.get_status_display()})"
 
 ESTADOS_PAGO = (
     ('pagado', 'Pagado'),
