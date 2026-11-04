@@ -1,58 +1,60 @@
-=========================
+# =========================
+# Variables de Entorno
+# =========================
+*.env
+.env
+.env.*
+!.env.example
+!.env.*.example
 
-Backend: Python / Django
-
-=========================
-
-pycache/
+# =========================
+# Backend: Python / Django
+# =========================
+__pycache__/
 *.py[cod]
 *$py.class
 *.sqlite3
-*.env
 .venv/
 venv/
 ENV/
 env/
 media/
 staticfiles/
+.pytest_cache/
+.coverage
 
-=========================
-
-Frontend: Node / React / React Native
-
-=========================
-
+# =========================
+# Frontend: Node / React / React Native
+# =========================
 node_modules/
-npm-debug.log
-yarn-error.log
-yarn-debug.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 .pnp
 .pnp.js
 build/
 dist/
 .expo/
+.expo-shared/
 *.jks
 *.keystore
 android/app/build/
 ios/build/
 
-=========================
-
-IoT / C++ / MicroPython
-
-=========================
-
+# =========================
+# IoT / Hardware (PlatformIO / ESP32)
+# =========================
+.pio/
+.pioenvs/
+.piolibdeps/
 *.bin
 *.elf
 *.map
 build-iot/
 
-=========================
-
-Configuraciones de SO y Editores
-
-=========================
-
+# =========================
+# Configuraciones de SO y Editores
+# =========================
 .DS_Store
 Thumbs.db
 .vscode/
@@ -63,11 +65,8 @@ Thumbs.db
 *.sln
 *.swp
 
-=========================
-
-Logs y Monitoreo local
-
-=========================
-
+# =========================
+# Logs y Monitoreo local
+# =========================
 *.log
 sentry-debug.meta

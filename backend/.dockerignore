@@ -1,0 +1,14 @@
+# Entorno virtual local (no debe entrar en la imagen ni en el contexto de build)
+.venv/
+venv/
+
+# Caché de Python
+__pycache__/
+*.py[cod]
+
+# Base de datos local y variables de entorno
+*.sqlite3
+.env
+
+# Metadatos de git
+.git/
