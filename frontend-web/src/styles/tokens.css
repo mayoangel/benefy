@@ -1,0 +1,22 @@
+:root {
+  font-family: "Inter", sans-serif;
+  color: #191c1e;
+  background: #f8fafc;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+
+  /* Colores de marca */
+  
+  --mint: #34d399;
+  --green: #0d9488;
+
+  /* Superficies y texto */
+  --muted: #626a71;
+  --surface: #f8fafc;
+  --surface-2: #f0f3f5;
+  --line: #e4e9ec;
+
+  /* Tipografía y efectos */
+  --heading: "Plus Jakarta Sans", sans-serif;
+  --shadow: 0 18px 55px rgba(20, 42, 63, 0.10);
+}
