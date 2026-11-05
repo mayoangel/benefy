@@ -243,7 +243,7 @@ ESTADOS_SUSCRIPCION = (
 
 class Suscripcion(models.Model):
     stripe_subscription_id = models.CharField(max_length=100, unique=True, db_index=True)
-    status = models.CharField(max_length=30, choices=ESTADOS_SUSCRIPCION, default=ESTADOS_SUSCRIPCION[3][1])
+    status = models.CharField(max_length=30, choices=ESTADOS_SUSCRIPCION, default=ESTADOS_SUSCRIPCION[3][0])
     periodo_actual_inicio = models.DateTimeField()
     periodo_actual_fin = models.DateTimeField()
     en_cancelacion = models.BooleanField(default=False)
@@ -291,7 +291,7 @@ TIPOS_NOTIFICACION = (
 class Notificacion(models.Model):
     titulo = models.CharField(max_length=150)
     cuerpo = models.TextField()
-    tipo = models.CharField(max_length=30, choices=TIPOS_NOTIFICACION, default=TIPOS_NOTIFICACION[4][1])
+    tipo = models.CharField(max_length=30, choices=TIPOS_NOTIFICACION, default=TIPOS_NOTIFICACION[4][0])
     fcm_token_destino = models.CharField(max_length=255, blank=True, null=True)
     leida = models.BooleanField(default=False)
     fecha_envio = models.DateTimeField(auto_now_add=True, auto_now=False, db_index=True)
