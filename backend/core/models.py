@@ -90,7 +90,7 @@ ROLES_COMERCIO = (
 class UsuarioNegocio(models.Model):
     usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
     negocio = models.ForeignKey(Negocio, on_delete=models.CASCADE)
-    sucursal = models.ForeignKey(Sucursal, on_delete=models.CASCADE)
+    sucursal = models.ForeignKey(Sucursal, on_delete=models.CASCADE, blank=True, null=True)
     rol_comercio = models.CharField(max_length=30, choices=ROLES_COMERCIO, default=ROLES_COMERCIO[0][0])
     status = models.BooleanField(default=True)
     fecha_registro = models.DateTimeField(auto_now_add=True, auto_now=False)
