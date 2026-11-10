@@ -1,3 +1,4 @@
+from django.shortcuts import get_object_or_404
 from rest_framework import generics
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -22,7 +23,7 @@ class UsuarioListAPIView(APIView):
 #Detail
 class UsuarioDetailAPIView(APIView):
     def get(self, request, pk):
-        usuario = models.Usuario.objects.get(pk=pk)
+        usuario = get_object_or_404(models.Usuario, pk=pk)
         data = serializers.UsuarioSerializerDetail(usuario).data
         return Response(data)
 
@@ -54,7 +55,7 @@ class CategoriaNegocioListAPIView(APIView):
 #Detail
 class CategoriaNegocioDetailAPIView(APIView):
     def get(self, request, pk):
-        categorianegocio = models.CategoriaNegocio.objects.get(pk=pk)
+        categorianegocio = get_object_or_404(models.CategoriaNegocio, pk=pk)
         data = serializers.CategoriaNegocioSerializerDetail(categorianegocio).data
         return Response(data)
 
@@ -86,7 +87,7 @@ class NegocioListAPIView(APIView):
 #Detail
 class NegocioDetailAPIView(APIView):
     def get(self, request, pk):
-        negocio = models.Negocio.objects.get(pk=pk)
+        negocio = get_object_or_404(models.Negocio, pk=pk)
         data = serializers.NegocioSerializerDetail(negocio).data
         return Response(data)
 
@@ -118,7 +119,7 @@ class SucursalListAPIView(APIView):
 #Detail
 class SucursalDetailAPIView(APIView):
     def get(self, request, pk):
-        sucursal = models.Sucursal.objects.get(pk=pk)
+        sucursal = get_object_or_404(models.Sucursal, pk=pk)
         data = serializers.SucursalSerializerDetail(sucursal).data
         return Response(data)
 
@@ -150,7 +151,7 @@ class UsuarioNegocioListAPIView(APIView):
 #Detail
 class UsuarioNegocioDetailAPIView(APIView):
     def get(self, request, pk):
-        usuarionegocio = models.UsuarioNegocio.objects.get(pk=pk)
+        usuarionegocio = get_object_or_404(models.UsuarioNegocio, pk=pk)
         data = serializers.UsuarioNegocioSerializerDetail(usuarionegocio).data
         return Response(data)
 
@@ -182,7 +183,7 @@ class DinamicaListAPIView(APIView):
 #Detail
 class DinamicaDetailAPIView(APIView):
     def get(self, request, pk):
-        dinamica = models.Dinamica.objects.get(pk=pk)
+        dinamica = get_object_or_404(models.Dinamica, pk=pk)
         data = serializers.DinamicaSerializerDetail(dinamica).data
         return Response(data)
 
@@ -214,7 +215,7 @@ class AlianzaListAPIView(APIView):
 #Detail
 class AlianzaDetailAPIView(APIView):
     def get(self, request, pk):
-        alianza = models.Alianza.objects.get(pk=pk)
+        alianza = get_object_or_404(models.Alianza, pk=pk)
         data = serializers.AlianzaSerializerDetail(alianza).data
         return Response(data)
 
@@ -246,7 +247,7 @@ class RecompensaListAPIView(APIView):
 #Detail
 class RecompensaDetailAPIView(APIView):
     def get(self, request, pk):
-        recompensa = models.Recompensa.objects.get(pk=pk)
+        recompensa = get_object_or_404(models.Recompensa, pk=pk)
         data = serializers.RecompensaSerializerDetail(recompensa).data
         return Response(data)
 
@@ -278,7 +279,7 @@ class RegistroActividadListAPIView(APIView):
 #Detail
 class RegistroActividadDetailAPIView(APIView):
     def get(self, request, pk):
-        registroactividad = models.RegistroActividad.objects.get(pk=pk)
+        registroactividad = get_object_or_404(models.RegistroActividad, pk=pk)
         data = serializers.RegistroActividadSerializerDetail(registroactividad).data
         return Response(data)
 
@@ -310,7 +311,7 @@ class ProgresoUsuarioListAPIView(APIView):
 #Detail
 class ProgresoUsuarioDetailAPIView(APIView):
     def get(self, request, pk):
-        progresousuario = models.ProgresoUsuario.objects.get(pk=pk)
+        progresousuario = get_object_or_404(models.ProgresoUsuario, pk=pk)
         data = serializers.ProgresoUsuarioSerializerDetail(progresousuario).data
         return Response(data)
 
@@ -342,7 +343,7 @@ class CuponUsuarioListAPIView(APIView):
 #Detail
 class CuponUsuarioDetailAPIView(APIView):
     def get(self, request, pk):
-        cuponusuario = models.CuponUsuario.objects.get(pk=pk)
+        cuponusuario = get_object_or_404(models.CuponUsuario, pk=pk)
         data = serializers.CuponUsuarioSerializerDetail(cuponusuario).data
         return Response(data)
 
@@ -374,7 +375,7 @@ class CanjeListAPIView(APIView):
 #Detail
 class CanjeDetailAPIView(APIView):
     def get(self, request, pk):
-        canje = models.Canje.objects.get(pk=pk)
+        canje = get_object_or_404(models.Canje, pk=pk)
         data = serializers.CanjeSerializerDetail(canje).data
         return Response(data)
 
@@ -406,7 +407,7 @@ class PlanSuscripcionListAPIView(APIView):
 #Detail
 class PlanSuscripcionDetailAPIView(APIView):
     def get(self, request, pk):
-        plansuscripcion = models.PlanSuscripcion.objects.get(pk=pk)
+        plansuscripcion = get_object_or_404(models.PlanSuscripcion, pk=pk)
         data = serializers.PlanSuscripcionSerializerDetail(plansuscripcion).data
         return Response(data)
 
@@ -438,7 +439,7 @@ class SuscripcionListAPIView(APIView):
 #Detail
 class SuscripcionDetailAPIView(APIView):
     def get(self, request, pk):
-        suscripcion = models.Suscripcion.objects.get(pk=pk)
+        suscripcion = get_object_or_404(models.Suscripcion, pk=pk)
         data = serializers.SuscripcionSerializerDetail(suscripcion).data
         return Response(data)
 
@@ -470,7 +471,7 @@ class PagoListAPIView(APIView):
 #Detail
 class PagoDetailAPIView(APIView):
     def get(self, request, pk):
-        pago = models.Pago.objects.get(pk=pk)
+        pago = get_object_or_404(models.Pago, pk=pk)
         data = serializers.PagoSerializerDetail(pago).data
         return Response(data)
 
@@ -502,7 +503,7 @@ class NotificacionListAPIView(APIView):
 #Detail
 class NotificacionDetailAPIView(APIView):
     def get(self, request, pk):
-        notificacion = models.Notificacion.objects.get(pk=pk)
+        notificacion = get_object_or_404(models.Notificacion, pk=pk)
         data = serializers.NotificacionSerializerDetail(notificacion).data
         return Response(data)
 

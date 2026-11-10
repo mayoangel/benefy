@@ -65,6 +65,10 @@ Thumbs.db
 *.sln
 *.swp
 
+# Instrucciones locales para asistentes de desarrollo
+AGENTS.md
+CLAUDE.md
+
 # =========================
 # Logs y Monitoreo local
 # =========================

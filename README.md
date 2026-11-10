@@ -5,10 +5,10 @@ programas de lealtad basados en puntos, sellos y cupones. También contempla
 colaboraciones de cross-marketing entre negocios y una experiencia de
 autoservicio para el cliente final.
 
-> **Estado actual:** el backend (Django), el servicio de IA (FastAPI), el
-> dashboard web (React + Vite), la aplicación móvil (Expo + TypeScript) y la
-> orquestación local (`compose.yaml`) ya tienen una base ejecutable. El
-> hardware todavía no contiene código.
+> **Estado actual:** el backend ya contiene el primer modelo de dominio,
+> migraciones y endpoints CRUD bajo `/api/v1`. El frontend web implementa la
+> landing pública; la aplicación móvil y Benef AI conservan una base ejecutable
+> sin flujos de producto completos. El hardware todavía no contiene código.
 
 ## Estructura actual
 
@@ -39,17 +39,23 @@ Los archivos de configuración actuales son:
    docker compose up --build
    ```
 
-3. Verifica que los servicios respondan:
+3. En otra terminal, aplica las migraciones de Django:
+
+   ```bash
+   docker compose exec backend python manage.py migrate
+   ```
+
+4. Verifica que los servicios respondan:
    - Backend (Django): <http://localhost:8000>
    - Servicio de IA (FastAPI): <http://localhost:5000>
-4. (Opcional) Arranca el dashboard web y la app móvil por separado:
+5. (Opcional) Arranca el frontend web y la app móvil por separado:
 
    ```bash
    cd frontend-web && npm run dev      # http://localhost:5173
    cd mobile-app && npm run start      # Metro en http://localhost:8081
    ```
 
-5. Detén los servicios con `Ctrl + C`.
+6. Detén los servicios con `Ctrl + C`.
 
 ## Arquitectura prevista
 
@@ -85,11 +91,11 @@ cada área se mantiene en el README de su carpeta.
 
 ## Próximos pasos
 
-1. Definir los modelos de negocio en la app `core` de Django y los primeros
-   endpoints de la API.
-2. Inicializar los componentes de hardware/IoT.
-3. Integrar la autenticación y los servicios externos (Stripe, Firebase,
-   Supabase).
+1. Integrar autenticación y aplicar permisos a los endpoints existentes.
+2. Proteger las operaciones de progreso y canje mediante servicios
+   transaccionales y pruebas de concurrencia.
+3. Conectar el dashboard y la aplicación móvil con el contrato de la API.
+4. Integrar los servicios externos solo después de estabilizar esos flujos.
 
 ## Requisitos
 

@@ -12,9 +12,10 @@ persistencia de datos y las integraciones con servicios externos.
 
 ## Estado actual
 
-El proyecto Django está inicializado con la estructura `config` (paquete de
-configuración del proyecto) y `manage.py`. `GET /` expone un endpoint de
-verificación de estado en JSON.
+El proyecto Django contiene el primer modelo relacional de Benefy, sus
+migraciones y endpoints CRUD bajo `/api/v1`. `GET /` expone un endpoint de
+verificación de estado en JSON. La autenticación de aplicación y la aplicación
+efectiva de permisos siguen pendientes.
 
 Las dependencias base (Django, Django REST Framework, django-cors-headers,
 psycopg2-binary y python-dotenv) están declaradas en `requirements.txt`.
@@ -25,13 +26,29 @@ Con Docker (recomendado, desde la raíz del repositorio):
 
 ```bash
 docker compose up --build backend
+docker compose exec backend python manage.py migrate
+docker compose exec backend python manage.py test
 ```
 
 En local (requiere un PostgreSQL accesible desde `backend/.env`):
 
 ```bash
+docker compose up -d db
 pip install -r requirements.txt
+python manage.py migrate
 python manage.py runserver 0.0.0.0:8000
+```
+
+Cuando Django se ejecuta directamente desde Windows, configura
+`DB_HOST=localhost`. El nombre `db` solo se resuelve dentro de la red de
+Docker Compose.
+
+## Verificación
+
+```bash
+python manage.py check
+python manage.py makemigrations --check --dry-run
+python manage.py test
 ```
 
 ## Configuración

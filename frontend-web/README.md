@@ -1,6 +1,7 @@
 # Frontend web
 
-Dashboard web de Benefy para la administración de comercios afiliados.
+Frontend web de Benefy. Actualmente implementa la landing pública; el
+dashboard administrativo continúa como una responsabilidad prevista.
 
 ## Responsabilidades previstas
 
@@ -10,8 +11,8 @@ Dashboard web de Benefy para la administración de comercios afiliados.
 
 ## Estado actual
 
-Proyecto inicializado con React, TypeScript y Vite. La estructura base es
-`src/` (código fuente), `index.html` y `vite.config.ts`.
+Proyecto con React, React Router, TypeScript y Vite. Incluye las páginas de
+inicio, información y precios.
 
 Las variables de entorno usan el prefijo `VITE_` y Vite las carga
 automáticamente desde `frontend-web/.env` (generado a partir de
@@ -20,15 +21,15 @@ automáticamente desde `frontend-web/.env` (generado a partir de
 ## Cómo ejecutar
 
 ```bash
-npm install
+npm ci
 npm run dev       # servidor de desarrollo en http://localhost:5173
 ```
 
 Otros comandos disponibles:
 
-- `npm run build`: compilación de producción (`tsc -b` + `vite build`).
+- `npm run typecheck`: verificación de tipos sin generar archivos.
+- `npm run build`: compilación de producción con Vite.
 - `npm run preview`: vista previa del build de producción.
-- `npm run lint`: análisis estático con oxlint.
 
 ## Tecnologías
 
