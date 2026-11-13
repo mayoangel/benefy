@@ -5,7 +5,7 @@ from django.contrib import admin
 from django.test import SimpleTestCase, TestCase
 from django.utils import timezone
 
-from core import models
+from core import models, urls
 
 
 class HealthCheckTests(SimpleTestCase):
@@ -21,28 +21,53 @@ class HealthCheckTests(SimpleTestCase):
 
 class DetailNotFoundTests(TestCase):
     detail_paths = (
-        "/api/v1/usuario/detail/999999/",
-        "/api/v1/categoria-negocio/detail/999999/",
-        "/api/v1/negocio/detail/999999/",
-        "/api/v1/sucursal/detail/999999/",
-        "/api/v1/usuario-negocio/detail/999999/",
-        "/api/v1/dinamica/detail/999999/",
-        "/api/v1/alianza/detail/999999/",
-        "/api/v1/recompensa/detail/999999/",
-        "/api/v1/registro-actividad/detail/999999/",
-        "/api/v1/progreso-usuario/detail/999999/",
-        "/api/v1/cupon-usuario/detail/999999/",
-        "/api/v1/canje/detail/999999/",
-        "/api/v1/plan-suscripcion/detail/999999/",
-        "/api/v1/suscripcion/detail/999999/",
-        "/api/v1/pago/detail/999999/",
-        "/api/v1/notificacion/detail/999999/",
+        "/api/v1/usuario/detalle/999999/",
+        "/api/v1/categoria-negocio/detalle/999999/",
+        "/api/v1/negocio/detalle/999999/",
+        "/api/v1/sucursal/detalle/999999/",
+        "/api/v1/usuario-negocio/detalle/999999/",
+        "/api/v1/dinamica/detalle/999999/",
+        "/api/v1/alianza/detalle/999999/",
+        "/api/v1/recompensa/detalle/999999/",
+        "/api/v1/registro-actividad/detalle/999999/",
+        "/api/v1/progreso-usuario/detalle/999999/",
+        "/api/v1/cupon-usuario/detalle/999999/",
+        "/api/v1/canje/detalle/999999/",
+        "/api/v1/plan-suscripcion/detalle/999999/",
+        "/api/v1/suscripcion/detalle/999999/",
+        "/api/v1/pago/detalle/999999/",
+        "/api/v1/notificacion/detalle/999999/",
     )
 
     def test_detalles_inexistentes_responden_404(self):
         for path in self.detail_paths:
             with self.subTest(path=path):
                 self.assertEqual(self.client.get(path).status_code, 404)
+
+
+class UrlLanguageTests(SimpleTestCase):
+    acciones_ingles = {"create", "list", "detail", "update", "delete"}
+    acciones_espanol = ("crear", "listar", "detalle", "actualizar", "eliminar")
+
+    def test_rutas_y_nombres_de_url_estan_en_espanol(self):
+        self.assertEqual(len(urls.urlpatterns), 80)
+
+        rutas = [str(pattern.pattern) for pattern in urls.urlpatterns]
+        nombres = [pattern.name for pattern in urls.urlpatterns]
+
+        for ruta, nombre in zip(rutas, nombres):
+            with self.subTest(ruta=ruta):
+                segmentos_ruta = set(ruta.strip("/").split("/"))
+                segmentos_nombre = set(nombre.split("-"))
+                self.assertFalse(self.acciones_ingles & segmentos_ruta)
+                self.assertFalse(self.acciones_ingles & segmentos_nombre)
+
+        for accion in self.acciones_espanol:
+            with self.subTest(accion=accion):
+                self.assertEqual(
+                    sum(f"/{accion}/" in f"/{ruta}" for ruta in rutas),
+                    16,
+                )
 
 
 class ModelStringTests(SimpleTestCase):
