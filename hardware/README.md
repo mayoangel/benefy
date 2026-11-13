@@ -1,15 +1,17 @@
 # Hardware e IoT
 
-Esta carpeta contendrá el firmware y la integración de los dispositivos
-inteligentes de Benefy, incluyendo microcontroladores ESP32-S3.
+Carpeta reservada para estaciones y dispositivos Benefy basados en ESP32-S3.
+Actualmente solo contiene este README: no hay firmware, esquemas electrónicos,
+dependencias, pruebas ni comandos de compilación o carga.
 
-## Responsabilidades previstas
+El [SRS](../docs/Benefy%20SRS.pdf) propone registro QR/NFC e interacción con
+asistentes mediante dispositivos físicos. Esas interfaces todavía no están
+implementadas en hardware ni en Benef AI.
 
-- Registrar el firmware de las estaciones y dispositivos IoT.
-- Definir la comunicación entre el hardware y los servicios de Benefy.
-- Documentar el proceso de compilación, carga y pruebas en dispositivos.
+Antes de incorporar firmware se deben definir el protocolo con Django, la
+identidad de cada dispositivo, los permisos de negocio/sucursal y los mecanismos
+de validación de operaciones. No se deben distribuir credenciales PostgreSQL,
+contraseñas de usuarios ni claves secretas de Supabase en los dispositivos.
 
-## Estado actual
-
-La carpeta está reservada para el código de hardware. Actualmente no contiene
-firmware, esquemas ni comandos de ejecución.
+El backend actual y sus limitaciones están descritos en [API](../docs/api.md)
+y [estado de implementación](../docs/estado-implementacion.md).

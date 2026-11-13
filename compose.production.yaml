@@ -1,0 +1,35 @@
+# Archivo independiente: no combinar con compose.yaml.
+name: benefy-production
+
+services:
+  backend:
+    build: ./backend
+    command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --access-logfile - --error-logfile -
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-8001}:8000"
+    environment:
+      ENVIRONMENT: production
+      DEBUG: "False"
+      SECRET_KEY: ${SECRET_KEY:?Configura SECRET_KEY en backend/.env.production}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:?Configura ALLOWED_HOSTS}
+      DB_HOST: ${DB_HOST:?Configura DB_HOST de Supabase}
+      DB_PORT: ${DB_PORT:?Configura DB_PORT}
+      DB_NAME: ${DB_NAME:?Configura DB_NAME}
+      DB_USER: ${DB_USER:?Configura DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD:?Configura DB_PASSWORD}
+      DB_SSLMODE: require
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-}
+      SUPABASE_URL: ${SUPABASE_URL:-}
+      SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY:-}
+
+  benef-ai:
+    build: ./benef-ai
+    command: uvicorn main:app --host 0.0.0.0 --port 5000
+    restart: unless-stopped
+    expose:
+      - "5000"
+    environment:
+      ENVIRONMENT: production
+      BACKEND_API_URL: http://backend:8000/api/v1

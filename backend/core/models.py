@@ -1,8 +1,7 @@
 import uuid
+
 from django.db import models
 from django.utils.text import slugify
-from django.core.validators import MinValueValidator, MaxValueValidator
-from django.core.exceptions import ValidationError
 
 # USUARIO
 ROLES = (
@@ -12,7 +11,10 @@ ROLES = (
 )
 
 class Usuario(models.Model):
-    firebase_uid = models.CharField(max_length=128, unique=True)
+    # Se conserva el identificador anterior para una vinculación manual auditada.
+    legacy_firebase_uid = models.CharField(max_length=128, unique=True, null=True, blank=True, editable=False)
+    supabase_uid = models.UUIDField(unique=True, null=True, blank=True, editable=False)
+    is_active = models.BooleanField(default=True)
     nombre = models.CharField(max_length=100)
     apellido = models.CharField(max_length=100)
     telefono = models.CharField(max_length=20, blank=True, null=True)
@@ -25,6 +27,14 @@ class Usuario(models.Model):
 
     def __str__(self):
         return self.nombre
+
+    @property
+    def is_authenticated(self):
+        return self.is_active and self.supabase_uid is not None
+
+    @property
+    def is_anonymous(self):
+        return False
     
 class CategoriaNegocio(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
@@ -90,13 +100,16 @@ ROLES_COMERCIO = (
 class UsuarioNegocio(models.Model):
     usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
     negocio = models.ForeignKey(Negocio, on_delete=models.CASCADE)
-    sucursal = models.ForeignKey(Sucursal, on_delete=models.CASCADE)
+    sucursal = models.ForeignKey(Sucursal, on_delete=models.CASCADE, blank=True, null=True)
     rol_comercio = models.CharField(max_length=30, choices=ROLES_COMERCIO, default=ROLES_COMERCIO[0][0])
     status = models.BooleanField(default=True)
     fecha_registro = models.DateTimeField(auto_now_add=True, auto_now=False)
 
     def __str__(self):
-        return f"{self.usuario.email} - {self.negocio.nombre} ({self.get_rol_negocio_display()})"
+        return (
+            f"{self.usuario.correo} - {self.negocio.nombre} "
+            f"({self.get_rol_comercio_display()})"
+        )
 
 TIPOS_DINAMICAS = (
     ('puntos', 'Puntos para compras'),
@@ -118,7 +131,7 @@ class Dinamica(models.Model):
     negocio = models.ForeignKey(Negocio, on_delete=models.CASCADE)
 
     def __str__(self):
-        return f"{self.nombre} ({self.get_tipo_programa_display()}) - {self.negocio.nombre}"
+        return f"{self.nombre} ({self.get_tipo_display()}) - {self.negocio.nombre}"
 
 ESTADOS_ALIANZA = (
     ('pendiente', 'Pendiente de aprobación'),
@@ -138,7 +151,10 @@ class Alianza(models.Model):
     fecha_respuesta = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
-        return f"Alianza: {self.negocio1.nombre} -> {self.negocio2.nombre} ({self.estado})"
+        return (
+            f"Alianza: {self.negocio1.nombre} -> {self.negocio2.nombre} "
+            f"({self.get_status_display()})"
+        )
 
 TIPOS_RECOMPENSAS = (
     ('gratis', 'Producto/servicio gratis'),
@@ -181,7 +197,10 @@ class RegistroActividad(models.Model):
     fecha = models.DateTimeField(auto_now_add=True, auto_now=False, db_index=True)
 
     def __str__(self):
-        return f"{self.usuario.email} en {self.sucursal.nombre} ({self.fecha_hora.strftime('%d/%m/%Y %H:%M')})"
+        return (
+            f"{self.usuario.correo} en {self.sucursal.nombre} "
+            f"({self.fecha.strftime('%d/%m/%Y %H:%M')})"
+        )
 
 class ProgresoUsuario(models.Model):
     usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
@@ -191,7 +210,7 @@ class ProgresoUsuario(models.Model):
     fecha_ultimo_movimiento = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.usuario.email} - {self.dinamica.nombre}: {self.saldo_acumulado}"
+        return f"{self.usuario.correo} - {self.dinamica.nombre}: {self.saldo_acumulado}"
 
 ESTADOS_CUPON = (
     ('disponible', 'Disponible'),
@@ -208,13 +227,19 @@ class CuponUsuario(models.Model):
     status = models.CharField(max_length=30, choices=ESTADOS_CUPON, default=ESTADOS_CUPON[0][0])
     
     def __str__(self):
-        return f"{self.recompensa.titulo} ({self.usuario.email}) - {self.get_estado_display()}"
+        return (
+            f"{self.recompensa.titulo} ({self.usuario.correo}) - "
+            f"{self.get_status_display()}"
+        )
 
 class Canje(models.Model):
     cupon = models.ForeignKey(CuponUsuario, on_delete=models.CASCADE)
     sucursal = models.ForeignKey(Sucursal, on_delete=models.CASCADE)
     validado_por = models.ForeignKey(Usuario, on_delete=models.SET_NULL, null=True, blank=True)
     fecha = models.DateTimeField(auto_now_add=True, auto_now=False, db_index=True)
+
+    def __str__(self):
+        return f"Canje de {self.cupon} en {self.sucursal.nombre}"
 
 INTERVALOS_FACTURACION = (
     ('mensual', 'Mensual'),
@@ -243,7 +268,7 @@ ESTADOS_SUSCRIPCION = (
 
 class Suscripcion(models.Model):
     stripe_subscription_id = models.CharField(max_length=100, unique=True, db_index=True)
-    status = models.CharField(max_length=30, choices=ESTADOS_SUSCRIPCION, default=ESTADOS_SUSCRIPCION[3][1])
+    status = models.CharField(max_length=30, choices=ESTADOS_SUSCRIPCION, default=ESTADOS_SUSCRIPCION[3][0])
     periodo_actual_inicio = models.DateTimeField()
     periodo_actual_fin = models.DateTimeField()
     en_cancelacion = models.BooleanField(default=False)
@@ -278,7 +303,10 @@ class Pago(models.Model):
     suscripcion = models.ForeignKey(Suscripcion, on_delete=models.PROTECT)
 
     def __str__(self):
-        return f"Pago #{self.stripe_invoice_id} - {self.negocio.nombre} (${self.monto} {self.moneda})"
+        return (
+            f"Pago #{self.stripe_invoice_id} - {self.negocio.nombre} "
+            f"(${self.monto} {self.divisa})"
+        )
 
 TIPOS_NOTIFICACION = (
     ('alianza', 'Cupón de alianza desbloqueado'),
@@ -291,11 +319,16 @@ TIPOS_NOTIFICACION = (
 class Notificacion(models.Model):
     titulo = models.CharField(max_length=150)
     cuerpo = models.TextField()
-    tipo = models.CharField(max_length=30, choices=TIPOS_NOTIFICACION, default=TIPOS_NOTIFICACION[4][1])
+    tipo = models.CharField(max_length=30, choices=TIPOS_NOTIFICACION, default=TIPOS_NOTIFICACION[4][0])
     fcm_token_destino = models.CharField(max_length=255, blank=True, null=True)
     leida = models.BooleanField(default=False)
     fecha_envio = models.DateTimeField(auto_now_add=True, auto_now=False, db_index=True)
     usuario = models.ForeignKey(Usuario, on_delete=models.SET_NULL, null=True, blank=True)
 
     def __str__(self):
-        return f"Push para {self.usuario.email}: {self.titulo}"
+        destinatario = (
+            self.usuario.correo
+            if self.usuario is not None
+            else self.fcm_token_destino or "sin destinatario"
+        )
+        return f"Push para {destinatario}: {self.titulo}"

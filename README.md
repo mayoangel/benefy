@@ -1,99 +1,137 @@
 # Benefy
 
-Benefy es una plataforma SaaS B2B para que los negocios diseñen y gestionen
-programas de lealtad basados en puntos, sellos y cupones. También contempla
-colaboraciones de cross-marketing entre negocios y una experiencia de
-autoservicio para el cliente final.
+Benefy es una plataforma SaaS de lealtad para comercios y consumidores, con
+programas de puntos, sellos y cupones. El repositorio contiene subproyectos
+independientes; no existe un gestor de paquetes ni un comando de ejecución
+único para todo el producto.
 
-> **Estado actual:** el backend (Django), el servicio de IA (FastAPI), el
-> dashboard web (React + Vite), la aplicación móvil (Expo + TypeScript) y la
-> orquestación local (`compose.yaml`) ya tienen una base ejecutable. El
-> hardware todavía no contiene código.
+## Estado actual
 
-## Estructura actual
+| Componente | Implementado | Pendiente |
+| --- | --- | --- |
+| Backend | Django 5.2 + DRF, 16 modelos, cuatro migraciones de `core`, 82 rutas API, permisos por negocio/sucursal y Django Admin | Servicios completos de acumulación, emisión y canje; analítica y webhooks |
+| Identidad | Verificación remota de Supabase Auth y perfiles/roles en Django | Login y gestión de sesión en los clientes |
+| Web | Landing React 18 + Vite: Inicio, Nosotros y Precios | Dashboard administrativo y consumo de API |
+| Móvil | Plantilla Expo SDK 58, React Native y TypeScript | Navegación, pantallas, Auth, QR/NFC y cliente API |
+| Benef AI | FastAPI y endpoint de estado | Agente, proveedor LLM, herramientas y comunicación autenticada con Django |
+| Hardware | Carpeta de documentación | Firmware ESP32-S3 e integración física |
 
-| Carpeta | Propósito |
+El CRUD existente no equivale a un flujo de lealtad terminado: registrar una
+actividad no actualiza automáticamente el progreso ni emite cupones; crear
+un canje no cambia automáticamente el estado del cupón ni evita carreras
+concurrentes. Consulta [estado y correspondencia con el SRS](./docs/estado-implementacion.md).
+
+## Estructura
+
+| Ruta | Entrada y propósito |
 | --- | --- |
-| [`backend`](./backend/README.md) | API, lógica de negocio, persistencia e integraciones del servidor. |
-| [`benef-ai`](./benef-ai/README.md) | Componentes y servicios de inteligencia artificial de Benefy. |
-| [`docs`](./docs/README.md) | Especificaciones y documentación funcional del producto. |
-| [`frontend-web`](./frontend-web/README.md) | Dashboard web para la administración de comercios. |
-| [`hardware`](./hardware/README.md) | Firmware e integración de dispositivos IoT y ESP32-S3. |
-| [`mobile-app`](./mobile-app/README.md) | Aplicación móvil para clientes finales y gestión de recompensas. |
+| [backend/](./backend/README.md) | `manage.py`, `config/urls.py` y app `core/`: API y persistencia |
+| [frontend-web/](./frontend-web/README.md) | `src/main.tsx` → `src/App.tsx`: landing pública |
+| [mobile-app/](./mobile-app/README.md) | `index.ts` → `App.tsx`: aplicación de consumidores |
+| [benef-ai/](./benef-ai/README.md) | `main.py`: servicio IA en preparación |
+| [hardware/](./hardware/README.md) | Futuro firmware ESP32-S3 |
+| [docs/](./docs/README.md) | Guías técnicas y SRS revisión 1.0 |
+| [compose.yaml](./compose.yaml) | Desarrollo: PostgreSQL local, backend y Benef AI |
+| [compose.production.yaml](./compose.production.yaml) | Producción: backend con Supabase PostgreSQL y Benef AI interno |
 
-Los archivos de configuración actuales son:
+## Inicio rápido de desarrollo
 
-- [`compose.yaml`](./compose.yaml): orquestación local de los servicios
-  `db` (PostgreSQL 15), `backend` (Django) y `benef-ai` (FastAPI).
-- [`.gitignore`](./.gitignore): exclusiones para Python, JavaScript,
-  React Native, IoT y herramientas de desarrollo.
+Requisitos: Docker con Compose v2 para los servicios y npm/Node.js para los
+clientes. Los proyectos Node usan sus propios `package-lock.json`; utiliza
+`npm ci`. No hay CI ni un comando global de lint/pruebas.
 
-## Inicio rápido (entorno local)
+Desde la raíz, crea los archivos de entorno que no existan:
 
-1. Crea los archivos de entorno a partir de los ejemplos si aún no existen:
-   `.env`, `backend/.env`, `benef-ai/.env`, `frontend-web/.env` y
-   `mobile-app/.env`.
-2. Levanta los servicios de backend desde la raíz del repositorio:
+| Archivo real | Plantilla | Uso |
+| --- | --- | --- |
+| `.env` | [.env.example](./.env.example) | Credenciales del PostgreSQL local para Compose |
+| `backend/.env` | [backend/.env.example](./backend/.env.example) | Settings locales y conexión con Supabase Auth |
+| `backend/.env.production` | [backend/.env.production.example](./backend/.env.production.example) | Variables de producción; no necesarias para iniciar desarrollo |
+| `benef-ai/.env` | [benef-ai/.env.example](./benef-ai/.env.example) | Entorno del servicio; integraciones aún sin uso |
+| `frontend-web/.env` | [frontend-web/.env.example](./frontend-web/.env.example) | Variables públicas web previstas |
+| `mobile-app/.env` | [mobile-app/.env.example](./mobile-app/.env.example) | Variables públicas móviles previstas |
 
-   ```bash
-   docker compose up --build
-   ```
+No sobrescribas archivos reales al copiar plantillas. Configura
+`SUPABASE_URL` y `SUPABASE_PUBLISHABLE_KEY` en el backend para usar rutas
+autenticadas. El proveedor Auth requiere internet también durante desarrollo.
 
-3. Verifica que los servicios respondan:
-   - Backend (Django): <http://localhost:8000>
-   - Servicio de IA (FastAPI): <http://localhost:5000>
-4. (Opcional) Arranca el dashboard web y la app móvil por separado:
+```bash
+docker compose -f compose.yaml config --quiet
+docker compose -f compose.yaml up -d --build
+docker compose -f compose.yaml exec backend python manage.py migrate
+docker compose -f compose.yaml exec backend python manage.py check
+docker compose -f compose.yaml exec backend python manage.py test --noinput
+```
 
-   ```bash
-   cd frontend-web && npm run dev      # http://localhost:5173
-   cd mobile-app && npm run start      # Metro en http://localhost:8081
-   ```
+URLs locales: backend en <http://localhost:8000/>, Admin en
+<http://localhost:8000/admin/>, Benef AI en <http://localhost:5000/>.
+Los health checks no verifican las conexiones con PostgreSQL o Supabase Auth.
 
-5. Detén los servicios con `Ctrl + C`.
+Para crear una cuenta staff del Admin de Django:
 
-## Arquitectura prevista
+```bash
+docker compose -f compose.yaml exec backend python manage.py createsuperuser
+```
 
-1. **Backend:** API centralizada para usuarios, comercios, programas de
-   lealtad, transacciones, recompensas y webhooks.
-2. **Dashboard web:** administración de comercios, métricas y configuración de
-   campañas.
-3. **Aplicación móvil:** interacción del cliente con códigos QR/NFC y
-   recompensas.
-4. **IA e IoT:** asistentes y estaciones inteligentes basadas en ESP32-S3.
+Esa cuenta es distinta de una identidad de Supabase y del rol Benefy
+`admin_sistema`. Consulta [autenticación](./docs/autenticacion.md).
 
-## Tecnologías previstas
+Ejecuta cada cliente en su propia terminal, desde su carpeta:
 
-- Python, Django y Django REST Framework.
-- PostgreSQL mediante Supabase.
-- React y Tailwind CSS para el dashboard web.
-- React Native para la aplicación móvil.
-- ESP32-S3 para los dispositivos IoT.
-- Firebase Auth y Firebase Cloud Messaging.
-- Stripe para suscripciones B2B.
-- Cloudinary para contenido multimedia.
-- Sentry para monitoreo de errores.
+```bash
+cd frontend-web
+npm ci
+npm run dev
+```
 
-Estas tecnologías describen la dirección del producto; deben considerarse
-propuestas hasta que aparezcan sus configuraciones y dependencias en cada
-subproyecto.
+```bash
+cd mobile-app
+npm ci
+npm run start
+```
 
-## Documentación
+Detén los clientes con Ctrl+C y los servicios Docker con:
 
-La especificación de requisitos del producto está disponible en
-[`docs/Benefy SRS.pdf`](./docs/Benefy%20SRS.pdf). La documentación específica de
-cada área se mantiene en el README de su carpeta.
+```bash
+docker compose -f compose.yaml down
+```
 
-## Próximos pasos
+El volumen de PostgreSQL se conserva. Evita `down -v` si necesitas sus datos.
+Si otro proyecto usa 5432, 8000 o 5000, resuelve el conflicto antes del inicio.
 
-1. Definir los modelos de negocio en la app `core` de Django y los primeros
-   endpoints de la API.
-2. Inicializar los componentes de hardware/IoT.
-3. Integrar la autenticación y los servicios externos (Stripe, Firebase,
-   Supabase).
+## Producción y selección de base de datos
 
-## Requisitos
+Desarrollo fija PostgreSQL en `db:5432`. Producción toma los parámetros
+`DB_*` de `backend/.env.production`, usa SSL obligatorio y Gunicorn.
+Los modelos y archivos de migraciones son los mismos; los datos de ambos
+entornos no se sincronizan.
 
-- Docker y Docker Compose para el backend, el servicio de IA y PostgreSQL.
-- Node.js 22 o superior para el dashboard web y la aplicación móvil (probado
-  con Node v22.17.0). El hardware documentará sus requisitos cuando se
-  inicialice.
+```bash
+docker compose --env-file backend/.env.production -f compose.production.yaml config --quiet
+docker compose --env-file backend/.env.production -f compose.production.yaml up -d --build
+```
+
+El backend de producción se publica solo en `127.0.0.1:8001` por defecto;
+Benef AI no publica puertos en el host. Estos contenedores usan el proyecto
+`benefy-production`, separado del desarrollo. No combines los dos Compose.
+
+Consulta la [guía del backend](./backend/README.md) para migraciones manuales,
+comprobación de conexión, secretos y pasos de despliegue público. Iniciar
+contenedores no configura dominio, HTTPS, estáticos ni aplica migraciones.
+
+## Documentación y convenciones
+
+- [API actual](./docs/api.md): rutas y métodos implementados.
+- [Autenticación y permisos](./docs/autenticacion.md): Supabase Auth, perfiles y roles.
+- [Estado y SRS](./docs/estado-implementacion.md): funcionalidades existentes y pendientes.
+- [SRS original](./docs/Benefy%20SRS.pdf): requisitos de producto; no certifica implementación.
+
+Las guías y comentarios nuevos se escriben en español; los identificadores
+de código, en inglés. Se conservan los nombres de dominio y las rutas en
+español existentes. Python usa dependencias fijadas en `requirements.txt`;
+los clientes usan npm y lockfiles propios.
+
+Los archivos reales de entorno están ignorados por Git. Los ejemplos solo
+deben contener valores públicos, placeholders o credenciales exclusivas de
+desarrollo. Los prefijos `VITE_` y `EXPO_PUBLIC_` exponen valores al cliente;
+no incluyas contraseñas PostgreSQL, claves secretas ni tokens de sesión.
