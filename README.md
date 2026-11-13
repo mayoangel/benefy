@@ -78,7 +78,9 @@ para los comandos de inicio, migraciones, verificación y manejo de secretos.
 - React y Tailwind CSS para el dashboard web.
 - React Native para la aplicación móvil.
 - ESP32-S3 para los dispositivos IoT.
-- Firebase Auth y Firebase Cloud Messaging.
+- Supabase Auth para autenticación y Django para permisos. Consulta
+  [autenticación y permisos](./docs/autenticacion.md).
+- Firebase Cloud Messaging queda pospuesto hasta el trabajo de la app móvil.
 - Stripe para suscripciones B2B.
 - Cloudinary para contenido multimedia.
 - Sentry para monitoreo de errores.
@@ -95,7 +97,7 @@ cada área se mantiene en el README de su carpeta.
 
 ## Próximos pasos
 
-1. Integrar autenticación y aplicar permisos a los endpoints existentes.
+1. Configurar Supabase Auth en cada entorno y conectar las sesiones de los clientes.
 2. Proteger las operaciones de progreso y canje mediante servicios
    transaccionales y pruebas de concurrencia.
 3. Conectar el dashboard y la aplicación móvil con el contrato de la API.

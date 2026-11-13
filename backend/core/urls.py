@@ -5,6 +5,8 @@ from core import views
 app_name = "core"
 
 urlpatterns = [
+    path("v1/autenticacion/perfil/", views.PerfilAPIView.as_view(), name="autenticacion-perfil"),
+    path("v1/usuario/rol/<int:pk>/", views.UsuarioRolAPIView.as_view(), name="usuario-rol"),
     # Usuario URLs
     path("v1/usuario/crear/", views.UsuarioCreateAPIView.as_view(), name="usuario-crear"),
     path("v1/usuarios/listar/", views.UsuarioListAPIView.as_view(), name="usuarios-listar"),

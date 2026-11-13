@@ -14,8 +14,10 @@ persistencia de datos y las integraciones con servicios externos.
 
 El proyecto Django contiene el primer modelo relacional de Benefy, sus
 migraciones y endpoints CRUD bajo `/api/v1`. `GET /` expone un endpoint de
-verificación de estado en JSON. La autenticación de aplicación y la aplicación
-efectiva de permisos siguen pendientes.
+verificación de estado en JSON. La API valida las sesiones con Supabase Auth
+y aplica roles y permisos con los datos de Django. Consulta la
+[guía de autenticación](../docs/autenticacion.md) para configurar Supabase,
+aplicar la migración de identidad y probar el flujo completo.
 
 Las dependencias base (Django, Django REST Framework, django-cors-headers,
 psycopg2-binary y python-dotenv) están declaradas en `requirements.txt`.

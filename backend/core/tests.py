@@ -1,9 +1,11 @@
 from datetime import timedelta
 from decimal import Decimal
+from uuid import uuid4
 
 from django.contrib import admin
 from django.test import SimpleTestCase, TestCase
 from django.utils import timezone
+from rest_framework.test import APIClient
 
 from core import models, urls
 
@@ -20,6 +22,14 @@ class HealthCheckTests(SimpleTestCase):
 
 
 class DetailNotFoundTests(TestCase):
+    def setUp(self):
+        user = models.Usuario.objects.create(
+            supabase_uid=uuid4(), nombre='Admin', apellido='Prueba',
+            correo='admin@example.com', rol='admin_sistema',
+        )
+        self.client = APIClient()
+        self.client.force_authenticate(user)
+
     detail_paths = (
         "/api/v1/usuario/detalle/999999/",
         "/api/v1/categoria-negocio/detalle/999999/",
@@ -50,7 +60,7 @@ class UrlLanguageTests(SimpleTestCase):
     acciones_espanol = ("crear", "listar", "detalle", "actualizar", "eliminar")
 
     def test_rutas_y_nombres_de_url_estan_en_espanol(self):
-        self.assertEqual(len(urls.urlpatterns), 80)
+        self.assertEqual(len(urls.urlpatterns), 82)
 
         rutas = [str(pattern.pattern) for pattern in urls.urlpatterns]
         nombres = [pattern.name for pattern in urls.urlpatterns]
@@ -74,7 +84,7 @@ class ModelStringTests(SimpleTestCase):
     def setUp(self):
         self.usuario = models.Usuario(
             pk=1,
-            firebase_uid="firebase-test",
+            supabase_uid=uuid4(),
             nombre="Ana",
             apellido="Pérez",
             correo="ana@example.com",
