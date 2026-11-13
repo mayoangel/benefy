@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import Icon from '../components/Icon.tsx';
 import logo from '../assets/LogoR.png';
 import { Link } from 'react-router-dom';
@@ -7,6 +8,7 @@ import { faRightLong,faUserCheck,faUserLock,faCheck,faQrcode,faMugHot,faHandshak
   faListCheck, faSquarePlus, faCircleCheck, faMobileScreenButton, faShieldHalved,
   faNetworkWired
 } from "@fortawesome/free-solid-svg-icons";
+import useReveal from '../hooks/useReveal.ts';
 
 
 type Feature = {
@@ -40,6 +42,29 @@ type Step = {
   copy: string;
 };
 
+const faqs: [string, string][] = [
+  [
+    '¿Mis clientes tienen que descargar una app?',
+    'No. Pueden usar su celular con un toque NFC o escaneando un código QR, sin descargas obligatorias.',
+  ],
+  [
+    '¿Qué pasa con los datos de mis clientes?',
+    'No los vendemos ni los compartimos con otros comercios. Benefy valida el beneficio sin necesitar saber quién es la persona.',
+  ],
+  [
+    '¿Cuánto tarda empezar?',
+    'Puedes crear tu programa y colocar tu QR el mismo día; no necesitas instalar equipo adicional.',
+  ],
+  [
+    '¿Puedo aliarme con negocios de mi zona?',
+    'Sí. La red de alianzas cruzadas conecta comercios vecinos y la compensación entre ellos se liquida de forma automática.',
+  ],
+  [
+    '¿Puedo cancelar cuando quiera?',
+    'Sí, sin costo de instalación y sin permanencia mínima.',
+  ],
+];
+
 const features: Feature[] = [
   {
     icon: faStamp,
@@ -57,8 +82,8 @@ const features: Feature[] = [
     title: 'Acumulación de puntos inteligente',
     copy: 'Premia el ticket de compra o la frecuencia. Establece niveles (Plata, Oro, VIP) que desbloquean beneficios exclusivos conforme tus clientes aumentan su valor en el tiempo.',
     detail: {
-      label: 'Ticket medio con puntos',
-      value: '+28%',
+      label: 'Retención mediana de clientes',
+      value: '68%',
       progress: true,
     },
   },
@@ -73,8 +98,8 @@ const features: Feature[] = [
   },
   {
     icon: faHandshake,
-    title: 'Red de Alianzas Cruzadas (Zero-Knowledge)',
-    copy: 'Conecta tu comercio con negocios complementarios de tu barrio o polígono sin ceder tus datos ni clientes. Por ejemplo: tu cafetería premia a socios del gimnasio vecino y viceversa. Ambas partes ganan tráfico calificado con privacidad 100% garantizada',
+    title: 'Red de alianzas cruzadas',
+    copy: 'Conecta tu comercio con negocios complementarios de tu barrio o zona sin ceder tus datos ni clientes. No compartimos ni vendemos los datos de tus clientes; solo validamos el beneficio.',
     detail: {
       label: 'Bases de datos no compartidas',
     },
@@ -90,7 +115,7 @@ const sectors: Sector[] = [
   {
     icon: faMugHot,
     title: 'Cafeterías & Bistrós',
-    copy: 'Sellos automáticos de cafés diarios, upgrades de bollería en horas valle y promociones combo matutinas.',
+    copy: 'Sellos automáticos de cafés diarios, upgrades de panadería en horas valle y promociones combo matutinas.',
     example: 'Tarjeta 10 sellos con café de especialidad de regalo.',
   },
   {
@@ -108,7 +133,7 @@ const sectors: Sector[] = [
   {
     icon: faStore,
     title: 'Retail & Especialidad',
-    copy: 'Boutiques, librerías, peluquerías y spas. Premia compras repetidas y activa ventas cruzadas comunitarias.',
+    copy: 'Boutiques, librerías, barberías y estéticas. Premia compras repetidas y activa ventas cruzadas comunitarias.',
     example: 'Cupones de cumpleaños automáticos y acceso a preventas.',
   },
 ];
@@ -127,7 +152,7 @@ const steps: Step[] = [
   {
     icon: faCircleCheck,
     title: 'Valida en segundos',
-    copy: 'Registra cada visita con QR desde tu móvil.',
+    copy: 'Valida cada visita con NFC o QR dinámico desde la terminal o el celular.',
   },
   {
     icon: faHandshake,
@@ -138,14 +163,14 @@ const steps: Step[] = [
 
 function HomeHero() {
   return (
-    <section className="home-hero">
+    <section className="home-hero" aria-labelledby="home-hero-title">
       <div className="container home-hero-grid">
         <div>
           <div className="eyebrow">
             <i />
             Fidelización local, hecha simple
           </div>
-          <h1>
+          <h1 id="home-hero-title">
             Convierte visitas ocasionales en{' '}
             <em>relaciones duraderas</em> y alianzas estratégicas.
           </h1>
@@ -155,7 +180,7 @@ function HomeHero() {
           </p>
           <div className="home-actions">
             <Link className="button button-small" to="/precios">
-              Comenzar gratis <FontAwesomeIcon icon={faRightLong} />
+              Comenzar gratis <FontAwesomeIcon icon={faRightLong} aria-hidden="true" />
             </Link>
             <Link className="button home-outline" to="/about">
               Conoce Benefy
@@ -163,11 +188,11 @@ function HomeHero() {
           </div>
           <div className="home-trust">
             <span>
-              <FontAwesomeIcon icon={faUserCheck} />
+              <FontAwesomeIcon icon={faUserCheck} aria-hidden="true" />
               Sin comisiones por canje
             </span>
             <span>
-              <FontAwesomeIcon icon={faUserLock} />
+              <FontAwesomeIcon icon={faUserLock} aria-hidden="true" />
               Privacidad protegida
             </span>
           </div>
@@ -178,13 +203,13 @@ function HomeHero() {
           <div className="home-card">
             <div className="home-card-top">
               <span className="brand-mark small">
-                <img className="brand-mark-image" src={logo} alt="" />
+                <img className="brand-mark-image" src={logo} alt="" width="500" height="331" />
               </span>
               <b>Benefy</b>
               <span className="home-card-status">
                 <small>BENEFICIO ACTIVO</small>
                 <span className="home-card-partner">
-                  <FontAwesomeIcon icon={faMugHot} />
+                  <FontAwesomeIcon icon={faMugHot} aria-hidden="true" />
                   Café Blend
                 </span>
               </span>
@@ -200,12 +225,11 @@ function HomeHero() {
               <i />
               <i />
               <i />
-              <i />
               <b>
-                <FontAwesomeIcon icon={faCheck} />
+                <FontAwesomeIcon icon={faCheck} aria-hidden="true" />
               </b>
             </div>
-            <small>4 de 5 visitas completadas </small>
+            <small>4 de 5 visitas completadas</small>
           </div>
         </div>
       </div>
@@ -215,14 +239,14 @@ function HomeHero() {
 
 function Features() {
   return (
-    <section className="home-section home-features-section container">
+    <section className="home-section home-features-section container" aria-labelledby="home-features-title">
               <div className="home-section-heading center">
                 <span className="features-badge">Diseñado para comercios modernos</span>
-                <h2>Todo lo que necesitas para fidelizar sin fricción tecnológica</h2>
+                <h2 id="home-features-title">Todo lo que necesitas para fidelizar sin fricción tecnológica</h2>
                 <p>
-                  Elimina las tarjetas de papel olvidadas y los caros lectores de TPV.
-                  Benefy funciona directamente desde el smartphone de tus clientes y
-                  la tablet o móvil de tu mostrador.
+                  Elimina las tarjetas de papel olvidadas y los caros lectores
+                  adicionales. Benefy valida cada beneficio con NFC o QR dinámico
+                  desde la terminal o el celular.
                 </p>
               </div>
             <div className="home-feature-grid">
@@ -232,7 +256,7 @@ function Features() {
                   key={feature.title}
                 >
                   <span>
-                    <FontAwesomeIcon icon={feature.icon} />
+                    <FontAwesomeIcon icon={feature.icon} aria-hidden="true" />
                   </span>
                   <h3>
                     {feature.title}
@@ -245,7 +269,7 @@ function Features() {
                     <div className="feature-detail feature-alliance">
                       {feature.benefits.map((benefit) => (
                         <span key={benefit.label}>
-                          <FontAwesomeIcon icon={benefit.icon} />
+                          <FontAwesomeIcon icon={benefit.icon} aria-hidden="true" />
                           {benefit.label}
                         </span>
                       ))}
@@ -257,7 +281,7 @@ function Features() {
                       }`}
                     >
                       {feature.detail.icon && (
-                        <FontAwesomeIcon icon={feature.detail.icon} />
+                        <FontAwesomeIcon icon={feature.detail.icon} aria-hidden="true" />
                       )}
                       <span>
                         <b>{feature.detail.label}</b>
@@ -288,14 +312,13 @@ function Features() {
 
 function Sectors() {
   return (
-    <section className="home-sectors">
+    <section className="home-sectors" aria-labelledby="home-sectors-title">
       <div className="container sectors-layout">
         <div>
           <div className="kicker">
-            <span>02</span>
             PARA CADA COMUNIDAD
           </div>
-          <h2>
+          <h2 id="home-sectors-title">
             Diseñado a la medida de tu <em>sector comercial.</em>
           </h2>
           <p>
@@ -303,7 +326,7 @@ function Sectors() {
             cada visita.
           </p>
           <Link className="sector-link" to="/precios">
-            Encuentra tu plan <FontAwesomeIcon icon={faRightLong} />
+            Encuentra tu plan <FontAwesomeIcon icon={faRightLong} aria-hidden="true" />
           </Link>
         </div>
         <div className="sector-grid">
@@ -313,9 +336,9 @@ function Sectors() {
               key={sector.title}
             >
               <span>
-                <FontAwesomeIcon icon={sector.icon} />
+                <FontAwesomeIcon icon={sector.icon} aria-hidden="true" />
               </span>
-              <b>{sector.title}</b>
+              <h3>{sector.title}</h3>
               <p>{sector.copy}</p>
               <small>
                 <strong>Caso habitual:</strong>
@@ -331,13 +354,12 @@ function Sectors() {
 
 function HowItWorks() {
   return (
-    <section className="home-section container">
+    <section className="home-section container" aria-labelledby="home-how-title">
       <div className="home-section-heading center">
         <div className="kicker">
-          <span>03</span>
           FÁCIL EN TU MOSTRADOR
         </div>
-        <h2>¿Cómo funciona Benefy?</h2>
+        <h2 id="home-how-title">¿Cómo funciona Benefy?</h2>
         <p>
           De la primera visita a una comunidad que regresa, en unos pocos pasos.
         </p>
@@ -346,14 +368,14 @@ function HowItWorks() {
         {steps.map((step, index) => (
           <article className="how-step" key={step.title}>
             <span className="how-icon">
-              <FontAwesomeIcon icon={step.icon} />
+              <FontAwesomeIcon icon={step.icon} aria-hidden="true" />
             </span>
             <small>PASO 0{index + 1}</small>
             <h3>{step.title}</h3>
             <p>{step.copy}</p>
             {index < steps.length - 1 && (
               <span className="how-arrow">
-                <FontAwesomeIcon icon={faRightLong} />
+                <FontAwesomeIcon icon={faRightLong} aria-hidden="true" />
               </span>
             )}
           </article>
@@ -363,15 +385,48 @@ function HowItWorks() {
   );
 }
 
+function FAQ() {
+  const [open, setOpen] = useState<number | null>(null);
+
+  return (
+    <section className="faq-section home-faq container" aria-labelledby="home-faq-title">
+      <div className="faq-heading">
+        <span className="kicker">PREGUNTAS FRECUENTES</span>
+        <h2 id="home-faq-title">Lo que todos nos preguntan antes de empezar</h2>
+      </div>
+      <div className="faq-list">
+        {faqs.map(([question, answer], index) => {
+          const panelId = `home-faq-answer-${index}`;
+          const isOpen = open === index;
+
+          return (
+            <article className={`faq-item${isOpen ? ' faq-open' : ''}`} key={question}>
+              <button
+                aria-controls={panelId}
+                aria-expanded={isOpen}
+                onClick={() => setOpen(isOpen ? null : index)}
+              >
+                <span>{question}</span>
+                <Icon name={isOpen ? 'expand_less' : 'expand_more'} />
+              </button>
+              {isOpen && <p id={panelId}>{answer}</p>}
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 function HomeCTA() {
   return (
-    <section className="container home-cta">
+    <section className="container home-cta" aria-labelledby="home-cta-title">
       <div>
         <span className="cta-kicker">
           <i />
           CRECE EN COMUNIDAD
         </span>
-        <h2>
+        <h2 id="home-cta-title">
           Transforma cada visita en fidelidad y{' '}
           <em>mayores ingresos.</em>
         </h2>
@@ -379,20 +434,62 @@ function HomeCTA() {
           Conecta con tus clientes y con los comercios que dan vida a tu barrio.
         </p>
       </div>
-      <Link className="button button-light" to="/precios">
-        Ver planes Benefy <FontAwesomeIcon icon={faRightLong} />
-      </Link>
+      <div className="home-cta-actions">
+        <Link className="button button-light" to="/precios">
+          Ver planes Benefy <FontAwesomeIcon icon={faRightLong} aria-hidden="true" />
+        </Link>
+        <Link className="cta-secondary" to="/about">
+          Hablar con el equipo
+        </Link>
+      </div>
     </section>
   );
 }
 
 export default function HomePage() {
+  useEffect(() => {
+    const previousTitle = document.title;
+    const description = 'Benefy ayuda a comercios locales a fidelizar clientes y crecer con alianzas inteligentes, usando beneficios con NFC y QR dinámico.';
+    const title = 'Benefy | Fidelización local hecha simple';
+    const managedMeta: HTMLMetaElement[] = [];
+
+    document.title = title;
+
+    const setMeta = (attribute: 'name' | 'property', key: string, content: string) => {
+      let meta = document.head.querySelector<HTMLMetaElement>(
+        `meta[${attribute}="${key}"]`,
+      );
+      if (!meta) {
+        meta = document.createElement('meta');
+        meta.setAttribute(attribute, key);
+        document.head.appendChild(meta);
+        managedMeta.push(meta);
+      }
+      meta.content = content;
+    };
+
+    setMeta('name', 'description', description);
+    setMeta('property', 'og:title', title);
+    setMeta('property', 'og:description', description);
+    setMeta('property', 'og:type', 'website');
+
+    return () => {
+      document.title = previousTitle;
+      managedMeta.forEach((meta) => meta.remove());
+    };
+  }, []);
+
+  useReveal(
+    '.home-page > section:not(.home-hero), .how-step, .home-feature, .sector-card',
+  );
+
   return (
     <main className="home-page">
       <HomeHero />
       <Features />
       <Sectors />
       <HowItWorks />
+      <FAQ />
       <HomeCTA />
     </main>
   );

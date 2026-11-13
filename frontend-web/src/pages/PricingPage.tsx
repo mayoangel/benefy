@@ -1,4 +1,5 @@
-import { Fragment, useState } from 'react';
+import { useState } from 'react';
+import useReveal from '../hooks/useReveal.ts';
 import { Link } from 'react-router-dom';
 import Icon from '../components/Icon.tsx';
 import type { IconName } from '../components/Icon.tsx';
@@ -7,7 +8,6 @@ type Plan = {
   name: string;
   icon: IconName;
   monthly: number;
-  annual: number;
   description: string;
   features: string[];
   excluded?: string;
@@ -26,7 +26,6 @@ const plans: Plan[] = [
     name: 'Comercio Local',
     icon: 'storefront',
     monthly: 499,
-    annual: 424,
     description:
       'Ideal para 1 sucursal, cafeterías de barrio, panaderías o boutiques individuales que inician su programa de retorno.',
     features: [
@@ -43,7 +42,6 @@ const plans: Plan[] = [
     name: 'Negocio Pro',
     icon: 'rocket_launch',
     monthly: 999,
-    annual: 849,
     description:
       'Diseñado para restaurantes, estudios boutique, salones de belleza y comercios listos para escalar lealtad y cross-selling.',
     features: [
@@ -61,7 +59,6 @@ const plans: Plan[] = [
     name: 'Multisede / Corporativo',
     icon: 'corporate_fare',
     monthly: 1899,
-    annual: 1614,
     description:
       'Para cadenas regionales, franquicias en expansión y empresas que requieren control unificado y roles de gestión.',
     features: [
@@ -119,7 +116,7 @@ const faqs: [string, string][] = [
   ],
   [
     '¿Cómo se gestionan las terminales de cobro en tienda?',
-    'No necesitas adquirir hardware propietario. El punto de cobro funciona en teléfonos iOS o Android, tablets y computadoras con navegador web. El cajero escanea el QR del cliente o ingresa su número para registrar una visita o validar una recompensa.',
+    'No necesitas adquirir hardware propietario. El punto de cobro funciona en teléfonos iOS o Android, tablets y computadoras con navegador web. El cajero escanea el QR dinámico del cliente, acerca su celular por NFC o ingresa su número para registrar una visita o validar una recompensa.',
   ],
   [
     '¿Los clientes finales deben pagar algo para usar la plataforma?',
@@ -129,42 +126,78 @@ const faqs: [string, string][] = [
     '¿Cómo funciona el período de prueba de 14 días?',
     'Al crear tu cuenta comercial obtienes 14 días con acceso a las funciones del Plan Pro. No se solicita tarjeta de crédito para iniciar la prueba. Después puedes elegir el plan adecuado o dejar la cuenta en pausa.',
   ],
+  [
+    '¿Qué datos de mis clientes guarda Benefy?',
+    'Benefy valida beneficios sin guardar ni vender datos personales de tus clientes, y no comparte información entre comercios aliados.',
+  ],
+  [
+    '¿Cómo se liquidan las alianzas entre comercios?',
+    'El libro contable B2B compensa automáticamente los canjes entre aliados: de forma manual en Comercio Local, semanal en Negocio Pro y diaria en Multisede.',
+  ],
 ];
 
 const assurances: [IconName, string, string][] = [
   ['verified_user', 'Sin contratos forzosos', 'Modifica o cancela cuando quieras'],
   ['percent', '0% comisiones por canje', 'Tu margen de venta se queda contigo'],
   ['support_agent', 'Acompañamiento inicial', 'Capacitación de personal incluida'],
-  ['sync_alt', 'Migración sin fricción', 'Importamos tu base de clientes actual'],
+  ['sync_alt', 'Migración sin fricción', 'Importamos tu programa actual de sellos y saldos'],
 ];
 
 function formatPrice(value: number) {
-  return `$${value.toLocaleString('en-US')}`;
+  return `$${value.toLocaleString('es-MX')}`;
 }
 
-function PlanCard({ plan, annual }: { plan: Plan; annual: boolean }) {
-  const price = annual ? plan.annual : plan.monthly;
+function getAnnualMonthlyPrice(plan: Plan) {
+  return Math.round(plan.monthly * 0.85);
+}
+
+function PlanCard({
+  plan,
+  annual,
+  hoveredPlan,
+  onHover,
+}: {
+  plan: Plan;
+  annual: boolean;
+  hoveredPlan: string | null;
+  onHover: (planName: string | null) => void;
+}) {
+  const price = annual ? getAnnualMonthlyPrice(plan) : plan.monthly;
+  const isActive = hoveredPlan === null ? Boolean(plan.popular) : hoveredPlan === plan.name;
+  const isDimmedFeatured = Boolean(plan.popular && hoveredPlan !== null && !isActive);
+  const cardClassName = [
+    'plan-card',
+    plan.popular ? 'plan-card-featured' : '',
+    isActive && !plan.popular ? 'plan-card-hovered' : '',
+    isDimmedFeatured ? 'plan-card-dimmed' : '',
+  ].filter(Boolean).join(' ');
 
   return (
-    <article className={`plan-card${plan.popular ? ' plan-card-featured' : ''}`}>
-      {plan.popular && (
+    <article
+      className={cardClassName}
+      onMouseEnter={() => onHover(plan.name)}
+      onMouseLeave={() => onHover(null)}
+    >
+      {plan.popular && isActive && (
         <span className="popular-badge">
           <Icon name="stars" />
           MÁS POPULAR
         </span>
       )}
       <div className="plan-head">
-        <span>{plan.name}</span>
+        <h3>{plan.name}</h3>
         <i>
           <Icon name={plan.icon} />
         </i>
       </div>
       <div className="plan-price">
         <strong>{formatPrice(price)}</strong>
-        <span>MXN / mes</span>
+        <span>MXN / mes <small>+ IVA</small></span>
       </div>
       <p className="billing-note">
-        {annual ? 'Facturado anualmente (-15% aplicado)' : 'Cobro mensual flexible'}
+        {annual
+          ? `Pagas ${formatPrice(price * 12)} al año (-15% aplicado)`
+          : 'Cobro mensual flexible'}
       </p>
       <p className="plan-description">{plan.description}</p>
       <ul className="plan-features">
@@ -183,7 +216,7 @@ function PlanCard({ plan, annual }: { plan: Plan; annual: boolean }) {
       </ul>
       <div className="plan-bottom">
         <Link
-          className={`button ${plan.popular ? 'plan-button-primary' : 'plan-button'}`}
+          className={`button ${isActive ? 'plan-button-primary' : 'plan-button'}`}
           to="/precios#contacto"
         >
           {plan.button}
@@ -196,16 +229,18 @@ function PlanCard({ plan, annual }: { plan: Plan; annual: boolean }) {
 
 function PricingPlans() {
   const [annual, setAnnual] = useState(false);
+  const [hoveredPlan, setHoveredPlan] = useState<string | null>(null);
 
   return (
-    <section className="pricing-intro container" id="planes">
+    <section className="pricing-intro container" id="planes" aria-labelledby="plans-section-title">
       <div className="pricing-heading">
         <div className="eyebrow">
           <i />
-          Membresías comerciales Benefy 2025 <span>/</span>{' '}
+          Membresías comerciales Benefy <span>/</span>{' '}
           <b>14 días de prueba gratis</b>
         </div>
         <h1>Planes claros y transparentes para hacer crecer tu negocio</h1>
+        <h2 id="plans-section-title" className="sr-only">Planes disponibles</h2>
         <p>
           Sin comisiones ocultas por canje ni contratos forzosos. Elige el plan
           que mejor se adapte al tamaño de tu operación y fideliza a tu comunidad
@@ -213,6 +248,7 @@ function PricingPlans() {
         </p>
         <div className="billing-toggle" role="group" aria-label="Frecuencia de facturación">
           <button
+            type="button"
             className={!annual ? 'selected' : ''}
             aria-pressed={!annual}
             onClick={() => setAnnual(false)}
@@ -220,6 +256,7 @@ function PricingPlans() {
             Facturación mensual
           </button>
           <button
+            type="button"
             className={annual ? 'selected' : ''}
             aria-pressed={annual}
             onClick={() => setAnnual(true)}
@@ -228,15 +265,24 @@ function PricingPlans() {
           </button>
         </div>
         <small className="price-disclaimer">
-          *Valores expresados en pesos mexicanos (MXN). No incluyen IVA.
-          Propuesta ilustrativa.
+          *Precios exclusivos para México, en pesos mexicanos (MXN) por mes. No incluyen IVA.
         </small>
       </div>
-      <div className="plan-grid">
+      <div className="plan-grid" onMouseLeave={() => setHoveredPlan(null)}>
         {plans.map((plan) => (
-          <PlanCard key={plan.name} plan={plan} annual={annual} />
+          <PlanCard
+            key={plan.name}
+            plan={plan}
+            annual={annual}
+            hoveredPlan={hoveredPlan}
+            onHover={setHoveredPlan}
+          />
         ))}
       </div>
+      <p className="sr-only" aria-live="polite" aria-atomic="true">
+        {annual ? 'Precios mensuales equivalentes con facturación anual: ' : 'Precios con facturación mensual: '}
+        {plans.map((plan) => `${plan.name}: ${formatPrice(annual ? getAnnualMonthlyPrice(plan) : plan.monthly)} al mes`).join('; ')}.
+      </p>
       <div className="assurance-grid">
         {assurances.map(([icon, title, copy]) => (
           <div className="assurance" key={title}>
@@ -253,121 +299,154 @@ function PricingPlans() {
 }
 
 function Comparison() {
+  const [selectedPlan, setSelectedPlan] = useState<number | null>(null);
+  const planLabels = ['Comercio Local', 'Negocio Pro', 'Multisede'];
+
   return (
-    <section className="comparison-band">
+    <section className="comparison-band" aria-labelledby="comparison-title">
       <div className="container">
         <div className="comparison-heading">
           <span className="kicker">
             <span>01</span>
             MATRIZ DE CAPACIDADES
           </span>
-          <h2>Comparativa detallada de funcionalidades</h2>
+          <h2 id="comparison-title">Comparativa detallada de funcionalidades</h2>
           <p>Analiza las herramientas operativas incluidas en cada nivel de suscripción.</p>
         </div>
-        <div className="table-scroll">
+        <p className="comparison-select-hint">
+          Pasa el cursor o enfoca el encabezado de un plan para resaltar su columna.
+        </p>
+        <div className="table-scroll" onMouseLeave={() => setSelectedPlan(null)}>
           <table className="comparison-table">
+            <caption className="sr-only">Comparación de características y módulos por plan Benefy</caption>
             <thead>
               <tr>
-                <th>Características y módulos</th>
-                <th>Comercio Local</th>
-                <th>Negocio Pro</th>
-                <th>Multisede</th>
+                <th scope="col" onMouseEnter={() => setSelectedPlan(null)}>Características y módulos</th>
+                {planLabels.map((label, index) => (
+                  <th
+                    scope="col"
+                    className={selectedPlan === index ? 'plan-column-active' : ''}
+                    key={label}
+                    tabIndex={0}
+                    onMouseEnter={() => setSelectedPlan(index)}
+                    onFocus={() => setSelectedPlan(index)}
+                    onBlur={() => setSelectedPlan(null)}
+                  >
+                    {label}
+                  </th>
+                ))}
               </tr>
             </thead>
-            <tbody>
-              {comparison.map((group) => (
-                <Fragment key={group.group}>
-                  <tr className="table-group">
-                    <th colSpan={4}>{group.group}</th>
+            {comparison.map((group) => (
+              <tbody key={group.group}>
+                <tr className="table-group">
+                  <th scope="rowgroup" colSpan={4} onMouseEnter={() => setSelectedPlan(null)}>{group.group}</th>
+                </tr>
+                {group.rows.map(([feature, local, pro, multisede]) => (
+                  <tr key={feature}>
+                    <th scope="row" onMouseEnter={() => setSelectedPlan(null)}>{feature}</th>
+                    {[local, pro, multisede].map((value, index) => (
+                      <td
+                        className={[
+                          selectedPlan === index ? 'plan-column-active' : '',
+                        ].filter(Boolean).join(' ')}
+                        key={index}
+                        onMouseEnter={() => setSelectedPlan(index)}
+                      >
+                        {value === '✓' ? (
+                          <><Icon name="check" /><span className="sr-only">Incluido</span></>
+                        ) : value === '—' ? (
+                          <><span className="not-included" aria-hidden="true">—</span><span className="sr-only">No incluido</span></>
+                        ) : (
+                          value
+                        )}
+                      </td>
+                    ))}
                   </tr>
-                  {group.rows.map(([feature, local, pro, multisede]) => (
-                    <tr key={feature}>
-                      <td>{feature}</td>
-                      {[local, pro, multisede].map((value, index) => (
-                        <td className={index === 1 ? 'pro-column' : ''} key={index}>
-                          {value === '✓' ? (
-                            <Icon name="check" />
-                          ) : value === '—' ? (
-                            <span className="not-included">—</span>
-                          ) : (
-                            value
-                          )}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </Fragment>
-              ))}
-            </tbody>
+                ))}
+              </tbody>
+            ))}
           </table>
         </div>
+        <p className="table-scroll-hint" aria-hidden="true">
+          Desliza para ver todos los planes →
+        </p>
       </div>
     </section>
   );
 }
 
-function RoiCalculator() {
-  const [clients, setClients] = useState(350);
-  const extraVisits = Math.round(clients * 0.28);
-  const extraRevenue = extraVisits * 150;
-  const multiplier = (extraRevenue / 999).toFixed(1);
+
+function ROICalculator() {
+  const [monthlyVisitors, setMonthlyVisitors] = useState(800);
+  const [averageTicket, setAverageTicket] = useState(120);
+  const [returnRate, setReturnRate] = useState(10);
+  const additionalCustomers = Math.round(monthlyVisitors * (returnRate / 100));
+  const additionalRevenue = additionalCustomers * averageTicket;
+  const proPlanPrice = plans.find((plan) => plan.name === 'Negocio Pro')?.monthly ?? 0;
+  const netReturn = additionalRevenue - proPlanPrice;
 
   return (
-    <section className="container roi-section">
+    <section className="roi-section container" aria-labelledby="roi-title">
       <div className="roi-copy">
         <span className="kicker">
           <span>02</span>
-          SIMULADOR DE RETORNO
+          CALCULA TU RETORNO
         </span>
-        <h2>Tu membresía se paga sola desde el primer mes</h2>
+        <h2 id="roi-title">
+          Calcula cuánto puede <em>devolverte Benefy.</em>
+        </h2>
         <p>
-          Al aumentar la recompra y recibir clientes referidos de alianzas
-          vecinas, el beneficio neto puede superar la inversión mensual.
+          Ajusta los datos de tu negocio y mira una estimación de lo que ganarías
+          al lograr que más clientes regresen.
         </p>
         <div className="roi-reasons">
-          <span>
-            <i>1</i>
-            +28% de retención promedio en clientes recurrentes.
-          </span>
-          <span>
-            <i>2</i>
-            Cero cobros extra de pasarela sobre tus tickets físicos.
-          </span>
+          <span><i aria-hidden="true">✓</i>Sin comisiones por canje</span>
+          <span><i aria-hidden="true">✓</i>Tú controlas los supuestos</span>
+          <span><i aria-hidden="true">✓</i>Estimación basada solo en tus datos</span>
         </div>
       </div>
-      <div className="roi-widget">
-        <div className="roi-slider-label">
-          <label htmlFor="clients-slider">Clientes atendidos al mes en tu negocio</label>
-          <b>{clients.toLocaleString('es-MX')} clientes</b>
-        </div>
-        <input
-          id="clients-slider"
-          type="range"
-          min="50"
-          max="2000"
-          step="25"
-          value={clients}
-          onChange={(event) => setClients(Number(event.target.value))}
-        />
-        <div className="slider-scale">
-          <span>50</span>
-          <span>1,000</span>
-          <span>2,000+</span>
-        </div>
-        <div className="roi-results">
-          <div>
-            <small>Visitas adicionales</small>
-            <b>+{extraVisits.toLocaleString('es-MX')}</b>
+      <div>
+        <div className="roi-widget">
+          <div className="roi-slider-label">
+            <label htmlFor="roi-visitors">Clientes que visitan tu negocio al mes</label>
+            <b>{monthlyVisitors.toLocaleString('es-MX')}</b>
           </div>
-          <div>
-            <small>Ingreso extra estimado</small>
-            <b>${extraRevenue.toLocaleString('es-MX')} MXN</b>
+          <input id="roi-visitors" type="range" min="100" max="5000" step="50" value={monthlyVisitors} onChange={(event) => setMonthlyVisitors(Number(event.target.value))} />
+          <div className="slider-scale"><span>100</span><span>5,000</span></div>
+
+          <div className="roi-slider-label">
+            <label htmlFor="roi-ticket">Ticket promedio (MXN)</label>
+            <b>{formatPrice(averageTicket)}</b>
           </div>
-          <div className="roi-highlight">
-            <small>Retorno sobre membresía</small>
-            <b>{multiplier}x</b>
+          <input id="roi-ticket" type="range" min="50" max="500" step="10" value={averageTicket} onChange={(event) => setAverageTicket(Number(event.target.value))} />
+          <div className="slider-scale"><span>$50</span><span>$500</span></div>
+
+          <div className="roi-slider-label">
+            <label htmlFor="roi-return-rate">Clientes adicionales que regresan gracias a Benefy</label>
+            <b>{returnRate}%</b>
+          </div>
+          <input id="roi-return-rate" type="range" min="5" max="30" step="1" value={returnRate} onChange={(event) => setReturnRate(Number(event.target.value))} />
+          <div className="slider-scale"><span>5%</span><span>30%</span></div>
+
+          <div className="roi-results" aria-live="polite">
+            <div>
+              <small>Clientes que regresan de más</small>
+              <b>{additionalCustomers.toLocaleString('es-MX')}</b>
+            </div>
+            <div>
+              <small>Ingreso adicional al mes</small>
+              <b>{formatPrice(additionalRevenue)}</b>
+            </div>
+            <div className="roi-highlight">
+              <small>Retorno neto sobre Negocio Pro</small>
+              <b>{netReturn < 0 ? `−${formatPrice(Math.abs(netReturn))}` : formatPrice(netReturn)}</b>
+            </div>
           </div>
         </div>
+        <p className="roi-note">
+          Estimación con los datos que ingresas. No es una garantía de resultados.
+        </p>
       </div>
     </section>
   );
@@ -377,13 +456,13 @@ function FAQ() {
   const [open, setOpen] = useState<number | null>(null);
 
   return (
-    <section className="faq-section container">
+    <section className="faq-section container" aria-labelledby="faq-title">
       <div className="faq-heading">
         <span className="kicker">
           <span>03</span>
           RESOLUCIÓN DE DUDAS
         </span>
-        <h2>Preguntas frecuentes sobre la membresía</h2>
+        <h2 id="faq-title">Preguntas frecuentes sobre la membresía</h2>
         <p>
           Todo lo que necesitas saber antes de implementar Benefy en tu caja o
           mostrador.
@@ -396,13 +475,27 @@ function FAQ() {
             key={question}
           >
             <button
+              id={`faq-question-${index}`}
+              type="button"
               aria-expanded={open === index}
+              aria-controls={`faq-panel-${index}`}
               onClick={() => setOpen(open === index ? null : index)}
             >
               <span>{question}</span>
-              <Icon name={open === index ? 'expand_less' : 'expand_more'} />
+              <Icon name="expand_more" />
             </button>
-            {open === index && <p>{answer}</p>}
+            <div
+              className="faq-panel"
+              id={`faq-panel-${index}`}
+              role="region"
+              aria-labelledby={`faq-question-${index}`}
+              aria-hidden={open !== index}
+              inert={open !== index}
+            >
+              <div className="faq-panel-inner">
+                <p>{answer}</p>
+              </div>
+            </div>
           </article>
         ))}
       </div>
@@ -412,24 +505,24 @@ function FAQ() {
 
 function PricingCTA() {
   return (
-    <section className="container pricing-cta" id="contacto">
+    <section className="container pricing-cta" id="contacto" aria-labelledby="pricing-cta-title">
       <div>
         <span className="cta-kicker">
           <i />
           EMPRESAS &amp; COMERCIOS
         </span>
-        <h2>¿Tienes dudas sobre qué plan se adapta a tu negocio?</h2>
+        <h2 id="pricing-cta-title">¿Tienes dudas sobre qué plan se adapta a tu negocio?</h2>
         <p>
           Un especialista en alianzas locales puede darte un recorrido en vivo de
           15 minutos y ayudarte a configurar tus primeros cupones.
         </p>
       </div>
-      <div>
-        <Link className="button cta-demo" to="/about#valores">
-          Agendar demostración
-        </Link>
+      <div className="pricing-cta-actions">
         <Link className="button button-light" to="/precios#planes">
           Probar gratis 14 días
+        </Link>
+        <Link className="cta-secondary" to="/precios#contacto">
+          Agendar demostración
         </Link>
       </div>
     </section>
@@ -437,11 +530,13 @@ function PricingCTA() {
 }
 
 export default function PricingPage() {
+  useReveal('.pricing-page .plan-card, .pricing-page .assurance, .pricing-page .faq-item');
+
   return (
     <main className="pricing-page">
       <PricingPlans />
       <Comparison />
-      <RoiCalculator />
+      <ROICalculator />
       <FAQ />
       <PricingCTA />
     </main>

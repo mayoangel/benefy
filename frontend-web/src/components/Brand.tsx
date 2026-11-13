@@ -12,7 +12,7 @@ export default function Brand({ footer = false }: BrandProps) {
       to="/"
       aria-label="Benefy, ir al inicio"
     >
-      <img className="brand-image" src={logo} alt="Benefy" />
+      <img className="brand-image" src={logo} alt="Benefy" width="500" height="331" />
       <span className="brand-name">Benefy</span>
     </Link>
   );

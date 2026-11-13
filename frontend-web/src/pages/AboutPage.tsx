@@ -1,7 +1,8 @@
-import type { ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import Icon from '../components/Icon.tsx';
 import type { IconName } from '../components/Icon.tsx';
 import logo from '../assets/LogoR.png';
+import useReveal from '../hooks/useReveal.ts';
 
 
 
@@ -15,27 +16,27 @@ const metrics: Metric[] = [
   { label: 'Comercios activos', value: '1,400+', note: 'En 18 ciudades' },
   { label: 'Tickets canjeados', value: '3.2M', note: '+142% vs. 2024' },
   { label: 'Retención mediana', value: '68%', note: 'Clientes que regresan' },
-  { label: 'Privacidad', value: '100%', note: 'Zero-Knowledge' },
+  { label: 'Privacidad', value: '100%', note: 'Sin venta de datos' },
 ];
 
 function BrandMark() {
   return (
     <span className="brand-mark">
-      <img className="brand-mark-image" src={logo} alt="" />
+      <img className="brand-mark-image" src={logo} alt="" width="500" height="331" />
     </span>
   );
 }
 
 function Hero() {
   return (
-    <section className="hero container" id="inicio">
+    <section className="hero container" id="inicio" aria-labelledby="hero-title">
       <div className="glow glow-mint" />
       <div className="glow glow-blue" />
       <div className="eyebrow">
         <i />
         Propósito &amp; visión corporativa
       </div>
-      <h1>
+      <h1 id="hero-title">
         Nuestra misión: redefinir la fidelización local a través de{' '}
         <em>alianzas inteligentes.</em>
       </h1>
@@ -69,8 +70,9 @@ function Ticket() {
     <div className="ticket-scene">
       <div className="orbit orbit-one" />
       <div className="orbit orbit-two" />
+
       <article className="ticket">
-        <div className="ticket-head">
+        <div className="ticket-top">
           <span className="ticket-brand">
             <BrandMark />
             Benefy
@@ -80,54 +82,85 @@ function Ticket() {
             ACTIVO
           </span>
         </div>
-        <small className="ticket-code-label">ALLIANCE TOKEN&nbsp; #BFY-8941</small>
-        <div className="ticket-offer">
-          <span>BENEFICIO ALIADO</span>
-          <b>
+
+        <div className="ticket-body">
+          <small className="ticket-code-label">ALLIANCE TOKEN · #BFY-8941</small>
+          <span className="ticket-kicker">BENEFICIO ALIADO</span>
+          <b className="ticket-amount">
             15<small>%</small>
+            <em>de descuento</em>
           </b>
-          <p>
-            Café Blend <i>×</i> Trattoria Roma Norte
+          <p className="ticket-partners">
+            <span>Café Blend</span>
+            <i>×</i>
+            <span>Trattoria Roma Norte</span>
           </p>
+
+          <div className="ticket-stamps">
+            <div className="stamps-label">
+              <span>Tu progreso</span>
+              <b>4 / 5 visitas</b>
+            </div>
+            <div className="stamps-row">
+              <i className="on" />
+              <i className="on" />
+              <i className="on" />
+              <i className="on" />
+              <i className="gift">
+                <Icon name="bolt" />
+              </i>
+            </div>
+          </div>
         </div>
+
         <div className="ticket-cut">
           <i />
-          <span />
           <i />
         </div>
+
         <div className="ticket-foot">
           <span>
             <Icon name="verifiedUser" />
             Validado vía terminal POS
           </span>
-          <span className="barcode">|||| ||| || ||||</span>
+          <span className="barcode" aria-hidden="true">
+            ||| || |||| | ||| ||
+          </span>
         </div>
       </article>
+
       <div className="float-card float-top">
         <span className="float-icon">
           <Icon name="bolt" />
         </span>
-        <span>
+        <span className="float-copy">
           <b>Canje instantáneo</b>
           <small>Sin descargas obligatorias</small>
         </span>
       </div>
-      <div className="float-card float-bottom">
+
+      <div
+        className="float-card float-bottom"
+        title="Validamos el beneficio sin guardar ni vender datos personales"
+      >
         <span className="float-icon mint">
           <Icon name="lock" />
         </span>
-        <span>
+        <span className="float-copy">
           <b>Zero-Knowledge</b>
           <small>Privacidad protegida</small>
         </span>
       </div>
+
       <div className="scene-caption">
-        <Icon name="store" />
-        <span>
+        <span className="scene-icon">
+          <Icon name="store" />
+        </span>
+        <span className="scene-copy">
           <b>Una red que multiplica</b>
           <small>Comercios conectados en vivo</small>
         </span>
-        <i />
+        <i aria-hidden="true" />
       </div>
     </div>
   );
@@ -135,13 +168,13 @@ function Ticket() {
 
 function Story() {
   return (
-    <section className="story container" id="historia">
+    <section className="story container" id="historia" aria-labelledby="story-title">
       <div className="story-copy">
         <div className="kicker">
           <span>01</span>
           EL ORIGEN DE BENEFY
         </div>
-        <h2>
+        <h2 id="story-title">
           De la tarjeta de cartón perdida al <em>pasaporte digital.</em>
         </h2>
         <p className="lead">
@@ -151,7 +184,7 @@ function Story() {
         </p>
         <p>
           Benefy nació para cerrar esa brecha. Creamos una plataforma donde una
-          cafetería de especialidad, una librería independiente y un restaurante
+          cafetería local, una librería independiente y un restaurante
           familiar pueden formar redes de incentivos cruzados y activar
           recompensas con NFC o códigos QR dinámicos.
         </p>
@@ -160,6 +193,14 @@ function Story() {
           beneficios tangibles sin que su información personal se empaquete ni
           se venda.
         </p>
+        <div className="privacy-note">
+          <Icon name="lock" />
+          <p>
+            <strong>En palabras simples:</strong> no guardamos ni vendemos los
+            datos personales de tus clientes. Benefy valida el beneficio sin
+            necesitar saber quién es la persona.
+          </p>
+        </div>
         <div className="tags">
           <span>
             <Icon name="bolt" />
@@ -215,14 +256,14 @@ const values: {
 
 function Values() {
   return (
-    <section className="band values" id="valores">
+    <section className="band values" id="valores" aria-labelledby="values-title">
       <div className="container">
         <div className="center-heading">
           <div className="kicker">
             <span>02</span>
             LO QUE NOS GUÍA
           </div>
-          <h2>
+          <h2 id="values-title">
             Pilares <em>innegociables</em>
           </h2>
           <p>
@@ -428,13 +469,13 @@ const steps = [
 
 function Platform() {
   return (
-    <section className="platform container" id="plataforma">
+    <section className="platform container" id="plataforma" aria-labelledby="platform-title">
       <div className="platform-intro">
         <div className="kicker">
           <span>03</span>
           UNA EXPERIENCIA, DOS PERSPECTIVAS
         </div>
-        <h2>
+        <h2 id="platform-title">
           Arquitectura dual,
           <br />
           <em>simple por diseño.</em>
@@ -517,96 +558,9 @@ function Platform() {
   );
 }
 
-const places = [
-  { name: 'México', count: '1,120', className: 'mex' },
-  { name: 'Colombia', count: '190', className: 'col' },
-  { name: 'Chile & Perú', count: 'En expansión', className: 'south' },
-];
-
-function Region() {
-  return (
-    <section className="band region">
-      <div className="container region-grid">
-        <div className="region-copy">
-          <div className="kicker">
-            <span>04</span>
-            COMPROMISO TERRITORIAL
-          </div>
-          <h2>
-            Nacidos para el <em>tejido comercial</em> latinoamericano.
-          </h2>
-          <p>
-            Las dinámicas de hospitalidad y comercio de nuestra región son
-            profundamente humanas y comunitarias. Por eso diseñamos Benefy para
-            el ritmo de la fonda, el café de barrio y la boutique local.
-          </p>
-          <p>
-            Compatibilidad con terminales locales, facturación automatizada y
-            liquidaciones directas entre aliados.
-          </p>
-          <div className="region-perks">
-            <div>
-              <Icon name="receipt_long" />
-              <span>
-                <b>100% facturable</b>
-                <small>Cumplimiento fiscal local</small>
-              </span>
-            </div>
-            <div>
-              <Icon name="support_agent" />
-              <span>
-                <b>Soporte dedicado</b>
-                <small>Especialistas en tu horario</small>
-              </span>
-            </div>
-          </div>
-        </div>
-        <div className="map">
-          <div className="map-grid" />
-          <div className="continent">
-            <i className="map-glow" />
-            <i className="dot d1" />
-            <i className="dot d2" />
-            <i className="dot d3" />
-            <i className="dot d4" />
-            <i className="dot d5" />
-            <i className="route r1" />
-            <i className="route r2" />
-            <i className="route r3" />
-          </div>
-          <div className="map-status">
-            <i />
-            Nodos activos · México &amp; LatAm
-          </div>
-          {places.map((place) => (
-            <div className={`map-label ${place.className}`} key={place.name}>
-              <span>
-                <i />
-                {place.name}
-              </span>
-              <b>
-                {place.count}
-                <small> comercios</small>
-              </b>
-            </div>
-          ))}
-          <div className="city cdmx">
-            <i />
-            CDMX
-          </div>
-          <div className="city bogota">
-            <i />
-            Bogotá
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function CTA() {
   return (
-    <section className="container cta" id="contacto">
+    <section className="container cta" id="contacto" aria-labelledby="cta-title">
       <div className="cta-card">
         <div className="cta-decor decor-one" />
         <div className="cta-decor decor-two" />
@@ -615,7 +569,7 @@ function CTA() {
             <i />
             TU PRÓXIMA ALIANZA EMPIEZA AQUÍ
           </div>
-          <h2>
+          <h2 id="cta-title">
             ¿Listo para crecer
             <br />
             en <em>comunidad?</em>
@@ -625,10 +579,10 @@ function CTA() {
             esporádicos en promotores de su negocio.
           </p>
           <div className="cta-actions">
-            <a className="button button-light" href="#footer">
-              Ver planes corporativos <Icon name="arrowForward" />
-            </a>
-            <a className="button button-outline" href="#footer">
+            <Link className="button button-light" to="/precios">
+              Comenzar gratis <Icon name="arrowForward" />
+            </Link>
+            <a className="cta-secondary" href="#footer">
               Contactar al equipo
             </a>
           </div>
@@ -662,13 +616,16 @@ function CTA() {
 }
 
 export default function AboutPage() {
+  useReveal(
+    '.about-page > section, .value-card, .how-step',
+  );
+
   return (
     <main className="about-page">
       <Hero />
       <Story />
       <Values />
       <Platform />
-      <Region />
       <CTA />
     </main>
   );

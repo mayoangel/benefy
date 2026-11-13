@@ -16,7 +16,11 @@ export default function Header() {
     <header className="site-header">
       <div className="container header-inner">
         <Brand />
-        <nav className={open ? 'nav nav-open' : 'nav'} aria-label="Navegación principal">
+        <nav
+          id="primary-navigation"
+          className={open ? 'nav nav-open' : 'nav'}
+          aria-label="Navegación principal"
+        >
           {links.map(([label, href]) => (
             <NavLink
               end={href === '/'}
@@ -43,6 +47,7 @@ export default function Header() {
           onClick={() => setOpen(!open)}
           aria-label={open ? 'Cerrar menú' : 'Abrir menú'}
           aria-expanded={open}
+          aria-controls="primary-navigation"
         >
           <Icon name={open ? 'close' : 'menu'} />
         </button>
