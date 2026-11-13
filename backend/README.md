@@ -78,8 +78,8 @@ y `DB_SSLMODE=disable`; inyecta el nombre, usuario y contraseña del PostgreSQL
 local. Estas variables tienen prioridad sobre `backend/.env`. Para Django
 ejecutado fuera de Docker, usa `DB_HOST=localhost` en `backend/.env`.
 
-Producción usa un archivo nuevo `.env.production` en la raíz, creado a partir
-de `.env.production.example` si no existe. Completa `DB_HOST`, `DB_PORT`,
+Producción usa `backend/.env.production`, creado a partir
+de `backend/.env.production.example` si no existe. Completa `DB_HOST`, `DB_PORT`,
 `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `SECRET_KEY` y `ALLOWED_HOSTS`.
 Genera una clave exclusiva con `python -c "import secrets; print(secrets.token_urlsafe(64))"`.
 No uses la clave de desarrollo. `ALLOWED_HOSTS` lleva dominios sin esquema;
@@ -111,10 +111,10 @@ docker compose -f compose.yaml down
 ### Iniciar y detener producción
 
 ```bash
-docker compose --env-file .env.production -f compose.production.yaml config --quiet
-docker compose --env-file .env.production -f compose.production.yaml up -d --build
-docker compose --env-file .env.production -f compose.production.yaml exec backend python manage.py check
-docker compose --env-file .env.production -f compose.production.yaml down
+docker compose --env-file backend/.env.production -f compose.production.yaml config --quiet
+docker compose --env-file backend/.env.production -f compose.production.yaml up -d --build
+docker compose --env-file backend/.env.production -f compose.production.yaml exec backend python manage.py check
+docker compose --env-file backend/.env.production -f compose.production.yaml down
 ```
 
 El proyecto Compose se llama `benefy-production`, por lo que no reemplaza los
@@ -135,13 +135,13 @@ docker compose -f compose.yaml exec backend python manage.py migrate
 En producción, revisar primero el plan (lectura):
 
 ```bash
-docker compose --env-file .env.production -f compose.production.yaml run --rm --no-deps backend python manage.py migrate --plan
+docker compose --env-file backend/.env.production -f compose.production.yaml run --rm --no-deps backend python manage.py migrate --plan
 ```
 
 Solo después de aprobación explícita y respaldo de Supabase, aplicar:
 
 ```bash
-docker compose --env-file .env.production -f compose.production.yaml run --rm --no-deps backend python manage.py migrate --noinput
+docker compose --env-file backend/.env.production -f compose.production.yaml run --rm --no-deps backend python manage.py migrate --noinput
 ```
 
 No ejecutes `manage.py test`, `flush`, cargas de fixtures ni migraciones inversas
@@ -156,14 +156,14 @@ base y modo SSL. No abren conexión:
 
 ```bash
 docker compose -f compose.yaml run --rm --no-deps backend python manage.py db_info
-docker compose --env-file .env.production -f compose.production.yaml run --rm --no-deps backend python manage.py db_info
+docker compose --env-file backend/.env.production -f compose.production.yaml run --rm --no-deps backend python manage.py db_info
 ```
 
 Para comprobar la conexión real, añade `--connect`:
 
 ```bash
 docker compose -f compose.yaml run --rm --no-deps backend python manage.py db_info --connect
-docker compose --env-file .env.production -f compose.production.yaml run --rm --no-deps backend python manage.py db_info --connect
+docker compose --env-file backend/.env.production -f compose.production.yaml run --rm --no-deps backend python manage.py db_info --connect
 ```
 
 Se ejecuta únicamente `SELECT current_database(), current_user` y se consulta
@@ -173,7 +173,7 @@ producción, el pooler de Supabase y `ssl_in_use=true`. El health check HTTP
 
 ### Secretos y despliegue público
 
-- `.env.production`, `.env` y sus variantes reales están ignorados por Git.
+- `backend/.env.production`, `.env` y sus variantes reales están ignorados por Git.
   Los ejemplos deben contener campos vacíos o placeholders para secretos.
   Los Dockerfiles excluyen `.env.*`; no copies credenciales a las imágenes.
 - Guarda las credenciales con acceso restringido o inyéctalas desde el gestor
@@ -181,15 +181,15 @@ producción, el pooler de Supabase y `ssl_in_use=true`. El health check HTTP
   del contenedor. No publiques `docker compose config` sin `--quiet`, ni dumps
   de settings, porque pueden mostrar contraseñas.
 - Rota la contraseña Supabase compartida en el chat antes del despliegue real
-  y actualiza solo `.env.production`; las credenciales locales son independientes.
+  y actualiza solo `backend/.env.production`; las credenciales locales son independientes.
 - Usa un dominio y un proxy HTTPS delante de Gunicorn. Configura hosts y
   orígenes, firewall, certificados, redirección HTTPS y HSTS tras verificar TLS.
   Configura la confianza en cabeceras del proxy únicamente si el proxy las
   sobrescribe y es el único que puede llegar al backend.
-- Ejecuta `docker compose --env-file .env.production -f compose.production.yaml run --rm --no-deps backend python manage.py check --deploy`
+- Ejecuta `docker compose --env-file backend/.env.production -f compose.production.yaml run --rm --no-deps backend python manage.py check --deploy`
   y resuelve los avisos del despliegue. Se activan cookies seguras en producción.
 - Los estáticos de Admin requieren `collectstatic` y un servidor de estáticos:
-  `docker compose --env-file .env.production -f compose.production.yaml exec backend python manage.py collectstatic --noinput`.
+  `docker compose --env-file backend/.env.production -f compose.production.yaml exec backend python manage.py collectstatic --noinput`.
   Configura un volumen o un paso de publicación para servir `/app/staticfiles`
   con el proxy; Gunicorn no los sirve. Ese almacenamiento aún no está incluido.
 - Completa autenticación, permisos y aislamiento de negocios antes de publicar

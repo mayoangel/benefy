@@ -11,7 +11,7 @@ services:
     environment:
       ENVIRONMENT: production
       DEBUG: "False"
-      SECRET_KEY: ${SECRET_KEY:?Configura SECRET_KEY en .env.production}
+      SECRET_KEY: ${SECRET_KEY:?Configura SECRET_KEY en backend/.env.production}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:?Configura ALLOWED_HOSTS}
       DB_HOST: ${DB_HOST:?Configura DB_HOST de Supabase}
       DB_PORT: ${DB_PORT:?Configura DB_PORT}
