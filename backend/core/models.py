@@ -11,7 +11,10 @@ ROLES = (
 )
 
 class Usuario(models.Model):
-    firebase_uid = models.CharField(max_length=128, unique=True)
+    # Se conserva el identificador anterior para una vinculación manual auditada.
+    legacy_firebase_uid = models.CharField(max_length=128, unique=True, null=True, blank=True, editable=False)
+    supabase_uid = models.UUIDField(unique=True, null=True, blank=True, editable=False)
+    is_active = models.BooleanField(default=True)
     nombre = models.CharField(max_length=100)
     apellido = models.CharField(max_length=100)
     telefono = models.CharField(max_length=20, blank=True, null=True)
@@ -24,6 +27,14 @@ class Usuario(models.Model):
 
     def __str__(self):
         return self.nombre
+
+    @property
+    def is_authenticated(self):
+        return self.is_active and self.supabase_uid is not None
+
+    @property
+    def is_anonymous(self):
+        return False
     
 class CategoriaNegocio(models.Model):
     nombre = models.CharField(max_length=100, unique=True)

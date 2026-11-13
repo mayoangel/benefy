@@ -11,30 +11,18 @@ class UsuarioSerializerCreate(serializers.ModelSerializer):
     class Meta:
         model = models.Usuario
         fields = [
-            "firebase_uid",
+            "id",
             "nombre",
             "apellido",
             "telefono",
-            "correo",
-            "rol",
             "foto_perfil",
         ]
+        read_only_fields = ["id"]
 
-    def validate_firebase_uid(self, value):
-        usuarios = models.Usuario.objects.filter(firebase_uid__iexact=value)
-        if self.instance:
-            usuarios = usuarios.exclude(pk=self.instance.pk)
-        if usuarios.exists():
-            raise serializers.ValidationError("Este identificador de Firebase ya está registrado.")
-        return value
-
-    def validate_correo(self, value):
-        usuarios = models.Usuario.objects.filter(correo__iexact=value)
-        if self.instance:
-            usuarios = usuarios.exclude(pk=self.instance.pk)
-        if usuarios.exists():
-            raise serializers.ValidationError("Este correo ya está registrado.")
-        return value
+    def validate(self, attrs):
+        if set(self.initial_data) - {"nombre", "apellido", "telefono", "foto_perfil"}:
+            raise serializers.ValidationError("Solo se permiten los campos editables del perfil.")
+        return attrs
 
     def validate_nombre(self, value):
         if not value.strip():
@@ -62,38 +50,24 @@ class UsuarioSerializerList(serializers.ModelSerializer):
 class UsuarioSerializerDetail(serializers.ModelSerializer):
     class Meta:
         model = models.Usuario
-        fields = "__all__"
+        fields = ["id", "supabase_uid", "nombre", "apellido", "telefono", "correo",
+                  "rol", "foto_perfil", "qr_token", "is_active", "fecha_registro", "fecha_actualizacion"]
 
 #Update
-class UsuarioSerializerUpdate(serializers.ModelSerializer):
+class UsuarioSerializerUpdate(UsuarioSerializerCreate):
     class Meta:
         model = models.Usuario
         fields = [
             "nombre",
             "apellido",
             "telefono",
-            "correo",
-            "rol",
             "foto_perfil",
         ]
 
-    def validate_correo(self, value):
-        usuarios = models.Usuario.objects.filter(correo__iexact=value)
-        if self.instance:
-            usuarios = usuarios.exclude(pk=self.instance.pk)
-        if usuarios.exists():
-            raise serializers.ValidationError("Este correo ya está registrado.")
-        return value
-
-    def validate_nombre(self, value):
-        if not value.strip():
-            raise serializers.ValidationError("El nombre no puede estar vacío.")
-        return value
-
-    def validate_apellido(self, value):
-        if not value.strip():
-            raise serializers.ValidationError("El apellido no puede estar vacío.")
-        return value
+class UsuarioRolSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Usuario
+        fields = ["rol", "is_active"]
 
 #Delete
 class UsuarioSerializerDelete(serializers.ModelSerializer):
@@ -432,8 +406,8 @@ class UsuarioNegocioSerializerCreate(serializers.ModelSerializer):
 
     def validate(self, attrs):
         negocio = attrs["negocio"]
-        sucursal = attrs["sucursal"]
-        if sucursal.negocio_id != negocio.pk:
+        sucursal = attrs.get("sucursal")
+        if sucursal is not None and sucursal.negocio_id != negocio.pk:
             raise serializers.ValidationError({
                 "sucursal": "La sucursal debe pertenecer al negocio indicado."
             })
@@ -1169,6 +1143,11 @@ class CanjeSerializerCreate(serializers.ModelSerializer):
         ]
 
     def validate(self, attrs):
+        request = self.context.get("request")
+        if request is not None:
+            if attrs.get("validado_por") not in (None, request.user):
+                raise serializers.ValidationError({"validado_por": "Debe ser el usuario autenticado."})
+            attrs["validado_por"] = request.user
         cupon = attrs["cupon"]
         sucursal = attrs["sucursal"]
         validado_por = attrs.get("validado_por")
@@ -1197,12 +1176,8 @@ class CanjeSerializerCreate(serializers.ModelSerializer):
             raise serializers.ValidationError({
                 "sucursal": "La sucursal no pertenece a un negocio asociado con esta recompensa."
             })
-        if validado_por and not models.UsuarioNegocio.objects.filter(
-            usuario=validado_por,
-            negocio_id=sucursal.negocio_id,
-            sucursal=sucursal,
-            status=True,
-        ).exists():
+        from core.permissions import puede_operar_sucursal
+        if validado_por and not puede_operar_sucursal(validado_por, sucursal):
             raise serializers.ValidationError({
                 "validado_por": "El usuario no tiene una asignación activa en esta sucursal."
             })

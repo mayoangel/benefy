@@ -8,7 +8,7 @@ ROLES_COMERCIO_SUCURSAL = ("admin", "empleado")
 
 #Validar si es usuario de Benefy
 def es_usuario_benefy(user):
-    return isinstance(user, models.Usuario)
+    return isinstance(user, models.Usuario) and user.is_authenticated
 
 #Validar si es admin del sistema (superadmin)
 def es_admin_sistema(user):

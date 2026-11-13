@@ -1,518 +1,456 @@
-from django.shortcuts import get_object_or_404
+"""Vistas CRUD explícitas con identidad Supabase y permisos de Django."""
+
+from django.db import IntegrityError, transaction
 from rest_framework import generics
+from rest_framework.exceptions import APIException
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from core import models, serializers
+from core import models, permissions, serializers
+from core.access import ResourceAccessMixin
 
 
-# Usuario CRUD
+class ProfileConflict(APIException):
+    status_code = 409
+    default_detail = 'El perfil ya existe o requiere una vinculación manual. Contacta al administrador.'
 
-#Create
+
 class UsuarioCreateAPIView(generics.CreateAPIView):
-    queryset = models.Usuario.objects.all()
+    permission_classes = [IsAuthenticated]
     serializer_class = serializers.UsuarioSerializerCreate
 
-#List
-class UsuarioListAPIView(APIView):
+    def perform_create(self, serializer):
+        identity = self.request.auth
+        if isinstance(self.request.user, models.Usuario):
+            raise ProfileConflict()
+        try:
+            with transaction.atomic():
+                # Nunca vincular perfiles automáticamente por coincidencia de correo.
+                if models.Usuario.objects.filter(correo__iexact=identity.email).exists():
+                    raise ProfileConflict()
+                serializer.save(supabase_uid=identity.uid, correo=identity.email, rol='consumidor')
+        except IntegrityError:
+            raise ProfileConflict() from None
+
+
+class PerfilAPIView(APIView):
     def get(self, request):
-        usuarios = models.Usuario.objects.all()
-        data = serializers.UsuarioSerializerList(usuarios, many=True).data
-        return Response(data)
+        return Response(serializers.UsuarioSerializerDetail(request.user).data)
 
-#Detail
-class UsuarioDetailAPIView(APIView):
-    def get(self, request, pk):
-        usuario = get_object_or_404(models.Usuario, pk=pk)
-        data = serializers.UsuarioSerializerDetail(usuario).data
-        return Response(data)
 
-#Update
-class UsuarioUpdateAPIView(generics.UpdateAPIView):
+class UsuarioRolAPIView(generics.UpdateAPIView):
+    permission_classes = [permissions.EsAdminSistema]
+    queryset = models.Usuario.objects.all()
+    serializer_class = serializers.UsuarioRolSerializer
+    http_method_names = ['patch', 'options']
+
+# Usuario: las cinco operaciones mantienen sus rutas independientes.
+class UsuarioListAPIView(ResourceAccessMixin, generics.ListAPIView):
+    queryset = models.Usuario.objects.all()
+    serializer_class = serializers.UsuarioSerializerList
+
+
+class UsuarioDetailAPIView(ResourceAccessMixin, generics.RetrieveAPIView):
+    queryset = models.Usuario.objects.all()
+    serializer_class = serializers.UsuarioSerializerDetail
+
+
+class UsuarioUpdateAPIView(ResourceAccessMixin, generics.UpdateAPIView):
     queryset = models.Usuario.objects.all()
     serializer_class = serializers.UsuarioSerializerUpdate
 
-#Delete
-class UsuarioDeleteAPIView(generics.DestroyAPIView):
+
+class UsuarioDeleteAPIView(ResourceAccessMixin, generics.DestroyAPIView):
     queryset = models.Usuario.objects.all()
     serializer_class = serializers.UsuarioSerializerDelete
 
 
-# CategoriaNegocio CRUD
-
-#Create
-class CategoriaNegocioCreateAPIView(generics.CreateAPIView):
+# CategoriaNegocio: las cinco operaciones mantienen sus rutas independientes.
+class CategoriaNegocioCreateAPIView(ResourceAccessMixin, generics.CreateAPIView):
     queryset = models.CategoriaNegocio.objects.all()
     serializer_class = serializers.CategoriaNegocioSerializerCreate
 
-#List
-class CategoriaNegocioListAPIView(APIView):
-    def get(self, request):
-        categorianegocios = models.CategoriaNegocio.objects.all()
-        data = serializers.CategoriaNegocioSerializerList(categorianegocios, many=True).data
-        return Response(data)
 
-#Detail
-class CategoriaNegocioDetailAPIView(APIView):
-    def get(self, request, pk):
-        categorianegocio = get_object_or_404(models.CategoriaNegocio, pk=pk)
-        data = serializers.CategoriaNegocioSerializerDetail(categorianegocio).data
-        return Response(data)
+class CategoriaNegocioListAPIView(ResourceAccessMixin, generics.ListAPIView):
+    queryset = models.CategoriaNegocio.objects.all()
+    serializer_class = serializers.CategoriaNegocioSerializerList
 
-#Update
-class CategoriaNegocioUpdateAPIView(generics.UpdateAPIView):
+
+class CategoriaNegocioDetailAPIView(ResourceAccessMixin, generics.RetrieveAPIView):
+    queryset = models.CategoriaNegocio.objects.all()
+    serializer_class = serializers.CategoriaNegocioSerializerDetail
+
+
+class CategoriaNegocioUpdateAPIView(ResourceAccessMixin, generics.UpdateAPIView):
     queryset = models.CategoriaNegocio.objects.all()
     serializer_class = serializers.CategoriaNegocioSerializerUpdate
 
-#Delete
-class CategoriaNegocioDeleteAPIView(generics.DestroyAPIView):
+
+class CategoriaNegocioDeleteAPIView(ResourceAccessMixin, generics.DestroyAPIView):
     queryset = models.CategoriaNegocio.objects.all()
     serializer_class = serializers.CategoriaNegocioSerializerDelete
 
 
-# Negocio CRUD
-
-#Create
-class NegocioCreateAPIView(generics.CreateAPIView):
+# Negocio: las cinco operaciones mantienen sus rutas independientes.
+class NegocioCreateAPIView(ResourceAccessMixin, generics.CreateAPIView):
     queryset = models.Negocio.objects.all()
     serializer_class = serializers.NegocioSerializerCreate
 
-#List
-class NegocioListAPIView(APIView):
-    def get(self, request):
-        negocios = models.Negocio.objects.all()
-        data = serializers.NegocioSerializerList(negocios, many=True).data
-        return Response(data)
 
-#Detail
-class NegocioDetailAPIView(APIView):
-    def get(self, request, pk):
-        negocio = get_object_or_404(models.Negocio, pk=pk)
-        data = serializers.NegocioSerializerDetail(negocio).data
-        return Response(data)
+class NegocioListAPIView(ResourceAccessMixin, generics.ListAPIView):
+    queryset = models.Negocio.objects.all()
+    serializer_class = serializers.NegocioSerializerList
 
-#Update
-class NegocioUpdateAPIView(generics.UpdateAPIView):
+
+class NegocioDetailAPIView(ResourceAccessMixin, generics.RetrieveAPIView):
+    queryset = models.Negocio.objects.all()
+    serializer_class = serializers.NegocioSerializerDetail
+
+
+class NegocioUpdateAPIView(ResourceAccessMixin, generics.UpdateAPIView):
     queryset = models.Negocio.objects.all()
     serializer_class = serializers.NegocioSerializerUpdate
 
-#Delete
-class NegocioDeleteAPIView(generics.DestroyAPIView):
+
+class NegocioDeleteAPIView(ResourceAccessMixin, generics.DestroyAPIView):
     queryset = models.Negocio.objects.all()
     serializer_class = serializers.NegocioSerializerDelete
 
 
-# Sucursal CRUD
-
-#Create
-class SucursalCreateAPIView(generics.CreateAPIView):
+# Sucursal: las cinco operaciones mantienen sus rutas independientes.
+class SucursalCreateAPIView(ResourceAccessMixin, generics.CreateAPIView):
     queryset = models.Sucursal.objects.all()
     serializer_class = serializers.SucursalSerializerCreate
 
-#List
-class SucursalListAPIView(APIView):
-    def get(self, request):
-        sucursals = models.Sucursal.objects.all()
-        data = serializers.SucursalSerializerList(sucursals, many=True).data
-        return Response(data)
 
-#Detail
-class SucursalDetailAPIView(APIView):
-    def get(self, request, pk):
-        sucursal = get_object_or_404(models.Sucursal, pk=pk)
-        data = serializers.SucursalSerializerDetail(sucursal).data
-        return Response(data)
+class SucursalListAPIView(ResourceAccessMixin, generics.ListAPIView):
+    queryset = models.Sucursal.objects.all()
+    serializer_class = serializers.SucursalSerializerList
 
-#Update
-class SucursalUpdateAPIView(generics.UpdateAPIView):
+
+class SucursalDetailAPIView(ResourceAccessMixin, generics.RetrieveAPIView):
+    queryset = models.Sucursal.objects.all()
+    serializer_class = serializers.SucursalSerializerDetail
+
+
+class SucursalUpdateAPIView(ResourceAccessMixin, generics.UpdateAPIView):
     queryset = models.Sucursal.objects.all()
     serializer_class = serializers.SucursalSerializerUpdate
 
-#Delete
-class SucursalDeleteAPIView(generics.DestroyAPIView):
+
+class SucursalDeleteAPIView(ResourceAccessMixin, generics.DestroyAPIView):
     queryset = models.Sucursal.objects.all()
     serializer_class = serializers.SucursalSerializerDelete
 
 
-# UsuarioNegocio CRUD
-
-#Create
-class UsuarioNegocioCreateAPIView(generics.CreateAPIView):
+# UsuarioNegocio: las cinco operaciones mantienen sus rutas independientes.
+class UsuarioNegocioCreateAPIView(ResourceAccessMixin, generics.CreateAPIView):
     queryset = models.UsuarioNegocio.objects.all()
     serializer_class = serializers.UsuarioNegocioSerializerCreate
 
-#List
-class UsuarioNegocioListAPIView(APIView):
-    def get(self, request):
-        usuarionegocios = models.UsuarioNegocio.objects.all()
-        data = serializers.UsuarioNegocioSerializerList(usuarionegocios, many=True).data
-        return Response(data)
 
-#Detail
-class UsuarioNegocioDetailAPIView(APIView):
-    def get(self, request, pk):
-        usuarionegocio = get_object_or_404(models.UsuarioNegocio, pk=pk)
-        data = serializers.UsuarioNegocioSerializerDetail(usuarionegocio).data
-        return Response(data)
+class UsuarioNegocioListAPIView(ResourceAccessMixin, generics.ListAPIView):
+    queryset = models.UsuarioNegocio.objects.all()
+    serializer_class = serializers.UsuarioNegocioSerializerList
 
-#Update
-class UsuarioNegocioUpdateAPIView(generics.UpdateAPIView):
+
+class UsuarioNegocioDetailAPIView(ResourceAccessMixin, generics.RetrieveAPIView):
+    queryset = models.UsuarioNegocio.objects.all()
+    serializer_class = serializers.UsuarioNegocioSerializerDetail
+
+
+class UsuarioNegocioUpdateAPIView(ResourceAccessMixin, generics.UpdateAPIView):
     queryset = models.UsuarioNegocio.objects.all()
     serializer_class = serializers.UsuarioNegocioSerializerUpdate
 
-#Delete
-class UsuarioNegocioDeleteAPIView(generics.DestroyAPIView):
+
+class UsuarioNegocioDeleteAPIView(ResourceAccessMixin, generics.DestroyAPIView):
     queryset = models.UsuarioNegocio.objects.all()
     serializer_class = serializers.UsuarioNegocioSerializerDelete
 
 
-# Dinamica CRUD
-
-#Create
-class DinamicaCreateAPIView(generics.CreateAPIView):
+# Dinamica: las cinco operaciones mantienen sus rutas independientes.
+class DinamicaCreateAPIView(ResourceAccessMixin, generics.CreateAPIView):
     queryset = models.Dinamica.objects.all()
     serializer_class = serializers.DinamicaSerializerCreate
 
-#List
-class DinamicaListAPIView(APIView):
-    def get(self, request):
-        dinamicas = models.Dinamica.objects.all()
-        data = serializers.DinamicaSerializerList(dinamicas, many=True).data
-        return Response(data)
 
-#Detail
-class DinamicaDetailAPIView(APIView):
-    def get(self, request, pk):
-        dinamica = get_object_or_404(models.Dinamica, pk=pk)
-        data = serializers.DinamicaSerializerDetail(dinamica).data
-        return Response(data)
+class DinamicaListAPIView(ResourceAccessMixin, generics.ListAPIView):
+    queryset = models.Dinamica.objects.all()
+    serializer_class = serializers.DinamicaSerializerList
 
-#Update
-class DinamicaUpdateAPIView(generics.UpdateAPIView):
+
+class DinamicaDetailAPIView(ResourceAccessMixin, generics.RetrieveAPIView):
+    queryset = models.Dinamica.objects.all()
+    serializer_class = serializers.DinamicaSerializerDetail
+
+
+class DinamicaUpdateAPIView(ResourceAccessMixin, generics.UpdateAPIView):
     queryset = models.Dinamica.objects.all()
     serializer_class = serializers.DinamicaSerializerUpdate
 
-#Delete
-class DinamicaDeleteAPIView(generics.DestroyAPIView):
+
+class DinamicaDeleteAPIView(ResourceAccessMixin, generics.DestroyAPIView):
     queryset = models.Dinamica.objects.all()
     serializer_class = serializers.DinamicaSerializerDelete
 
 
-# Alianza CRUD
-
-#Create
-class AlianzaCreateAPIView(generics.CreateAPIView):
+# Alianza: las cinco operaciones mantienen sus rutas independientes.
+class AlianzaCreateAPIView(ResourceAccessMixin, generics.CreateAPIView):
     queryset = models.Alianza.objects.all()
     serializer_class = serializers.AlianzaSerializerCreate
 
-#List
-class AlianzaListAPIView(APIView):
-    def get(self, request):
-        alianzas = models.Alianza.objects.all()
-        data = serializers.AlianzaSerializerList(alianzas, many=True).data
-        return Response(data)
 
-#Detail
-class AlianzaDetailAPIView(APIView):
-    def get(self, request, pk):
-        alianza = get_object_or_404(models.Alianza, pk=pk)
-        data = serializers.AlianzaSerializerDetail(alianza).data
-        return Response(data)
+class AlianzaListAPIView(ResourceAccessMixin, generics.ListAPIView):
+    queryset = models.Alianza.objects.all()
+    serializer_class = serializers.AlianzaSerializerList
 
-#Update
-class AlianzaUpdateAPIView(generics.UpdateAPIView):
+
+class AlianzaDetailAPIView(ResourceAccessMixin, generics.RetrieveAPIView):
+    queryset = models.Alianza.objects.all()
+    serializer_class = serializers.AlianzaSerializerDetail
+
+
+class AlianzaUpdateAPIView(ResourceAccessMixin, generics.UpdateAPIView):
     queryset = models.Alianza.objects.all()
     serializer_class = serializers.AlianzaSerializerUpdate
 
-#Delete
-class AlianzaDeleteAPIView(generics.DestroyAPIView):
+
+class AlianzaDeleteAPIView(ResourceAccessMixin, generics.DestroyAPIView):
     queryset = models.Alianza.objects.all()
     serializer_class = serializers.AlianzaSerializerDelete
 
 
-# Recompensa CRUD
-
-#Create
-class RecompensaCreateAPIView(generics.CreateAPIView):
+# Recompensa: las cinco operaciones mantienen sus rutas independientes.
+class RecompensaCreateAPIView(ResourceAccessMixin, generics.CreateAPIView):
     queryset = models.Recompensa.objects.all()
     serializer_class = serializers.RecompensaSerializerCreate
 
-#List
-class RecompensaListAPIView(APIView):
-    def get(self, request):
-        recompensas = models.Recompensa.objects.all()
-        data = serializers.RecompensaSerializerList(recompensas, many=True).data
-        return Response(data)
 
-#Detail
-class RecompensaDetailAPIView(APIView):
-    def get(self, request, pk):
-        recompensa = get_object_or_404(models.Recompensa, pk=pk)
-        data = serializers.RecompensaSerializerDetail(recompensa).data
-        return Response(data)
+class RecompensaListAPIView(ResourceAccessMixin, generics.ListAPIView):
+    queryset = models.Recompensa.objects.all()
+    serializer_class = serializers.RecompensaSerializerList
 
-#Update
-class RecompensaUpdateAPIView(generics.UpdateAPIView):
+
+class RecompensaDetailAPIView(ResourceAccessMixin, generics.RetrieveAPIView):
+    queryset = models.Recompensa.objects.all()
+    serializer_class = serializers.RecompensaSerializerDetail
+
+
+class RecompensaUpdateAPIView(ResourceAccessMixin, generics.UpdateAPIView):
     queryset = models.Recompensa.objects.all()
     serializer_class = serializers.RecompensaSerializerUpdate
 
-#Delete
-class RecompensaDeleteAPIView(generics.DestroyAPIView):
+
+class RecompensaDeleteAPIView(ResourceAccessMixin, generics.DestroyAPIView):
     queryset = models.Recompensa.objects.all()
     serializer_class = serializers.RecompensaSerializerDelete
 
 
-# RegistroActividad CRUD
-
-#Create
-class RegistroActividadCreateAPIView(generics.CreateAPIView):
+# RegistroActividad: las cinco operaciones mantienen sus rutas independientes.
+class RegistroActividadCreateAPIView(ResourceAccessMixin, generics.CreateAPIView):
     queryset = models.RegistroActividad.objects.all()
     serializer_class = serializers.RegistroActividadSerializerCreate
 
-#List
-class RegistroActividadListAPIView(APIView):
-    def get(self, request):
-        registroactividads = models.RegistroActividad.objects.all()
-        data = serializers.RegistroActividadSerializerList(registroactividads, many=True).data
-        return Response(data)
 
-#Detail
-class RegistroActividadDetailAPIView(APIView):
-    def get(self, request, pk):
-        registroactividad = get_object_or_404(models.RegistroActividad, pk=pk)
-        data = serializers.RegistroActividadSerializerDetail(registroactividad).data
-        return Response(data)
+class RegistroActividadListAPIView(ResourceAccessMixin, generics.ListAPIView):
+    queryset = models.RegistroActividad.objects.all()
+    serializer_class = serializers.RegistroActividadSerializerList
 
-#Update
-class RegistroActividadUpdateAPIView(generics.UpdateAPIView):
+
+class RegistroActividadDetailAPIView(ResourceAccessMixin, generics.RetrieveAPIView):
+    queryset = models.RegistroActividad.objects.all()
+    serializer_class = serializers.RegistroActividadSerializerDetail
+
+
+class RegistroActividadUpdateAPIView(ResourceAccessMixin, generics.UpdateAPIView):
     queryset = models.RegistroActividad.objects.all()
     serializer_class = serializers.RegistroActividadSerializerUpdate
 
-#Delete
-class RegistroActividadDeleteAPIView(generics.DestroyAPIView):
+
+class RegistroActividadDeleteAPIView(ResourceAccessMixin, generics.DestroyAPIView):
     queryset = models.RegistroActividad.objects.all()
     serializer_class = serializers.RegistroActividadSerializerDelete
 
 
-# ProgresoUsuario CRUD
-
-#Create
-class ProgresoUsuarioCreateAPIView(generics.CreateAPIView):
+# ProgresoUsuario: las cinco operaciones mantienen sus rutas independientes.
+class ProgresoUsuarioCreateAPIView(ResourceAccessMixin, generics.CreateAPIView):
     queryset = models.ProgresoUsuario.objects.all()
     serializer_class = serializers.ProgresoUsuarioSerializerCreate
 
-#List
-class ProgresoUsuarioListAPIView(APIView):
-    def get(self, request):
-        progresousuarios = models.ProgresoUsuario.objects.all()
-        data = serializers.ProgresoUsuarioSerializerList(progresousuarios, many=True).data
-        return Response(data)
 
-#Detail
-class ProgresoUsuarioDetailAPIView(APIView):
-    def get(self, request, pk):
-        progresousuario = get_object_or_404(models.ProgresoUsuario, pk=pk)
-        data = serializers.ProgresoUsuarioSerializerDetail(progresousuario).data
-        return Response(data)
+class ProgresoUsuarioListAPIView(ResourceAccessMixin, generics.ListAPIView):
+    queryset = models.ProgresoUsuario.objects.all()
+    serializer_class = serializers.ProgresoUsuarioSerializerList
 
-#Update
-class ProgresoUsuarioUpdateAPIView(generics.UpdateAPIView):
+
+class ProgresoUsuarioDetailAPIView(ResourceAccessMixin, generics.RetrieveAPIView):
+    queryset = models.ProgresoUsuario.objects.all()
+    serializer_class = serializers.ProgresoUsuarioSerializerDetail
+
+
+class ProgresoUsuarioUpdateAPIView(ResourceAccessMixin, generics.UpdateAPIView):
     queryset = models.ProgresoUsuario.objects.all()
     serializer_class = serializers.ProgresoUsuarioSerializerUpdate
 
-#Delete
-class ProgresoUsuarioDeleteAPIView(generics.DestroyAPIView):
+
+class ProgresoUsuarioDeleteAPIView(ResourceAccessMixin, generics.DestroyAPIView):
     queryset = models.ProgresoUsuario.objects.all()
     serializer_class = serializers.ProgresoUsuarioSerializerDelete
 
 
-# CuponUsuario CRUD
-
-#Create
-class CuponUsuarioCreateAPIView(generics.CreateAPIView):
+# CuponUsuario: las cinco operaciones mantienen sus rutas independientes.
+class CuponUsuarioCreateAPIView(ResourceAccessMixin, generics.CreateAPIView):
     queryset = models.CuponUsuario.objects.all()
     serializer_class = serializers.CuponUsuarioSerializerCreate
 
-#List
-class CuponUsuarioListAPIView(APIView):
-    def get(self, request):
-        cuponusuarios = models.CuponUsuario.objects.all()
-        data = serializers.CuponUsuarioSerializerList(cuponusuarios, many=True).data
-        return Response(data)
 
-#Detail
-class CuponUsuarioDetailAPIView(APIView):
-    def get(self, request, pk):
-        cuponusuario = get_object_or_404(models.CuponUsuario, pk=pk)
-        data = serializers.CuponUsuarioSerializerDetail(cuponusuario).data
-        return Response(data)
+class CuponUsuarioListAPIView(ResourceAccessMixin, generics.ListAPIView):
+    queryset = models.CuponUsuario.objects.all()
+    serializer_class = serializers.CuponUsuarioSerializerList
 
-#Update
-class CuponUsuarioUpdateAPIView(generics.UpdateAPIView):
+
+class CuponUsuarioDetailAPIView(ResourceAccessMixin, generics.RetrieveAPIView):
+    queryset = models.CuponUsuario.objects.all()
+    serializer_class = serializers.CuponUsuarioSerializerDetail
+
+
+class CuponUsuarioUpdateAPIView(ResourceAccessMixin, generics.UpdateAPIView):
     queryset = models.CuponUsuario.objects.all()
     serializer_class = serializers.CuponUsuarioSerializerUpdate
 
-#Delete
-class CuponUsuarioDeleteAPIView(generics.DestroyAPIView):
+
+class CuponUsuarioDeleteAPIView(ResourceAccessMixin, generics.DestroyAPIView):
     queryset = models.CuponUsuario.objects.all()
     serializer_class = serializers.CuponUsuarioSerializerDelete
 
 
-# Canje CRUD
-
-#Create
-class CanjeCreateAPIView(generics.CreateAPIView):
+# Canje: las cinco operaciones mantienen sus rutas independientes.
+class CanjeCreateAPIView(ResourceAccessMixin, generics.CreateAPIView):
     queryset = models.Canje.objects.all()
     serializer_class = serializers.CanjeSerializerCreate
 
-#List
-class CanjeListAPIView(APIView):
-    def get(self, request):
-        canjes = models.Canje.objects.all()
-        data = serializers.CanjeSerializerList(canjes, many=True).data
-        return Response(data)
 
-#Detail
-class CanjeDetailAPIView(APIView):
-    def get(self, request, pk):
-        canje = get_object_or_404(models.Canje, pk=pk)
-        data = serializers.CanjeSerializerDetail(canje).data
-        return Response(data)
+class CanjeListAPIView(ResourceAccessMixin, generics.ListAPIView):
+    queryset = models.Canje.objects.all()
+    serializer_class = serializers.CanjeSerializerList
 
-#Update
-class CanjeUpdateAPIView(generics.UpdateAPIView):
+
+class CanjeDetailAPIView(ResourceAccessMixin, generics.RetrieveAPIView):
+    queryset = models.Canje.objects.all()
+    serializer_class = serializers.CanjeSerializerDetail
+
+
+class CanjeUpdateAPIView(ResourceAccessMixin, generics.UpdateAPIView):
     queryset = models.Canje.objects.all()
     serializer_class = serializers.CanjeSerializerUpdate
 
-#Delete
-class CanjeDeleteAPIView(generics.DestroyAPIView):
+
+class CanjeDeleteAPIView(ResourceAccessMixin, generics.DestroyAPIView):
     queryset = models.Canje.objects.all()
     serializer_class = serializers.CanjeSerializerDelete
 
 
-# PlanSuscripcion CRUD
-
-#Create
-class PlanSuscripcionCreateAPIView(generics.CreateAPIView):
+# PlanSuscripcion: las cinco operaciones mantienen sus rutas independientes.
+class PlanSuscripcionCreateAPIView(ResourceAccessMixin, generics.CreateAPIView):
     queryset = models.PlanSuscripcion.objects.all()
     serializer_class = serializers.PlanSuscripcionSerializerCreate
 
-#List
-class PlanSuscripcionListAPIView(APIView):
-    def get(self, request):
-        plansuscripcions = models.PlanSuscripcion.objects.all()
-        data = serializers.PlanSuscripcionSerializerList(plansuscripcions, many=True).data
-        return Response(data)
 
-#Detail
-class PlanSuscripcionDetailAPIView(APIView):
-    def get(self, request, pk):
-        plansuscripcion = get_object_or_404(models.PlanSuscripcion, pk=pk)
-        data = serializers.PlanSuscripcionSerializerDetail(plansuscripcion).data
-        return Response(data)
+class PlanSuscripcionListAPIView(ResourceAccessMixin, generics.ListAPIView):
+    queryset = models.PlanSuscripcion.objects.all()
+    serializer_class = serializers.PlanSuscripcionSerializerList
 
-#Update
-class PlanSuscripcionUpdateAPIView(generics.UpdateAPIView):
+
+class PlanSuscripcionDetailAPIView(ResourceAccessMixin, generics.RetrieveAPIView):
+    queryset = models.PlanSuscripcion.objects.all()
+    serializer_class = serializers.PlanSuscripcionSerializerDetail
+
+
+class PlanSuscripcionUpdateAPIView(ResourceAccessMixin, generics.UpdateAPIView):
     queryset = models.PlanSuscripcion.objects.all()
     serializer_class = serializers.PlanSuscripcionSerializerUpdate
 
-#Delete
-class PlanSuscripcionDeleteAPIView(generics.DestroyAPIView):
+
+class PlanSuscripcionDeleteAPIView(ResourceAccessMixin, generics.DestroyAPIView):
     queryset = models.PlanSuscripcion.objects.all()
     serializer_class = serializers.PlanSuscripcionSerializerDelete
 
 
-# Suscripcion CRUD
-
-#Create
-class SuscripcionCreateAPIView(generics.CreateAPIView):
+# Suscripcion: las cinco operaciones mantienen sus rutas independientes.
+class SuscripcionCreateAPIView(ResourceAccessMixin, generics.CreateAPIView):
     queryset = models.Suscripcion.objects.all()
     serializer_class = serializers.SuscripcionSerializerCreate
 
-#List
-class SuscripcionListAPIView(APIView):
-    def get(self, request):
-        suscripcions = models.Suscripcion.objects.all()
-        data = serializers.SuscripcionSerializerList(suscripcions, many=True).data
-        return Response(data)
 
-#Detail
-class SuscripcionDetailAPIView(APIView):
-    def get(self, request, pk):
-        suscripcion = get_object_or_404(models.Suscripcion, pk=pk)
-        data = serializers.SuscripcionSerializerDetail(suscripcion).data
-        return Response(data)
+class SuscripcionListAPIView(ResourceAccessMixin, generics.ListAPIView):
+    queryset = models.Suscripcion.objects.all()
+    serializer_class = serializers.SuscripcionSerializerList
 
-#Update
-class SuscripcionUpdateAPIView(generics.UpdateAPIView):
+
+class SuscripcionDetailAPIView(ResourceAccessMixin, generics.RetrieveAPIView):
+    queryset = models.Suscripcion.objects.all()
+    serializer_class = serializers.SuscripcionSerializerDetail
+
+
+class SuscripcionUpdateAPIView(ResourceAccessMixin, generics.UpdateAPIView):
     queryset = models.Suscripcion.objects.all()
     serializer_class = serializers.SuscripcionSerializerUpdate
 
-#Delete
-class SuscripcionDeleteAPIView(generics.DestroyAPIView):
+
+class SuscripcionDeleteAPIView(ResourceAccessMixin, generics.DestroyAPIView):
     queryset = models.Suscripcion.objects.all()
     serializer_class = serializers.SuscripcionSerializerDelete
 
 
-# Pago CRUD
-
-#Create
-class PagoCreateAPIView(generics.CreateAPIView):
+# Pago: las cinco operaciones mantienen sus rutas independientes.
+class PagoCreateAPIView(ResourceAccessMixin, generics.CreateAPIView):
     queryset = models.Pago.objects.all()
     serializer_class = serializers.PagoSerializerCreate
 
-#List
-class PagoListAPIView(APIView):
-    def get(self, request):
-        pagos = models.Pago.objects.all()
-        data = serializers.PagoSerializerList(pagos, many=True).data
-        return Response(data)
 
-#Detail
-class PagoDetailAPIView(APIView):
-    def get(self, request, pk):
-        pago = get_object_or_404(models.Pago, pk=pk)
-        data = serializers.PagoSerializerDetail(pago).data
-        return Response(data)
+class PagoListAPIView(ResourceAccessMixin, generics.ListAPIView):
+    queryset = models.Pago.objects.all()
+    serializer_class = serializers.PagoSerializerList
 
-#Update
-class PagoUpdateAPIView(generics.UpdateAPIView):
+
+class PagoDetailAPIView(ResourceAccessMixin, generics.RetrieveAPIView):
+    queryset = models.Pago.objects.all()
+    serializer_class = serializers.PagoSerializerDetail
+
+
+class PagoUpdateAPIView(ResourceAccessMixin, generics.UpdateAPIView):
     queryset = models.Pago.objects.all()
     serializer_class = serializers.PagoSerializerUpdate
 
-#Delete
-class PagoDeleteAPIView(generics.DestroyAPIView):
+
+class PagoDeleteAPIView(ResourceAccessMixin, generics.DestroyAPIView):
     queryset = models.Pago.objects.all()
     serializer_class = serializers.PagoSerializerDelete
 
 
-# Notificacion CRUD
-
-#Create
-class NotificacionCreateAPIView(generics.CreateAPIView):
+# Notificacion: las cinco operaciones mantienen sus rutas independientes.
+class NotificacionCreateAPIView(ResourceAccessMixin, generics.CreateAPIView):
     queryset = models.Notificacion.objects.all()
     serializer_class = serializers.NotificacionSerializerCreate
 
-#List
-class NotificacionListAPIView(APIView):
-    def get(self, request):
-        notificacions = models.Notificacion.objects.all()
-        data = serializers.NotificacionSerializerList(notificacions, many=True).data
-        return Response(data)
 
-#Detail
-class NotificacionDetailAPIView(APIView):
-    def get(self, request, pk):
-        notificacion = get_object_or_404(models.Notificacion, pk=pk)
-        data = serializers.NotificacionSerializerDetail(notificacion).data
-        return Response(data)
+class NotificacionListAPIView(ResourceAccessMixin, generics.ListAPIView):
+    queryset = models.Notificacion.objects.all()
+    serializer_class = serializers.NotificacionSerializerList
 
-#Update
-class NotificacionUpdateAPIView(generics.UpdateAPIView):
+
+class NotificacionDetailAPIView(ResourceAccessMixin, generics.RetrieveAPIView):
+    queryset = models.Notificacion.objects.all()
+    serializer_class = serializers.NotificacionSerializerDetail
+
+
+class NotificacionUpdateAPIView(ResourceAccessMixin, generics.UpdateAPIView):
     queryset = models.Notificacion.objects.all()
     serializer_class = serializers.NotificacionSerializerUpdate
 
-#Delete
-class NotificacionDeleteAPIView(generics.DestroyAPIView):
+
+class NotificacionDeleteAPIView(ResourceAccessMixin, generics.DestroyAPIView):
     queryset = models.Notificacion.objects.all()
     serializer_class = serializers.NotificacionSerializerDelete

@@ -182,3 +182,11 @@ CORS_ALLOWED_ORIGINS = [value.strip() for value in os.getenv('CORS_ALLOWED_ORIGI
 CSRF_TRUSTED_ORIGINS = [value.strip() for value in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if value.strip()]
 SESSION_COOKIE_SECURE = IS_PRODUCTION
 CSRF_COOKIE_SECURE = IS_PRODUCTION
+
+# Auth verifica tokens en Supabase; los permisos se resuelven con los datos de Django.
+SUPABASE_URL = os.getenv('SUPABASE_URL', '').rstrip('/')
+SUPABASE_PUBLISHABLE_KEY = os.getenv('SUPABASE_PUBLISHABLE_KEY', '')
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': ['core.authentication.SupabaseAuthentication'],
+    'DEFAULT_PERMISSION_CLASSES': ['core.permissions.EsUsuarioBenefy'],
+}
