@@ -42,7 +42,7 @@ services:
       db:
         condition: service_healthy
 
-  # Servicio de Inteligencia Artificial (Python/FastAPI o Flask)
+  # Base del servicio de inteligencia artificial (Python/FastAPI)
   benef-ai:
     build:
       context: ./benef-ai

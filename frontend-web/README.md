@@ -1,36 +1,70 @@
 # Frontend web
 
-Frontend web de Benefy. Actualmente implementa la landing pública; el
-dashboard administrativo continúa como una responsabilidad prevista.
+Landing pública de Benefy, implementada con React 18, React Router 6,
+TypeScript 5 y Vite 5. El dashboard administrativo sigue pendiente.
 
-## Responsabilidades previstas
+## Código y páginas
 
-- Administrar comercios, programas de lealtad y campañas.
-- Mostrar métricas y operaciones del negocio.
-- Consumir la API del [`backend`](../backend/README.md).
+La entrada es `src/main.tsx`, que configura `BrowserRouter` y carga
+`src/App.tsx`. Las rutas implementadas son:
 
-## Estado actual
+| Ruta | Página |
+| --- | --- |
+| `/` | Inicio |
+| `/about` | Información del proyecto |
+| `/precios` | Planes y precios de presentación |
+| Cualquier otra | Muestra Inicio mediante la ruta comodín |
 
-Proyecto con React, React Router, TypeScript y Vite. Incluye las páginas de
-inicio, información y precios.
+Cabecera y pie se comparten entre páginas. El diseño usa CSS en
+`src/styles/tokens.css` y `src/styles/site.css`, además de Font Awesome.
+Tailwind no está instalado. Los textos de planes e IA de la landing son
+contenido comercial: no implican integraciones de pagos o analítica.
 
-Las variables de entorno usan el prefijo `VITE_` y Vite las carga
-automáticamente desde `frontend-web/.env` (generado a partir de
-`.env.example`); en el código se leen con `import.meta.env`.
+No hay login, SDK Supabase, cliente HTTP ni conexión a los endpoints Django.
+Consulta el [estado del producto](../docs/estado-implementacion.md).
 
-## Cómo ejecutar
+## Ejecución y verificación
+
+Desde `frontend-web/`:
 
 ```bash
 npm ci
-npm run dev       # servidor de desarrollo en http://localhost:5173
+npm run dev
 ```
 
-Otros comandos disponibles:
+Vite suele usar <http://localhost:5173/>; confirma la dirección que imprime
+la terminal, porque puede seleccionar otro puerto si está ocupado.
 
-- `npm run typecheck`: verificación de tipos sin generar archivos.
-- `npm run build`: compilación de producción con Vite.
-- `npm run preview`: vista previa del build de producción.
+```bash
+npm run typecheck
+npm run build
+npm run preview
+```
 
-## Tecnologías
+`typecheck` ejecuta `tsc --noEmit`. `build` solo ejecuta `vite build`;
+por eso deben ejecutarse ambos comandos. `preview` sirve el contenido de
+`dist/` para revisión local. No hay scripts de pruebas ni lint.
 
-React, TypeScript y Vite. Tailwind CSS está previsto para fases posteriores.
+En PowerShell con scripts deshabilitados puedes usar `npm.cmd` en lugar
+de `npm`. No es necesario cambiar la política de ejecución del sistema.
+
+## Variables y autenticación futura
+
+Crea `.env` desde [.env.example](./.env.example) si no existe. Vite utiliza
+`VITE_*` y el código debe leerlo mediante `import.meta.env`; actualmente
+las variables API, Google y Stripe del ejemplo no se consumen.
+
+Para integrar sesiones, el cliente deberá autenticarse en Supabase y enviar
+el access token a Django como bearer. El contrato está en
+[autenticación](../docs/autenticacion.md) y las rutas en [API](../docs/api.md).
+Los nombres `NEXT_PUBLIC_*` de ejemplos Next.js no son los usados por Vite.
+
+Todo valor `VITE_*` termina siendo público en el navegador. No incluyas
+claves `service_role`, contraseñas de base de datos ni claves secretas.
+
+## Publicación
+
+`npm run build` produce `dist/`. El hosting debe devolver `index.html`
+para rutas como `/about` y `/precios`, dado que se utiliza BrowserRouter.
+El frontend no se incluye en ninguno de los Compose actuales; requiere un
+despliegue independiente. El servidor Vite de desarrollo no es el hosting de producción.

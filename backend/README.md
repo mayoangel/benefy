@@ -1,203 +1,270 @@
 # Backend
 
-Esta carpeta contiene el backend de Benefy: la API, la lógica de negocio, la
-persistencia de datos y las integraciones con servicios externos.
+API Django 5.2 + Django REST Framework. La configuración está en `config/`;
+`core/` contiene 16 modelos, serializers, vistas, permisos y cuatro migraciones
+de dominio. La entrada de URLs es `config/urls.py`.
 
-## Responsabilidades previstas
+## Funcionalidad disponible
 
-- Gestionar usuarios, comercios, programas de lealtad y recompensas.
-- Exponer la API para el dashboard web y la aplicación móvil.
-- Procesar transacciones, canjes y colaboraciones entre negocios.
-- Integrar autenticación, pagos, almacenamiento multimedia y monitoreo.
+- 80 rutas CRUD, con acciones en español, y dos rutas adicionales de perfil/roles.
+- Verificación de sesiones Supabase Auth y permisos según usuario, negocio y sucursal.
+- Django Admin con los modelos registrados y cuentas staff separadas de los perfiles Benefy.
+- PostgreSQL local para desarrollo o PostgreSQL Supabase con SSL para producción.
+- Comando `db_info` para inspeccionar el destino sin imprimir passwords.
+- Pruebas de salud, autenticación, permisos, aislamiento y migración de perfiles.
 
-## Estado actual
+Consulta [API](../docs/api.md) para las rutas y
+[autenticación](../docs/autenticacion.md) para los payloads y la matriz de acceso.
+Los modelos de Stripe y notificaciones no implican que esas integraciones estén
+implementadas. Los servicios transaccionales completos de lealtad siguen pendientes.
 
-El proyecto Django contiene el primer modelo relacional de Benefy, sus
-migraciones y endpoints CRUD bajo `/api/v1`. `GET /` expone un endpoint de
-verificación de estado en JSON. La API valida las sesiones con Supabase Auth
-y aplica roles y permisos con los datos de Django. Consulta la
-[guía de autenticación](../docs/autenticacion.md) para configurar Supabase,
-aplicar la migración de identidad y probar el flujo completo.
+## Entornos y variables
 
-Las dependencias base (Django, Django REST Framework, django-cors-headers,
-psycopg2-binary y python-dotenv) están declaradas en `requirements.txt`.
+Todos los comandos Docker de esta guía se ejecutan desde la raíz del repositorio.
 
-## Cómo ejecutar
+| Archivo real | Uso |
+| --- | --- |
+| `.env` | Sustituciones de Compose de desarrollo: `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` |
+| `backend/.env` | Django local: se carga con python-dotenv, sin sobrescribir el entorno del proceso |
+| `backend/.env.production` | Variables que Compose de producción inyecta explícitamente en el contenedor |
 
-Con Docker (recomendado, desde la raíz del repositorio):
+Usa [.env.example](./.env.example) y
+[.env.production.example](./.env.production.example) solo para crear archivos
+que no existan. Las variables de PostgreSQL local deben coincidir con las
+credenciales del volumen ya inicializado. Cambiar `POSTGRES_PASSWORD` en un
+archivo no modifica la contraseña almacenada en un volumen existente.
 
-```bash
-docker compose up --build backend
-docker compose exec backend python manage.py migrate
-docker compose exec backend python manage.py test
-```
+| Variable | Comportamiento |
+| --- | --- |
+| `ENVIRONMENT` | Desarrollo fija `development`; producción fija `production` |
+| `DEBUG` | Se lee de Django local; producción fija `False` |
+| `SECRET_KEY` | En producción debe estar definida, tener al menos 50 caracteres y no empezar por `django-insecure-` |
+| `ALLOWED_HOSTS` | Hosts sin esquema separados por comas; producción exige un valor |
+| `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | Destino PostgreSQL; todos son obligatorios en producción |
+| `DB_SSLMODE` | Desarrollo Compose fija `disable`; producción Compose fija `require` |
+| `DB_SSLROOTCERT` | Settings admite un certificado CA; no se monta ni se pasa en el Compose actual |
+| `SUPABASE_URL` | URL HTTPS del proyecto Auth, distinta del host pooler PostgreSQL |
+| `SUPABASE_PUBLISHABLE_KEY` | Clave pública usada para verificar tokens en Supabase Auth |
+| `CORS_ALLOWED_ORIGINS` | Orígenes completos separados por comas |
+| `CSRF_TRUSTED_ORIGINS` | Orígenes confiables completos separados por comas |
+| `BACKEND_PORT` | Sustitución exclusiva de Compose de producción; puerto host por defecto 8001 |
 
-En local (requiere un PostgreSQL accesible desde `backend/.env`):
+Con `DEBUG=True`, CORS permite cualquier origen. En producción se utiliza la
+lista explícita y se activan cookies seguras de sesión/CSRF.
+`LANGUAGE_CODE` es `en-us` y `TIME_ZONE` es `UTC`; no hay variables para
+cambiarlos actualmente.
 
-```bash
-docker compose up -d db
-pip install -r requirements.txt
-python manage.py migrate
-python manage.py runserver 0.0.0.0:8000
-```
+Las variables Stripe de la plantilla local son placeholders; no existe SDK,
+webhook ni código que las utilice. La configuración de Supabase Auth usa la
+clave publicable, nunca la contraseña PostgreSQL ni una clave `service_role`.
 
-Cuando Django se ejecuta directamente desde Windows, configura
-`DB_HOST=localhost`. El nombre `db` solo se resuelve dentro de la red de
-Docker Compose.
+## Desarrollo con Docker
 
-## Verificación
-
-```bash
-python manage.py check
-python manage.py makemigrations --check --dry-run
-python manage.py test
-```
-
-## Configuración
-
-`config/settings.py` lee `backend/.env` (generado a partir de `.env.example`)
-con python-dotenv: `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS` y las credenciales de
-PostgreSQL (`DB_*`). Dentro de Docker, `compose.yaml` también inyecta los
-valores de conexión hacia el servicio `db`.
-
-## Desarrollo y producción con Supabase
-
-Todos los comandos Docker Compose de esta sección se ejecutan desde la raíz
-del repositorio. Se usa el mismo ORM, modelos y archivos de migraciones en
-ambos entornos. Esta configuración no copia datos existentes ni ejecuta
-migraciones automáticamente.
-
-### Variables de entorno
-
-Desarrollo conserva `.env` de la raíz para `POSTGRES_USER`, `POSTGRES_PASSWORD`
-y `POSTGRES_DB`, y `backend/.env` para Django. Usa los `.env.example` respectivos
-solo si todavía no existen los archivos reales. No sobrescribas credenciales
-existentes: cambiar las variables de PostgreSQL no cambia la contraseña de un
-volumen ya inicializado.
-
-Compose local fija `ENVIRONMENT=development`, `DB_HOST=db`, `DB_PORT=5432`
-y `DB_SSLMODE=disable`; inyecta el nombre, usuario y contraseña del PostgreSQL
-local. Estas variables tienen prioridad sobre `backend/.env`. Para Django
-ejecutado fuera de Docker, usa `DB_HOST=localhost` en `backend/.env`.
-
-Producción usa `backend/.env.production`, creado a partir
-de `backend/.env.production.example` si no existe. Completa `DB_HOST`, `DB_PORT`,
-`DB_NAME`, `DB_USER`, `DB_PASSWORD`, `SECRET_KEY` y `ALLOWED_HOSTS`.
-Genera una clave exclusiva con `python -c "import secrets; print(secrets.token_urlsafe(64))"`.
-No uses la clave de desarrollo. `ALLOWED_HOSTS` lleva dominios sin esquema;
-`CORS_ALLOWED_ORIGINS` y `CSRF_TRUSTED_ORIGINS` llevan orígenes completos HTTPS
-separados por comas.
-
-`compose.production.yaml` es independiente: **no lo combines con compose.yaml**.
-Fija `ENVIRONMENT=production`, `DEBUG=False` y `sslmode=require`; no carga
-`backend/.env`, no monta el código local y no inicia PostgreSQL local.
-Conserva Benef AI en la red interna, sin puerto público ni recarga automática.
-La conexión Supabase usa el session pooler en el puerto `5432`.
-`require` cifra la conexión pero no verifica identidad del servidor. Para
-verificación completa, configura `DB_SSLMODE=verify-full` y `DB_SSLROOTCERT`
-en el entorno del backend y monta el certificado CA correspondiente; habría
-que adaptar explícitamente el Compose de producción para ello.
-
-### Iniciar y detener desarrollo
+`compose.yaml` conserva los servicios `db`, `backend` y `benef-ai`.
+Django utiliza `runserver`, monta `backend/` y espera a que PostgreSQL esté
+saludable. Fuerza `DB_HOST=db`, `DB_PORT=5432` y SSL deshabilitado, aunque
+`backend/.env` tenga otros valores; nombre/usuario/password vienen del `.env`
+de la raíz. La aplicación Django no carga ese archivo raíz.
 
 ```bash
 docker compose -f compose.yaml config --quiet
 docker compose -f compose.yaml up -d --build
+docker compose -f compose.yaml exec backend python manage.py migrate
 docker compose -f compose.yaml exec backend python manage.py check
-docker compose -f compose.yaml exec backend python manage.py test --noinput
+docker compose -f compose.yaml logs --tail 50 backend
+```
+
+- API y health check: <http://localhost:8000/>.
+- Admin: <http://localhost:8000/admin/>.
+- No se ejecutan migraciones ni se crean usuarios automáticamente al iniciar.
+
+Para detener y conservar datos:
+
+```bash
 docker compose -f compose.yaml down
 ```
 
-`down` conserva el volumen local. No uses `down -v` si quieres conservar datos.
+No uses `down -v` para una parada normal. El puerto PostgreSQL local está
+fijado a `5432:5432`; `POSTGRES_PORT` no se referencia en el Compose actual.
 
-### Iniciar y detener producción
+Si cambias `backend/.env`, reinicia Django:
+
+```bash
+docker compose -f compose.yaml restart backend
+```
+
+Si cambias variables que Compose inyecta desde la raíz, recrea el servicio
+con `up -d --force-recreate backend`; un simple `restart` no actualiza ese entorno.
+
+## Ejecución local sin contenedor Django
+
+Primero levanta PostgreSQL desde la raíz:
+
+```bash
+docker compose -f compose.yaml up -d db
+```
+
+En `backend/.env`, configura `DB_HOST=localhost` y las mismas credenciales
+del PostgreSQL local. Después, desde `backend/` y con un entorno virtual activo:
+
+```bash
+python -m pip install -r requirements.txt
+python manage.py migrate
+python manage.py check
+python manage.py runserver 0.0.0.0:8000
+```
+
+La imagen Docker usa Python 3.11. El entorno virtual local existente puede tener
+otra versión; no lo copies al contenedor. Gunicorn se utiliza en producción
+Linux, no como servidor local de Windows.
+
+## Pruebas y cambios de modelos
+
+Ejecuta pruebas únicamente contra PostgreSQL local o una base de pruebas aislada:
+
+```bash
+docker compose -f compose.yaml run --rm --no-deps backend python manage.py test --noinput
+docker compose -f compose.yaml run --rm --no-deps backend python manage.py test core.test_auth --noinput
+docker compose -f compose.yaml exec backend python manage.py makemigrations --check --dry-run
+```
+
+`run --no-deps` presupone que `db` ya está levantado. Django crea y destruye
+una base de prueba; el usuario PostgreSQL local necesita permiso para crearla.
+`core/test_auth_migration.py` prueba la transición de identidad solo dentro
+de esa base aislada.
+
+Para un cambio deliberado en modelos:
+
+```bash
+docker compose -f compose.yaml exec backend python manage.py makemigrations core
+docker compose -f compose.yaml exec backend python manage.py migrate --plan
+docker compose -f compose.yaml exec backend python manage.py migrate
+```
+
+Revisa y versiona el archivo de migración. No edites migraciones ya aplicadas
+para introducir cambios nuevos. Agregar campos obligatorios, eliminar columnas
+o cambiar tipos requiere revisar los datos y la estrategia de despliegue.
+
+## Producción con Supabase
+
+`compose.production.yaml` es independiente: no lo combines con `compose.yaml`.
+Usa el proyecto `benefy-production`, Gunicorn con dos workers y PostgreSQL
+externo. Conserva Benef AI sin recarga y sin puerto público.
+
+Configura `backend/.env.production` antes de iniciar. La imagen excluye los
+archivos reales de entorno y no monta el código local. En producción Django
+no carga `backend/.env`; Compose pasa únicamente las variables declaradas
+en su bloque `environment`.
 
 ```bash
 docker compose --env-file backend/.env.production -f compose.production.yaml config --quiet
 docker compose --env-file backend/.env.production -f compose.production.yaml up -d --build
 docker compose --env-file backend/.env.production -f compose.production.yaml exec backend python manage.py check
+```
+
+El backend se publica solo en `127.0.0.1:8001` por defecto; dentro de Docker
+escucha en `8000`. Benef AI escucha en `5000` dentro de la red Compose.
+La configuración permite coexistir con desarrollo, pero no sincroniza datos.
+
+Para actualizar variables de producción, recrea el servicio:
+
+```bash
+docker compose --env-file backend/.env.production -f compose.production.yaml up -d --force-recreate backend
+```
+
+Para detenerlo:
+
+```bash
 docker compose --env-file backend/.env.production -f compose.production.yaml down
 ```
 
-El proyecto Compose se llama `benefy-production`, por lo que no reemplaza los
-contenedores locales. Gunicorn escucha dentro del contenedor en `8000`;
-el host solo publica `127.0.0.1:8001` por defecto (`BACKEND_PORT`).
-Esto permite coexistir con desarrollo y conectar un proxy del host.
-Benef AI mantiene únicamente su health check; sus integraciones siguen pendientes.
+El pooler Supabase configurado usa modo sesión en el puerto 5432.
+`sslmode=require` cifra la conexión; no verifica hostname/certificado.
+Usar `verify-full` requiere adaptar explícitamente Compose para pasar el modo,
+montar el certificado CA y configurar `DB_SSLROOTCERT`.
 
-### Migraciones (ejecución manual)
+## Migraciones en producción
 
-En desarrollo:
-
-```bash
-docker compose -f compose.yaml exec backend python manage.py makemigrations --check --dry-run
-docker compose -f compose.yaml exec backend python manage.py migrate
-```
-
-En producción, revisar primero el plan (lectura):
+Los modelos y archivos de migración son los mismos que en desarrollo. Cambiar
+de destino no copia registros desde PostgreSQL local ni aplica el esquema
+automáticamente. Para consultar qué falta:
 
 ```bash
+docker compose --env-file backend/.env.production -f compose.production.yaml run --rm --no-deps backend python manage.py showmigrations core
 docker compose --env-file backend/.env.production -f compose.production.yaml run --rm --no-deps backend python manage.py migrate --plan
 ```
 
-Solo después de aprobación explícita y respaldo de Supabase, aplicar:
+Solo después de revisión, respaldo y autorización para ese entorno:
 
 ```bash
 docker compose --env-file backend/.env.production -f compose.production.yaml run --rm --no-deps backend python manage.py migrate --noinput
 ```
 
-No ejecutes `manage.py test`, `flush`, cargas de fixtures ni migraciones inversas
-con las credenciales de producción. Las pruebas deben utilizar PostgreSQL local
-o una base aislada. La copia de datos desde desarrollo requiere un plan de
-exportación/restauración y autorización aparte.
+Las migraciones disponibles en Git no prueban que estén aplicadas en un servidor.
+No ejecutes `test`, `flush`, fixtures ni migraciones inversas con credenciales
+de producción. La copia de datos entre entornos exige un procedimiento aparte.
 
-### Verificar la base de datos seleccionada
+## Verificar el destino de Django
 
-Estos comandos cargan settings y muestran solo entorno, motor, host, puerto,
-base y modo SSL. No abren conexión:
+Sin conexión a la base:
 
 ```bash
 docker compose -f compose.yaml run --rm --no-deps backend python manage.py db_info
 docker compose --env-file backend/.env.production -f compose.production.yaml run --rm --no-deps backend python manage.py db_info
 ```
 
-Para comprobar la conexión real, añade `--connect`:
+Para conexión real, añade `--connect`:
 
 ```bash
 docker compose -f compose.yaml run --rm --no-deps backend python manage.py db_info --connect
 docker compose --env-file backend/.env.production -f compose.production.yaml run --rm --no-deps backend python manage.py db_info --connect
 ```
 
-Se ejecuta únicamente `SELECT current_database(), current_user` y se consulta
-si el cliente PostgreSQL negoció SSL. Desarrollo debe mostrar `host=db`;
-producción, el pooler de Supabase y `ssl_in_use=true`. El health check HTTP
-`GET /` no comprueba la base de datos.
+Se muestra entorno, host, puerto, motor, base y modo SSL; nunca la contraseña.
+`--connect` ejecuta `SELECT current_database(), current_user` y consulta si se
+negoció SSL. Desarrollo debe mostrar `host=db`; producción, el host Supabase
+configurado y `ssl_in_use=true`. `GET /` solo comprueba que Django responde.
 
-### Secretos y despliegue público
+## Administradores
 
-- `backend/.env.production`, `.env` y sus variantes reales están ignorados por Git.
-  Los ejemplos deben contener campos vacíos o placeholders para secretos.
-  Los Dockerfiles excluyen `.env.*`; no copies credenciales a las imágenes.
-- Guarda las credenciales con acceso restringido o inyéctalas desde el gestor
-  de secretos del servidor. Quien controla Docker puede inspeccionar el entorno
-  del contenedor. No publiques `docker compose config` sin `--quiet`, ni dumps
-  de settings, porque pueden mostrar contraseñas.
-- Rota la contraseña Supabase compartida en el chat antes del despliegue real
-  y actualiza solo `backend/.env.production`; las credenciales locales son independientes.
-- Usa un dominio y un proxy HTTPS delante de Gunicorn. Configura hosts y
-  orígenes, firewall, certificados, redirección HTTPS y HSTS tras verificar TLS.
-  Configura la confianza en cabeceras del proxy únicamente si el proxy las
-  sobrescribe y es el único que puede llegar al backend.
-- Ejecuta `docker compose --env-file backend/.env.production -f compose.production.yaml run --rm --no-deps backend python manage.py check --deploy`
-  y resuelve los avisos del despliegue. Se activan cookies seguras en producción.
-- Los estáticos de Admin requieren `collectstatic` y un servidor de estáticos:
+```bash
+docker compose -f compose.yaml exec backend python manage.py createsuperuser
+```
+
+Crea una cuenta staff para Django Admin, usando su autenticación de sesiones.
+No crea un usuario en Supabase Auth ni un perfil `core.Usuario`, y no concede
+el rol Benefy `admin_sistema`. La [guía de autenticación](../docs/autenticacion.md)
+explica cómo crear/vincular el perfil y asignar ese rol mediante un operador autorizado.
+No existen credenciales de administrador predeterminadas en el código.
+
+## Despliegue público y secretos
+
+- Configura dominio, proxy HTTPS, certificados y firewall delante de Gunicorn.
+  El proxy puede alcanzar el puerto loopback 8001 en el mismo host; un proxy
+  en otro contenedor necesita red/puertos adecuados.
+- Define hosts y orígenes HTTPS permitidos. Configura redirección HTTPS, HSTS
+  y confianza en cabeceras del proxy cuando el proxy sobrescriba esas cabeceras
+  y sea el único que pueda llegar al backend.
+- Ejecuta el chequeo de despliegue y resuelve los avisos:
+  `docker compose --env-file backend/.env.production -f compose.production.yaml run --rm --no-deps backend python manage.py check --deploy`.
+- Publica estáticos de Admin con un volumen o proceso de extracción:
   `docker compose --env-file backend/.env.production -f compose.production.yaml exec backend python manage.py collectstatic --noinput`.
-  Configura un volumen o un paso de publicación para servir `/app/staticfiles`
-  con el proxy; Gunicorn no los sirve. Ese almacenamiento aún no está incluido.
-- Completa autenticación, permisos y aislamiento de negocios antes de publicar
-  la API actual. Configura respaldos, monitoreo y permisos mínimos de la cuenta
-  PostgreSQL. Revisa la exposición de tablas Django mediante la Data API de
-  Supabase: este proyecto solo usa su PostgreSQL, no Supabase Auth ni su API REST.
+  Se recopilan en `/app/staticfiles`. Gunicorn no los sirve y el Compose actual
+  no configura almacenamiento persistente ni servidor de estáticos.
+- Revisa la matriz de permisos, la verificación de email y los flujos incompletos
+  de lealtad antes de exponer el servicio. Los límites y pendientes están en
+  [estado de implementación](../docs/estado-implementacion.md).
+- Deshabilita la Data API de Supabase o excluye las tablas Django de sus esquemas
+  expuestos; los permisos Python no controlan consultas directas por PostgREST.
+- Configura respaldos, restauración probada, monitoreo y permisos mínimos
+  PostgreSQL. Supabase Auth y PostgreSQL son integraciones distintas; no se usa
+  la API REST de datos Supabase.
+- Los archivos reales `.env*` están ignorados por Git; los Dockerfiles los
+  excluyen. No uses `git add -f` para subirlos. Verifica también que no estuvieran
+  versionados previamente, porque ignorarlos no elimina su historial.
+- Una clave publicable es pública; passwords PostgreSQL, `SECRET_KEY`, tokens
+  de sesión y claves secretas son privados. No publiques `docker compose config`
+  sin `--quiet` ni dumps completos de settings. Rota cualquier secreto filtrado.
 
-Referencias: [conexiones Supabase](https://supabase.com/docs/guides/database/connecting-to-postgres)
+Referencias: [conexión PostgreSQL Supabase](https://supabase.com/docs/guides/database/connecting-to-postgres)
 y [SSL](https://supabase.com/docs/guides/platform/ssl-enforcement).

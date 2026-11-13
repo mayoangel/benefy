@@ -49,15 +49,21 @@ SUPABASE_URL=https://tu-proyecto.supabase.co
 SUPABASE_PUBLISHABLE_KEY=sb_publishable_reemplazar
 ```
 
-Obtén la URL y la clave publicable en la configuración API del proyecto.
+Obtén la URL en el diálogo **Connect** del proyecto y la clave publicable en
+**Settings → API Keys → Publishable and secret API keys**. Estos nombres son
+los que lee Django; no utiliza el prefijo `NEXT_PUBLIC_` de Next.js.
 La URL Auth no es el host del pooler PostgreSQL. La contraseña `DB_PASSWORD`
 tampoco es una clave Auth. Si todavía usas una clave pública legacy `anon`,
 puede enviarse en el mismo parámetro; nunca uses una clave `service_role`
 ni `sb_secret_...` en ese lugar o en los clientes.
 
-Los ejemplos solo contienen placeholders. Este cambio no reemplaza las
-variables reales existentes ni modifica cuentas en Supabase. Completa las
-dos variables antes de hacer una prueba real de login. Si falta configuración,
+Configura ambos archivos si vas a autenticarte en los dos entornos. Los valores
+pueden pertenecer al mismo proyecto durante una prueba inicial, pero entonces
+se comparten las identidades Auth; los perfiles y datos PostgreSQL siguen siendo
+independientes. No hay sincronización automática entre bases.
+
+Los ejemplos solo contienen placeholders. Completa las dos variables en los
+archivos reales antes de hacer una prueba real de login. Si falta configuración,
 una petición con bearer devuelve 503; el health check sigue público.
 
 En desarrollo se recomienda un proyecto Auth de pruebas, distinto al de
@@ -69,6 +75,18 @@ docker compose -f compose.yaml up -d --build
 
 # Producción con PostgreSQL Supabase, solo después de revisar la migración.
 docker compose --env-file backend/.env.production -f compose.production.yaml up -d --build
+```
+
+Después de cambiar Auth en `backend/.env`, ejecuta desde la raíz:
+
+```bash
+docker compose -f compose.yaml restart backend
+```
+
+Para cambiar variables inyectadas en producción, recrea el contenedor:
+
+```bash
+docker compose --env-file backend/.env.production -f compose.production.yaml up -d --force-recreate backend
 ```
 
 Deshabilita la **Data API** de Supabase si no se utiliza, o excluye las tablas
@@ -94,9 +112,15 @@ asigna esa identidad al perfil automáticamente. La vinculación de registros
 antiguos debe hacerse de forma individual por un operador autorizado, usando
 el ID comprobado en Supabase Auth y preservando el perfil y sus relaciones.
 
-La migración nueva se verificó en bases de prueba y se aplicó al PostgreSQL
-local durante la comprobación del acceso a Django Admin. Sigue pendiente en
-Supabase. Para otros entornos de desarrollo, revisa y aplica:
+Las pruebas verifican esta migración y la conservación de usuarios anteriores
+en una base aislada. Para saber si un entorno real tiene la migración aplicada,
+consulta su estado; la presencia del archivo en Git no implica su ejecución:
+
+```bash
+docker compose -f compose.yaml exec backend python manage.py showmigrations core
+```
+
+Para instalar o actualizar desarrollo, revisa y aplica:
 
 ```bash
 docker compose -f compose.yaml exec backend python manage.py migrate --plan
@@ -202,8 +226,9 @@ un negocio/sucursal concretos. Tener rol `negocio` por sí solo no concede acces
 | Pagos y suscripciones | Dueño del negocio y admin del sistema | Solo admin hasta implementar webhooks verificados |
 | Notificaciones | Propias y admin del sistema | Usuario solo marca `leida`; crear/borrar solo admin |
 
-El admin del sistema puede operar todos los recursos. La sucursal y su negocio
-deben estar activos para registrar actividades o canjes. No se permite cambiar
+El admin del sistema tiene alcance global, sujeto a las validaciones de cada
+serializer. La sucursal y su negocio deben estar activos para registrar
+actividades o canjes. A los usuarios de negocio no se les permite cambiar
 el origen de una recompensa, trasladar una dinámica/sucursal a otro negocio,
 ni transferir una membresía a otro usuario/negocio mediante actualización.
 `stripe_id` solo puede establecerlo el administrador.
@@ -235,9 +260,24 @@ user.rol = "admin_sistema"
 user.save(update_fields=["rol"])
 ```
 
-En producción usa el prefijo `docker compose --env-file backend/.env.production
--f compose.production.yaml` para abrir el shell. La promoción es una escritura
-manual privilegiada: no se ejecuta como parte de esta implementación.
+Para abrir el shell del entorno de producción:
+
+```bash
+docker compose --env-file backend/.env.production -f compose.production.yaml run --rm --no-deps backend python manage.py shell
+```
+
+La promoción es una escritura manual privilegiada y debe aprobarse para el
+entorno elegido. No hay una cuenta `admin_sistema` predeterminada.
+
+Para crear un superusuario de Django Admin en desarrollo:
+
+```bash
+docker compose -f compose.yaml exec backend python manage.py createsuperuser
+```
+
+Ese usuario se guarda en las tablas de autenticación de Django y accede a
+`/admin/`. No crea una cuenta Supabase ni un perfil Benefy; las tres identidades
+(staff Django, identidad Supabase y perfil Benefy) tienen responsabilidades distintas.
 
 Para vincular un perfil heredado, consulta por su PK desde ese mismo shell,
 comprueba que `supabase_uid` sea nulo, verifica la identidad en Supabase Auth,
