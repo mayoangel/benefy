@@ -8,3 +8,6 @@ psycopg2-binary==2.9.13
 
 # Lectura de variables de entorno desde archivos .env
 python-dotenv==1.2.4
+
+# Servidor WSGI para el contenedor de producción (Linux)
+gunicorn==23.0.0
