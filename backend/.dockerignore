@@ -9,6 +9,7 @@ __pycache__/
 # Base de datos local y variables de entorno
 *.sqlite3
 .env
+.env.*
 
 # Metadatos de git
 .git/

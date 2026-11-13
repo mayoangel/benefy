@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,7 +22,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Cargar las variables de entorno desde backend/.env (si el archivo existe).
 # Las variables ya presentes en el entorno (por ejemplo, vía compose.yaml)
 # tienen prioridad y no son sobrescritas.
-load_dotenv(BASE_DIR / '.env')
+# Producción recibe sus variables del despliegue, nunca del .env local.
+ENVIRONMENT = os.getenv('ENVIRONMENT', 'development')
+if ENVIRONMENT != 'production':
+    load_dotenv(BASE_DIR / '.env')
+ENVIRONMENT = os.getenv('ENVIRONMENT', 'development')
+IS_PRODUCTION = ENVIRONMENT == 'production'
 
 
 # Quick-start development settings - unsuitable for production
@@ -35,6 +41,17 @@ SECRET_KEY = os.getenv(
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True').lower() in ('1', 'true', 'yes')
+
+if IS_PRODUCTION:
+    required_variables = ('SECRET_KEY', 'ALLOWED_HOSTS', 'DB_HOST', 'DB_PORT',
+                          'DB_NAME', 'DB_USER', 'DB_PASSWORD')
+    missing = [name for name in required_variables if not os.getenv(name, '').strip()]
+    if missing:
+        raise ImproperlyConfigured('Faltan variables de producción: ' + ', '.join(missing))
+    if DEBUG:
+        raise ImproperlyConfigured('Producción requiere DEBUG=False.')
+    if len(SECRET_KEY) < 50 or SECRET_KEY.startswith('django-insecure-'):
+        raise ImproperlyConfigured('Producción requiere una SECRET_KEY aleatoria de al menos 50 caracteres.')
 
 ALLOWED_HOSTS = [
     host.strip()
@@ -101,8 +118,17 @@ DATABASES = {
         'PASSWORD': os.getenv('DB_PASSWORD', 'benefy_pass'),
         'HOST': os.getenv('DB_HOST', 'db'),
         'PORT': os.getenv('DB_PORT', '5432'),
+        'OPTIONS': {
+            'sslmode': os.getenv('DB_SSLMODE', 'require' if IS_PRODUCTION else 'disable'),
+            'connect_timeout': 10,
+        },
     }
 }
+
+if IS_PRODUCTION and DATABASES['default']['OPTIONS']['sslmode'] not in ('require', 'verify-ca', 'verify-full'):
+    raise ImproperlyConfigured('Producción requiere SSL para PostgreSQL.')
+if os.getenv('DB_SSLROOTCERT'):
+    DATABASES['default']['OPTIONS']['sslrootcert'] = os.environ['DB_SSLROOTCERT']
 
 
 # Password validation
@@ -140,6 +166,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -151,3 +178,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # En desarrollo se permite cualquier origen para facilitar las pruebas locales;
 # en producción deberá restringirse mediante CORS_ALLOWED_ORIGINS.
 CORS_ALLOW_ALL_ORIGINS = DEBUG
+CORS_ALLOWED_ORIGINS = [value.strip() for value in os.getenv('CORS_ALLOWED_ORIGINS', '').split(',') if value.strip()]
+CSRF_TRUSTED_ORIGINS = [value.strip() for value in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if value.strip()]
+SESSION_COOKIE_SECURE = IS_PRODUCTION
+CSRF_COOKIE_SECURE = IS_PRODUCTION

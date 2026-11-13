@@ -31,7 +31,10 @@ services:
     ports:
       - "8000:8000"
     environment:
+      - ENVIRONMENT=development
       - DB_HOST=db
+      - DB_PORT=5432
+      - DB_SSLMODE=disable
       - DB_NAME=${POSTGRES_DB:-benefy_db}
       - DB_USER=${POSTGRES_USER:-benefy_user}
       - DB_PASSWORD=${POSTGRES_PASSWORD:-benefy_pass}

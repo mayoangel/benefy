@@ -59,6 +59,10 @@ Los archivos de configuración actuales son:
 
 ## Arquitectura prevista
 
+La conexión local y la conexión SSL a Supabase se configuran por separado.
+Consulta [Desarrollo y producción con Supabase](./backend/README.md#desarrollo-y-producción-con-supabase)
+para los comandos de inicio, migraciones, verificación y manejo de secretos.
+
 1. **Backend:** API centralizada para usuarios, comercios, programas de
    lealtad, transacciones, recompensas y webhooks.
 2. **Dashboard web:** administración de comercios, métricas y configuración de
