@@ -1,17 +1,21 @@
 # Aplicación móvil
 
-Base Expo SDK 58 con React Native 0.88, React 19 y TypeScript.
-Está orientada a consumidores de Benefy; actualmente solo muestra la pantalla
-de la plantilla y no implementa funcionalidades del producto.
+Aplicación Expo SDK 58 con React Native 0.88, React 19 y TypeScript, orientada
+a consumidores de Benefy. Incluye un dashboard móvil de demostración con saldo
+de puntos, progreso de sellos, dinámicas, cupones y navegación local entre
+Inicio, Dinámicas, Cupones y Billetera.
 
 ## Estado del código
 
-La entrada registrada en `package.json` es `index.ts`, que registra
-`App.tsx`. La configuración de Expo está en `app.json`.
+Expo Router usa `expo-router/entry` como entrada y las rutas viven en
+`src/app/`. La configuración de Expo está en `app.json`. El contenido y las
+acciones son datos de demostración locales: los códigos se muestran en un
+diálogo y las acciones que requieren cámara o backend explican que aún no
+están integradas.
 
-No hay navegación, Expo Router, SDK Supabase, cliente API, cámara QR,
-lectura NFC, almacenamiento de sesiones ni notificaciones push.
-Tampoco existen carpetas nativas `android/` o `ios/` versionadas.
+No hay SDK Supabase, cliente API, cámara QR, lectura NFC, almacenamiento de
+sesiones ni notificaciones push. Tampoco existen carpetas nativas `android/`
+o `ios/` versionadas.
 
 ## Ejecución y verificación
 
@@ -32,9 +36,8 @@ Los scripts disponibles son:
 | `npm run web` | Solicita el destino web; requiere comprobar/instalar sus dependencias compatibles |
 | `npx tsc --noEmit` | Verifica TypeScript sin generar archivos |
 
-No hay scripts de lint ni pruebas. El script web existe, pero el
-`package.json` actual no incluye `react-dom` ni `react-native-web`;
-no se considera un destino verificado. En PowerShell puedes usar
+No hay scripts de lint ni pruebas. El script web existe, pero falta
+`react-native-web`; no se considera un destino verificado. En PowerShell puedes usar
 `npm.cmd` y `npx.cmd` si la ejecución de scripts está deshabilitada.
 
 Para incorporar paquetes usa `npx expo install <paquete>`, de modo que Expo

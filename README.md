@@ -12,7 +12,7 @@ independientes; no existe un gestor de paquetes ni un comando de ejecución
 | Backend | Django 5.2 + DRF, 16 modelos, cuatro migraciones de `core`, 82 rutas API, permisos por negocio/sucursal y Django Admin | Servicios completos de acumulación, emisión y canje; analítica y webhooks |
 | Identidad | Verificación remota de Supabase Auth y perfiles/roles en Django | Login y gestión de sesión en los clientes |
 | Web | Landing React 18 + Vite: Inicio, Nosotros y Precios | Dashboard administrativo y consumo de API |
-| Móvil | Plantilla Expo SDK 58, React Native y TypeScript | Navegación, pantallas, Auth, QR/NFC y cliente API |
+| Móvil | Dashboard Benefy en Expo SDK 58 con resumen de puntos, retos, cupones y pestañas de demostración | Datos reales, Auth, cámara QR/NFC y cliente API |
 | Benef AI | FastAPI y endpoint de estado | Agente, proveedor LLM, herramientas y comunicación autenticada con Django |
 | Hardware | Carpeta de documentación | Firmware ESP32-S3 e integración física |
 
