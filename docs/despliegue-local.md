@@ -56,7 +56,7 @@ Accesos:
 navegador avisará hasta que la confíes. Para exportarla:
 
 ```bash
-docker compose -f compose.demo.yaml exec web cat /data/caddy/pki/authorities/local/root.crt > caddy-root.crt
+docker compose -f compose.demo.yaml cp web:/data/caddy/pki/authorities/local/root.crt caddy-root.crt
 ```
 
 Instala `caddy-root.crt` en el almacén de entidades de certificación de

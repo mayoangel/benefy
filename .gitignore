@@ -74,3 +74,6 @@ CLAUDE.md
 # =========================
 *.log
 sentry-debug.meta
+
+# Certificado raíz exportado para confiar en la CA de Caddy en local
+caddy-root.crt
