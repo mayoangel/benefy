@@ -4,7 +4,7 @@
 **Alcance:** visitas, puntos, tarjetas de visitas, catálogo y canje de cupones.
 **Fuera del MVP:** alianzas con puntos compartidos, beneficios cruzados, NFC, QR dinámicos y analíticas avanzadas.
 
-Este documento es la referencia funcional del motor de lealtad. La implementación técnica se detalla en `docs/plan-ejecucion-lealtad.md`.
+Este documento es la referencia funcional del motor de lealtad. Los contratos de API están en [api.md](./api.md), el estado técnico en [estado-implementacion.md](./estado-implementacion.md) y las pruebas en [validacion-mvp-lealtad.md](./validacion-mvp-lealtad.md).
 
 ---
 

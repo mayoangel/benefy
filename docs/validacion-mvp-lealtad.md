@@ -1,263 +1,147 @@
-# Validación funcional del motor de lealtad — Supabase
+# Validación del MVP de lealtad
 
 **Fecha:** 14 de noviembre de 2026.
 **Rama:** `feat/lealtad-mvp`.
-**Commit funcional validado:** `60d2e97` (incluye la corrección de tarjetas de una sola ocasión).
-**Entorno:** montaje demo (`compose.demo.yaml`) contra PostgreSQL de Supabase.
+**Commits relevantes:** `9c37da6` motor de lealtad, `60d2e97` corrección de tarjetas de una sola ocasión.
 
 ---
 
-## 1. Servicios del montaje demo
+## 1. Entorno validado
 
-| Servicio | Verificación | Resultado |
-|---|---|---|
-| PostgreSQL Supabase | `SELECT current_database(), version()` | `postgres`, PostgreSQL 17.11 |
-| Backend Django/Gunicorn | `GET /health/db/` | `200`, `database: ok` |
-| Backend, contenedor | `docker compose ps` | `Up (healthy)` |
-| Frontend web + Caddy | `GET https://localhost/` | `200`, SPA servida |
-| Caddy → API | `GET /api/v1/autenticacion/perfil/` sin token | `401` |
-| Caddy → Admin | `GET /admin/` | `302` al login de Django Admin |
-| Benef AI | `GET http://127.0.0.1:5000/` dentro del contenedor | `200`, `status: ok` |
+| Servicio | Resultado |
+|---|---|
+| PostgreSQL Supabase | PostgreSQL 17.11, proyecto `rmwwrgahhuztylqkduya` |
+| Backend Django/Gunicorn | `healthy`, `/health/db/` responde `database: ok` |
+| Caddy + frontend | `healthy`, `https://localhost/` responde `200` |
+| API sin token | `401` |
+| Django Admin | `302` al login |
+| Benef AI | `200` dentro de la red Compose |
 
-Caddy publica `127.0.0.1:80` y `127.0.0.1:443`. Benef AI no tiene puerto público; solo es accesible dentro de la red Compose. Caddy no expone una ruta `/ai/`.
-
-La CA interna de Caddy genera una advertencia normal en el navegador hasta que se confía en ella. No es un fallo de la aplicación.
+Las migraciones `core.0005`–`0007` se aplicaron en Supabase con respaldo previo de esquema. No se usó `flush`, `reset` ni eliminación de tablas. `migrate --plan` quedó vacío y `manage.py check` sin problemas.
 
 ---
 
-## 2. Migraciones y esquema
-
-Antes de la validación se confirmó:
-
-- Proyecto Supabase: `rmwwrgahhuztylqkduya`.
-- Host: `aws-1-us-west-1.pooler.supabase.com`.
-- Base: `postgres`.
-- Migraciones `core.0001`–`0004` ya aplicadas.
-- Plan pendiente: solo `core.0005`, `0006` y `0007`.
-- Cero registros en las 20 tablas de `core`.
-
-Se generó un respaldo de esquema antes de migrar y se aplicaron las tres migraciones autorizadas. Después:
-
-- `core.0001`–`0007` aparecen aplicadas.
-- `migrate --plan` no tiene operaciones pendientes.
-- `manage.py check` no reporta problemas.
-- Las tablas, columnas y restricciones nuevas existen.
-- No se usó `flush`, `reset` ni eliminación de tablas.
-
-Los respaldos están en:
-
-```text
-C:\Users\angel\AppData\Local\Temp\opencode\benefy-supabase-backup\
-  supabase-public-schema-20261114-110230.sql
-  supabase-public-schema-post-20261114-110448.sql
-```
-
----
-
-## 3. Datos de prueba creados
-
-Los datos son identificables por el sufijo `20261114192154-72802a` y por el prefijo `QA`:
-
-| Entidad | Identificador | Uso |
-|---|---|---|
-| Usuario admin QA | `1` | Ajustes de puntos y permisos de sistema |
-| Usuario dueño QA | `2` | Permisos de negocio y métricas |
-| Consumidor QA 1 | `3` | Visitas, puntos, tarjetas, adquisición y canje |
-| Consumidor QA 2 | `4` | Aislamiento de billetera y cupón ajeno |
-| Negocio QA | `1` | Negocio de prueba |
-| Sucursal QA | `1` | QR alternativo de sucursal |
-| Dinámica de puntos | `1` | 10 puntos por visita |
-| Tarjeta única | `2` | Meta 1, no repetible |
-| Tarjeta repetible | `3` | Meta 2, repetible |
-| Recompensa de catálogo | `3` | Costo 10 puntos, stock 1 |
-
-Cupones creados:
-
-| UUID | Origen | Estado |
-|---|---|---|
-| `75056018-ca1e-443b-9f13-88a7096684b3` | Meta de tarjeta única | `disponible` |
-| `6b234cc1-380f-42c5-ae6f-9d436b9b6fac` | Catálogo con puntos | `canjeado` |
-| `c96f6fd0-3be7-415d-9ac8-5e33a811bc61` | Meta de tarjeta repetible | `disponible` |
-
-Conteos posteriores:
-
-```text
-Usuario 4, CategoriaNegocio 1, Negocio 1, Sucursal 1, UsuarioNegocio 1,
-Dinamica 3, Recompensa 5, RegistroActividad 2, CuponUsuario 3, Canje 1,
-SaldoPuntos 1, LotePuntos 3, MovimientoPuntos 4, CicloTarjeta 3.
-```
-
-No se eliminaron ni modificaron estos datos después de la prueba. Su eliminación requiere autorización expresa.
-
----
-
-## 4. Resultados funcionales
+## 2. Pruebas funcionales del motor
 
 Se ejecutaron 17 comprobaciones contra el backend demo y Supabase. Todas pasaron.
 
-| # | Prueba | Resultado |
-|---|---|---|
-| 1 | Billetera sin token | `401` |
-| 2 | Visita inicial con QR de negocio | `201`, 10 puntos, tarjeta única completada, tarjeta repetible 1/2, saldo 10, 1 cupón meta |
-| 3 | Visita duplicada con QR de sucursal | `200`, `already_registered: true`, 0 puntos, una sola visita válida, saldo sin cambios |
-| 4 | Usuario con rol negocio intenta registrar visita | `403` |
-| 5 | Billetera aislada entre consumidores | Consumidor 1 ve su cupón y saldo; consumidor 2 no ve datos ajenos |
-| 6 | Ajuste administrativo de puntos | `201`, saldo 30 |
-| 7 | Consumidor intenta ajustar puntos | `403` |
-| 8 | Adquisición de cupón con puntos | `201`, saldo 20, stock 0 |
-| 9 | Reintento con la misma clave de idempotencia | `200`, mismo cupón, sin doble descuento |
-| 10 | Misma clave con otra recompensa | `409 conflicto_idempotencia` |
-| 11 | Recompensa con costo superior al saldo | `409 puntos_insuficientes` |
-| 12 | Recompensa sin stock | `409 sin_stock` |
-| 13 | Consumidor intenta canjear cupón ajeno | `403 cupon_ajeno` |
-| 14 | Canje propio y segundo intento | `200` con token y 300 s; segundo intento `409 cupon_no_disponible` |
-| 15 | Tarjeta única y tarjeta repetible | Única conserva un solo ciclo; repetible crea ciclo 2; 2 cupones meta |
-| 16 | Permisos de métricas e historial | Dueño `200`; consumidor `403`; historial con 2 visitas y 1 canje |
-| 17 | Clave de adquisición reutilizada en ajuste | `409 conflicto_idempotencia` |
+| Área | Resultado |
+|---|---|
+| Visita inicial con QR de negocio | `201`, puntos y avance de tarjetas |
+| Visita duplicada con QR de sucursal | `200`, `already_registered: true`, sin nuevos beneficios |
+| Permiso de visita | Rol `negocio` recibe `403` |
+| Billetera aislada | Cada consumidor ve solo sus datos |
+| Ajuste administrativo | `201`; consumidor recibe `403` |
+| Adquisición de cupón | `201`, descuenta puntos y stock |
+| Idempotencia | Mismo cupón al reintentar; otra recompensa da `409` |
+| Puntos insuficientes | `409 puntos_insuficientes` |
+| Sin stock | `409 sin_stock` |
+| Cupón ajeno | `403 cupon_ajeno` |
+| Canje | `200` con token y 300 s; segundo intento `409` |
+| Tarjeta única | No reinicia ciclos |
+| Tarjeta repetible | Completa ciclo 1 y crea ciclo 2 |
+| Métricas e historial | Dueño `200`; consumidor `403` |
+| Consistencia de puntos | `verificar_puntos` sin diferencias |
 
-Además, `manage.py verificar_puntos` respondió:
+Los datos de prueba se identifican por el sufijo `20261114192154-72802a`.
+
+---
+
+## 3. E2E de autenticación real
+
+Se usó `admin@benefy.com` con login normal en Supabase Auth. No se usó `force_authenticate`. El JWT real se envió por HTTPS a Caddy y llegó a Django.
+
+| Prueba | Resultado |
+|---|---|
+| Login Supabase Auth | Correcto, JWT de 3600 s |
+| Claims | `iss`, `aud`, `role`, `email`, `exp` e `iat` correctos |
+| Asociación Auth → Django | Perfil `id=5`, `admin@benefy.com` |
+| Billetera con JWT | `200` |
+| Visita con QR | `201`, 10 puntos, tarjetas avanzadas |
+| Visita duplicada | `200`, sin puntos |
+| Sin token | `401` |
+| Firma alterada | `401` |
+| Token malformado | `401` |
+| `alg=none` con `exp` pasado | `401` |
+| Ajuste administrativo como consumidor | `403` |
+| Métricas como consumidor | `403` |
+
+Claims observados:
 
 ```text
-Todos los saldos son consistentes.
+iss = https://rmwwrgahhuztylqkduya.supabase.co/auth/v1
+aud = authenticated
+role = authenticated
 ```
 
-### Corrección detectada durante la validación
+Datos generados por el E2E:
 
-Se detectó que una tarjeta de una sola ocasión ya completada podía iniciar un ciclo nuevo en una visita posterior si la dinámica seguía activa. Se corrigió el servicio y se agregó una prueba. El cambio quedó en el commit `60d2e97`; no modificó modelos, reglas ni migraciones.
-
----
-
-## 5. Limitaciones de la prueba
-
-- Las llamadas autenticadas se ejecutaron con `APIClient.force_authenticate` dentro del backend demo, usando identidades Django locales. Esto valida endpoints, permisos y persistencia en Supabase, pero **no valida el transporte de un JWT real de Supabase**.
-- No se crearon usuarios en Supabase Auth porque el entorno solo tiene la clave publicable y no se dispone de una identidad de prueba confirmada.
-- La prueba de Caddy cubre health, SPA, API sin token y Admin. No se ejecutó un navegador E2E con sesión real.
-- Las visitas del segundo día se simularon inyectando `ahora` en el servicio, porque el límite diario impide dos visitas el mismo día. La fila de auditoría `fecha` conserva la hora real y `fecha_negocio` refleja el día simulado.
+```text
+Perfil Django: id=5, rol=consumidor
+Negocio: 1
+Saldo: 10 puntos
+Tarjeta única: completada
+Tarjeta repetible: 1/2 en curso
+Cupón meta: 88969ce9-c87c-4af5-880a-d69ebd31aa45
+```
 
 ---
 
-## 6. Integración del frontend web
+## 4. Hallazgos
 
-### Lo que funciona
+### Validación del JWT
 
-- SPA React servida por Caddy.
-- Rutas públicas: `/`, `/about`, `/precios`, `/login`, `/registro`, `/recuperar`.
-- Proxy de Caddy hacia `/api/*`, `/admin/*`, `/static/*` y `/health/*`.
-- Formularios visuales de login, registro y recuperación.
+Django **no valida localmente** firma, emisor ni audiencia. `SupabaseAuthentication` llama a `GET <SUPABASE_URL>/auth/v1/user`; la validación criptográfica y de claims la realiza Supabase. Django solo comprueba UUID, rol `authenticated`, correo confirmado, cuenta no anónima y perfil activo.
 
-### Lo que no está integrado
+Esto funciona y rechaza tokens alterados o malformados, pero si se exige validación local de firma/`iss`/`aud`, queda como tarea pendiente.
 
-| Funcionalidad | Estado |
-|---|---|
-| Cliente HTTP de la API | No existe; no hay `fetch` ni `axios` hacia `/api/v1` |
-| Supabase Auth | No hay SDK de Supabase ni sesión real |
-| Login | Simulado con `setTimeout`; no llama a Supabase |
-| Registro | Solo valida el formulario; `handleSubmit` no envía datos |
-| Recuperación de contraseña | Sin integración con Auth |
-| Dashboard del negocio | No existe ruta ni pantalla |
-| Configuración de dinámicas, metas y recompensas | No existe |
-| Clientes, visitas y puntos | No existen pantallas de consulta |
-| Catálogo y adquisición de cupones | No existen pantallas |
-| Canje y pantalla de validación | No existen |
-| Métricas | No existe dashboard; el endpoint está disponible |
-| Generación de claves de idempotencia | No implementada en el cliente |
-| Sincronización de hora del servidor | No implementada |
+### Perfil de `admin@benefy.com`
 
-El archivo `frontend-web/src/lib/submitLead.ts` está vacío. El título HTML de la SPA todavía es `frontend-web`, un detalle de presentación pendiente.
+El alta propia creó el perfil con rol `consumidor`, aunque el correo sea `admin@benefy.com`. Si debe ser `admin_sistema`, requiere una promoción autorizada.
+
+### Usuario manual
+
+El usuario `qa.e2e.20261114113601@example.com` fue creado manualmente antes de la restricción de SQL directo. El usuario indicó que lo eliminó desde el Dashboard; al cierre de esta revisión seguía apareciendo en `auth.users`. Conviene verificarlo nuevamente en el Dashboard.
 
 ---
 
-## 7. Integración de la aplicación móvil
+## 5. Datos de prueba restantes
 
-### Lo que funciona
+Conteos al cierre:
 
-- Dashboard Expo con pestañas de Inicio, Dinámicas, Cupones y Billetera.
-- Datos de demostración locales para marcas, visitas, cupones y puntos.
+```text
+Usuario 5, CategoriaNegocio 1, Negocio 1, Sucursal 1, UsuarioNegocio 1,
+Dinamica 3, Recompensa 5, RegistroActividad 3, CuponUsuario 4, Canje 1,
+SaldoPuntos 2, LotePuntos 4, MovimientoPuntos 5, CicloTarjeta 5.
+```
 
-### Lo que no está integrado
-
-| Funcionalidad | Estado |
-|---|---|
-| Cliente HTTP de la API | No existe |
-| Supabase Auth | No existe; no hay login ni sesión |
-| Escáner QR | No hay cámara ni librería de escaneo |
-| Registro de visita | No existe; los datos son locales |
-| Billetera real | Datos hardcodeados |
-| Tarjetas y progreso | Datos hardcodeados |
-| Catálogo de recompensas | Datos hardcodeados |
-| Adquisición de cupones | No existe |
-| Canje y pantalla de validación | No existen |
-| Historial real | No existe |
-| Generación de claves de idempotencia | No existe |
-| Hora del servidor y contador de canje | No existen |
-| Notificaciones/push | No existen |
-| Almacenamiento seguro de tokens | No existe |
-
-Las rutas `src/app/index.tsx`, `wallet.tsx`, `coupons.tsx` y `dynamics.tsx` renderizan el mismo componente local `App.tsx`.
+No se eliminaron datos de negocio. Los usuarios, visitas, puntos, cupones y canjes de prueba siguen identificados por el prefijo `QA` y el sufijo indicado. Su eliminación requiere autorización.
 
 ---
 
-## 8. Estado real de integración
+## 6. Integración de clientes
 
-| Capa | Estado |
-|---|---|
-| Base de datos y migraciones | Completa en local y Supabase |
-| Motor de lealtad backend | Implementado y validado funcionalmente |
-| API de lealtad | Implementada y probada con identidades Django |
-| Autenticación real de clientes | Backend listo; clientes sin integrar |
-| Frontend web | Landing y auth simulada; sin dashboard ni API |
-| Aplicación móvil | Demo visual local; sin API, Auth, QR ni canje |
-| Panel de administración | Django Admin disponible; no hay panel de producto |
-| Operación periódica de puntos | Comando disponible; falta programarlo en producción |
-| Alianzas, NFC, QR dinámico | Fuera del MVP |
+### Frontend web
 
-**Conclusión:** el backend del MVP está funcional y persistido en Supabase. La brecha principal ya no es el motor, sino la integración de los clientes y la operación del panel.
+- Sin cliente HTTP hacia `/api/v1`.
+- Sin SDK de Supabase ni sesión real.
+- Login simulado con `setTimeout`; registro y recuperación no envían datos.
+- Sin dashboard, configuración de dinámicas, catálogo, canje ni métricas.
+- Sin generación de claves de idempotencia.
 
----
+### Aplicación móvil
 
-## 9. Tareas pendientes priorizadas para el MVP
-
-### Prioridad 1 — Desbloquear el flujo del consumidor
-
-1. Integrar Supabase Auth en la app móvil: login, refresh, cierre de sesión y creación de perfil.
-2. Crear cliente API móvil con manejo de errores, `codigo` y timeout.
-3. Implementar escáner QR y llamada a `POST /visitas/registrar/`.
-4. Mostrar billetera real, tarjetas, cupones e historial desde `/mi/billetera/` y `/mi/historial/`.
-5. Implementar catálogo y adquisición con clave de idempotencia generada por operación.
-6. Implementar canje y pantalla de validación con `token_validacion`, `expira_en` y hora del servidor.
-7. Probar el flujo completo con un JWT real de Supabase y HTTPS.
-
-### Prioridad 2 — Panel web del negocio
-
-8. Integrar Supabase Auth en la web y proteger rutas.
-9. Crear dashboard con métricas del negocio.
-10. CRUD visual de dinámicas, tarjetas, recompensas, stock y vigencias.
-11. Consulta de clientes, visitas, saldos, cupones y canjes.
-12. Advertencias al desactivar dinámicas o recompensas.
-13. Herramientas de anulación auditada para visitas y cupones.
-
-### Prioridad 3 — Operación y confiabilidad
-
-14. Programar `expirar_puntos` en producción (cron, systemd o tarea del proveedor).
-15. Monitoreo de salud, errores y latencia; alertas de stock y vencimientos.
-16. Respaldos automáticos y procedimiento de restauración.
-17. Paginación y filtros en listados; pruebas E2E en CI.
-18. Revisar exposición de la Data API de Supabase y privilegios de tablas.
-
-### Prioridad 4 — Después del MVP
-
-19. Alianzas con beneficios cruzados y puntos compartidos.
-20. NFC.
-21. QR dinámicos o regenerables.
-22. Analíticas avanzadas y notificaciones push.
-23. Integración con Stripe y facturación.
+- Sin cliente API ni Supabase Auth.
+- Sin escáner QR.
+- Billetera, tarjetas, cupones y dinámicas son datos locales.
+- Sin adquisición, canje, historial ni pantalla de validación.
+- Sin manejo de tokens, hora del servidor ni idempotencia.
 
 ---
 
-## 10. Autorizaciones pendientes
+## 7. Limitaciones
 
-- Eliminar los datos QA identificados en la sección 3.
-- Ejecutar cualquier cambio estructural adicional en Supabase.
-- Crear usuarios de prueba en Supabase Auth para una prueba E2E con JWT real.
-
-Sin autorización expresa no se eliminarán registros ni se modificarán tablas.
+- No se probó un JWT auténticamente expirado; la vigencia es de 3600 s. Se probó `alg=none` con `exp` pasado.
+- La prueba de Caddy cubre HTTPS, health, SPA y API sin token; no hay E2E automatizado en navegador.
+- Las llamadas funcionales del motor usaron identidades Django locales; el E2E de Auth usó JWT real.
+- La validación de firma/`iss`/`aud` está delegada a Supabase.

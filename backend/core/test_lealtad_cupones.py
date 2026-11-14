@@ -9,6 +9,7 @@ from rest_framework.test import APIClient
 
 from core import models
 from core.services.lealtad import puntos
+from core.services.lealtad.errores import ConflictoIdempotencia
 from core.test_helpers import (
     crear_dinamica_puntos,
     crear_negocio,
@@ -141,7 +142,7 @@ class AdquisicionCuponesTests(TestCase):
     def test_clave_usada_en_adquisicion_no_se_reutiliza_en_ajuste(self):
         clave = uuid4()
         self.assertEqual(self.adquirir(clave=clave).status_code, 201)
-        with self.assertRaises(Exception) as contexto:
+        with self.assertRaises(ConflictoIdempotencia) as contexto:
             puntos.ajustar_puntos(
                 usuario=self.consumer,
                 negocio=self.business,

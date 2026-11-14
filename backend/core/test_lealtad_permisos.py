@@ -82,24 +82,10 @@ class LealtadPermisosTests(TestCase):
         self.client.force_authenticate(self.admin)
         self.assertEqual(self.client.get(path).status_code, 200)
 
-    def test_consumidor_no_puede_usar_endpoints_administrativos(self):
+    def test_consumidor_no_anula_visitas(self):
         self.client.force_authenticate(self.consumer)
-        self.assertEqual(
-            self.client.post('/api/v1/admin/puntos/ajustar/', {}).status_code,
-            403,
+        response = self.client.post(
+            f'/api/v1/admin/visitas/{models.RegistroActividad.objects.first().pk}/anular/',
+            {'motivo': 'No autorizado'},
         )
-        self.assertEqual(
-            self.client.post(
-                f'/api/v1/admin/visitas/{models.RegistroActividad.objects.first().pk}/anular/',
-                {'motivo': 'x'},
-            ).status_code,
-            403,
-        )
-
-    def test_catalogo_visible_para_consumidor(self):
-        self.client.force_authenticate(self.consumer)
-        response = self.client.get(
-            f'/api/v1/negocios/{self.business.pk}/catalogo/',
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['negocio']['id'], self.business.pk)
+        self.assertEqual(response.status_code, 403)

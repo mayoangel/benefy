@@ -24,6 +24,12 @@ el contrato y la protección del backend.
 La verificación es remota en cada petición autenticada y tiene un timeout de
 5 segundos. Requiere conectividad a Supabase incluso con PostgreSQL local.
 No necesita SDK adicional, claves privadas de firma ni `service_role`.
+
+La firma, la expiración, el emisor y la audiencia los valida Supabase al
+responder `/auth/v1/user`. Django no verifica esos claims localmente; confía
+en la respuesta de Supabase y comprueba el UUID, el rol, el correo confirmado
+y el perfil local. Si se requiere validación criptográfica local, debe
+implementarse con las claves públicas JWKS de Supabase.
 Los tokens inválidos o vencidos producen 401; una caída del proveedor produce
 503, nunca acceso sin verificación. No se siguen redirecciones HTTP que puedan
 reenviar el token. Producción exige HTTPS para el servidor Auth.

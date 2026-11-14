@@ -8,12 +8,8 @@ Esta carpeta contiene la documentación funcional y técnica de Benefy.
   migración de usuarios y matriz de acceso de Django.
 - [API actual](./api.md): rutas, métodos, respuestas y límites de los CRUD.
 - [Reglas de lealtad](./reglas-lealtad.md): visitas, puntos, tarjetas, cupones y canje del MVP.
-- [Plan de ejecución de lealtad](./plan-ejecucion-lealtad.md): diseño técnico,
-  migraciones, contratos y fases implementadas.
-- [Validación funcional del MVP](./validacion-mvp-lealtad.md): pruebas contra
-  Supabase, estado de los servicios y brechas de integración web/móvil.
-- [Validación E2E de autenticación](./validacion-e2e-auth.md): JWT real de
-  Supabase, asociación con Django, HTTPS y permisos.
+- [Validación del MVP](./validacion-mvp-lealtad.md): pruebas funcionales, E2E de
+  autenticación real, estado de servicios y brechas de integración.
 - [Comandos del proyecto](./run_project.md): referencia rápida de desarrollo,
   verificación del montaje demo y presentación.
 - [Estado de implementación](./estado-implementacion.md): correspondencia con

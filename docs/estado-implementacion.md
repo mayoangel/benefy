@@ -13,9 +13,10 @@ un servidor concreto ni una certificación de aceptación del producto.
   zona horaria del negocio, otorga puntos por lotes con consumo FIFO, avanza
   tarjetas repetibles o de una sola vez y permite adquirir y canjear cupones
   de forma transaccional e idempotente.
-- La validación funcional contra Supabase pasó 17/17 comprobaciones el
-  14 de noviembre de 2026. Los clientes web y móvil todavía no consumen estos
-  endpoints; el detalle está en [validación del MVP](./validacion-mvp-lealtad.md).
+- La validación funcional contra Supabase pasó 17/17 comprobaciones y el E2E de
+  autenticación real con JWT pasó 12/12 el 14 de noviembre de 2026. Los clientes
+  web y móvil todavía no consumen estos endpoints; el detalle está en
+  [validación del MVP](./validacion-mvp-lealtad.md).
 - Desarrollo usa PostgreSQL 17 dentro de Docker, la misma versión mayor que
   Supabase. El montaje de demostración apunta a PostgreSQL Supabase con SSL
   mediante un Compose independiente y el mismo ORM.
@@ -83,7 +84,7 @@ pero no el flujo completo ni la interfaz exigidos por el SRS.
 | HTTPS | SSL de PostgreSQL y HTTPS local con Caddy en el montaje demo; el TLS público sigue pendiente de despliegue |
 | Portabilidad | Imágenes Python 3.11 y Compose; la web se compila en el montaje demo y el móvil se ejecuta fuera de Docker. No hay builds móviles de publicación configurados |
 | Privacidad y exposición de datos | Permisos Python no protegen accesos directos por Data API; revisar exposición, privilegios y alcance de alianzas |
-| Pruebas | Django cubre salud, configuración, Auth, permisos, migración, motor de lealtad y concurrencia PostgreSQL (93 pruebas); no hay suite web/móvil/IA ni E2E completa |
+| Pruebas | Django cubre salud, configuración, Auth, permisos, migración, motor de lealtad y concurrencia PostgreSQL (91 pruebas); el E2E de Auth se ejecutó manualmente contra Supabase. No hay suite web/móvil/IA ni E2E automatizada completa |
 
 Los porcentajes, ventanas de mantenimiento, retención de respaldos y objetivos
 de fiabilidad del PDF son requisitos pendientes de implementación/medición,

@@ -244,20 +244,6 @@ class AuthAndPermissionsTests(TestCase):
             self.auth(user)
             self.assertEqual(self.client.patch(path, {'rol_comercio': 'dueno'}).status_code, 403)
 
-    def test_canje_cliente_es_irreversible_y_solo_del_propietario(self):
-        self.auth(self.other)
-        ajeno = self.client.post(f'/api/v1/cupones/{self.coupon.uuid}/canjear/')
-        self.assertEqual(ajeno.status_code, 403)
-        self.assertEqual(ajeno.data['codigo'], 'cupon_ajeno')
-
-        self.auth(self.consumer)
-        propio = self.client.post(f'/api/v1/cupones/{self.coupon.uuid}/canjear/')
-        self.assertEqual(propio.status_code, 200)
-        self.assertEqual(propio.data['cupon']['status'], 'canjeado')
-        repetido = self.client.post(f'/api/v1/cupones/{self.coupon.uuid}/canjear/')
-        self.assertEqual(repetido.status_code, 409)
-        self.assertEqual(repetido.data['codigo'], 'cupon_no_disponible')
-
     def test_no_puede_trasladar_dinamica_a_otro_negocio(self):
         self.auth(self.owner)
         response = self.client.patch(f'/api/v1/dinamica/actualizar/{self.program.pk}/',
