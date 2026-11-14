@@ -153,6 +153,12 @@ def avanzar_tarjetas(*, usuario, negocio, ahora=None):
                     if ciclo is None:
                         if not _esta_vigente(dinamica, ahora):
                             continue
+                        if not dinamica.es_repetible and models.CicloTarjeta.objects.filter(
+                            usuario=usuario, dinamica=dinamica,
+                        ).exists():
+                            # Una tarjeta de una sola ocasión ya completada no
+                            # vuelve a iniciar ciclos en visitas posteriores.
+                            continue
                         ciclo = _obtener_o_crear_ciclo(
                             usuario=usuario, dinamica=dinamica, ahora=ahora,
                         )

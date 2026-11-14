@@ -45,6 +45,7 @@ class TarjetasTests(TestCase):
         crear_tarjeta(self.business, meta=2, repetible=False, titulo='Bienvenida')
         self.visitar(0)
         self.visitar(1)
+        self.visitar(2)
         self.assertEqual(models.CicloTarjeta.objects.count(), 1)
         self.assertEqual(models.CicloTarjeta.objects.get().estado, 'completado')
 
