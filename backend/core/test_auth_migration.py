@@ -24,4 +24,7 @@ class SupabaseMigrationTests(TransactionTestCase):
             self.assertIsNone(migrated.supabase_uid)
             self.assertTrue(migrated.is_active)
         finally:
-            MigrationExecutor(connection).migrate(current)
+            # Devolver el esquema al último estado conocido para no afectar
+            # a otras pruebas TransactionTestCase.
+            latest = MigrationExecutor(connection).loader.graph.leaf_nodes()
+            MigrationExecutor(connection).migrate(latest)

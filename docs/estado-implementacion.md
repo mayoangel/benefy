@@ -7,8 +7,12 @@ un servidor concreto ni una certificación de aceptación del producto.
 
 ## Arquitectura implementada
 
-- Django 5.2 y DRF concentran persistencia, perfiles y autorización. Hay 16
-  modelos de dominio y cuatro migraciones de `core`, además de las de Django.
+- Django 5.2 y DRF concentran persistencia, perfiles y autorización. Hay 20
+  modelos de dominio y siete migraciones de `core`, además de las de Django.
+- El motor de lealtad registra visitas por QR, aplica el límite diario con la
+  zona horaria del negocio, otorga puntos por lotes con consumo FIFO, avanza
+  tarjetas repetibles o de una sola vez y permite adquirir y canjear cupones
+  de forma transaccional e idempotente.
 - Desarrollo usa PostgreSQL 17 dentro de Docker, la misma versión mayor que
   Supabase. El montaje de demostración apunta a PostgreSQL Supabase con SSL
   mediante un Compose independiente y el mismo ORM.
@@ -48,14 +52,14 @@ pero no el flujo completo ni la interfaz exigidos por el SRS.
 | --- | --- | --- |
 | RF-01 | Acceso y cierre de sesión | Base backend Supabase Auth; faltan UI, Google y gestión de sesiones en clientes |
 | RF-02 | Registro y edición del comercio | Base backend con permisos y creación de membresía de dueño; falta formulario web |
-| RF-03 | Dashboard y filtros de métricas | Pendiente: no hay dashboard ni endpoints agregados |
-| RF-04 | Configurar dinámicas | Base backend con serializers; faltan UI y motor de acumulación |
+| RF-03 | Dashboard y filtros de métricas | Endpoint de métricas básicas por negocio y rango; falta dashboard web |
+| RF-04 | Configurar dinámicas | Serializers y motor de puntos/tarjetas; faltan UI y pantalla de administración |
 | RF-05 | Gestionar alianzas | Entidad/CRUD; escritura restringida al admin, falta aprobación bilateral e interfaz |
-| RF-06 | Consultar programas y progreso | Datos y lectura de progreso propio; falta catálogo de consumidor y pantalla móvil |
-| RF-07 | Registro mediante QR | Identificadores almacenados; falta escáner, validación de lectura y acreditación |
+| RF-06 | Consultar programas y progreso | Billetera, tarjetas en curso, catálogo y cupones propios; falta pantalla móvil |
+| RF-07 | Registro mediante QR | Endpoint de visita con QR de negocio/sucursal y límite diario; falta escáner móvil |
 | RF-08 | Registro mediante NFC | Identificador de sucursal; lectura y flujo pendientes |
-| RF-09 | Consultar/canjear recompensas | Lectura y CRUD con operador verificado; falta consumo atómico del cupón y UI |
-| RF-10 | Historial de movimientos | Actividades/canjes consultables; no hay ledger completo, filtros ni pantalla |
+| RF-09 | Consultar/canjear recompensas | Adquisición atómica con puntos y canje irreversible de cliente; falta UI |
+| RF-10 | Historial de movimientos | Ledger de puntos, visitas, cupones y canjes consultables; faltan filtros avanzados y pantalla |
 | RF-11 | Permisos y preferencias de notificaciones | Pendiente en móvil; no hay permisos cámara/push ni preferencias |
 | RF-12 | Interfaz de suscripciones | Pendiente; solo modelos y lectura según permisos |
 | RF-13 | Validaciones visuales | Hay validaciones de servidor; las de formularios de producto siguen pendientes |
@@ -76,7 +80,7 @@ pero no el flujo completo ni la interfaz exigidos por el SRS.
 | HTTPS | SSL de PostgreSQL y HTTPS local con Caddy en el montaje demo; el TLS público sigue pendiente de despliegue |
 | Portabilidad | Imágenes Python 3.11 y Compose; la web se compila en el montaje demo y el móvil se ejecuta fuera de Docker. No hay builds móviles de publicación configurados |
 | Privacidad y exposición de datos | Permisos Python no protegen accesos directos por Data API; revisar exposición, privilegios y alcance de alianzas |
-| Pruebas | Django cubre salud, configuración, Auth, permisos y migración; no hay suite web/móvil/IA ni E2E completa |
+| Pruebas | Django cubre salud, configuración, Auth, permisos, migración, motor de lealtad y concurrencia PostgreSQL (93 pruebas); no hay suite web/móvil/IA ni E2E completa |
 
 Los porcentajes, ventanas de mantenimiento, retención de respaldos y objetivos
 de fiabilidad del PDF son requisitos pendientes de implementación/medición,
@@ -84,19 +88,21 @@ no garantías actuales. Tampoco se declara cumplimiento legal a partir del códi
 
 ## Límites que afectan al siguiente desarrollo
 
-1. Crear actividad no actualiza saldo ni emite beneficios automáticamente.
-2. `ProgresoUsuario` conserva saldo actual; no hay un ledger que explique cada movimiento.
-3. El CRUD de canjes no actualiza el cupón ni impide carreras concurrentes.
-4. No hay paginación, filtros, esquema OpenAPI Django ni endpoints de analítica.
-5. Consumidores consultan sus registros; el catálogo público de comercios/programas
-   para móvil requiere un contrato y serializers específicos.
+1. `ProgresoUsuario` se conserva como historial legacy; la fuente de verdad de
+   tarjetas es `CicloTarjeta`.
+2. El CRUD genérico de visitas, progreso, cupones y canjes es solo lectura; las
+   operaciones reales pasan por los servicios transaccionales.
+3. No hay paginación, filtros avanzados, esquema OpenAPI Django ni dashboard web.
+4. El catálogo y la billetera tienen contrato backend; faltan pantallas conectadas
+   en la aplicación móvil.
+5. Las alianzas con puntos compartidos, NFC y QR dinámicos quedan fuera del MVP.
 6. Benef AI todavía no tiene un contrato autenticado con el backend. Su token
    interno placeholder no permite omitir Supabase Auth.
 
-La secuencia de trabajo sugerida es completar los servicios transaccionales de
-lealtad y sus pruebas, definir los contratos de catálogo/analítica y conectar
-clientes con sesiones. Las integraciones externas y el hardware deben tener
-entregables propios y pruebas de flujo completo.
+La secuencia de trabajo sugerida es conectar los clientes con los contratos de
+visita, billetera, catálogo y canje, construir el panel web y programar la
+expiración periódica de puntos. Las integraciones externas y el hardware deben
+tener entregables propios y pruebas de flujo completo.
 
 ## Aspectos editoriales del SRS original
 

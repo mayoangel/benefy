@@ -58,6 +58,10 @@ Los 16 recursos suman 80 rutas. Su existencia no concede todas las operaciones
 a todos los roles: por ejemplo, el CRUD de escritura de pagos, suscripciones,
 alianzas, progreso y cupones queda reservado al administrador del sistema.
 
+Las escrituras genéricas de `registro-actividad`, `progreso-usuario`,
+`cupon-usuario` y `canje` están deshabilitadas y responden `405`. Estos datos
+solo se crean o modifican mediante los endpoints transaccionales de lealtad.
+
 ## Rutas adicionales de identidad
 
 | Método | Ruta | Uso |
@@ -65,9 +69,89 @@ alianzas, progreso y cupones queda reservado al administrador del sistema.
 | GET | `/api/v1/autenticacion/perfil/` | Perfil local del usuario autenticado |
 | PATCH | `/api/v1/usuario/rol/{id}/` | Cambiar `rol` o `is_active`; solo `admin_sistema` |
 
-Hay 82 rutas de API en total. Las dos anteriores no sustituyen los CRUD.
+Hay 92 rutas de API en total. Las dos anteriores no sustituyen los CRUD.
 El login, registro de identidad, refresh y logout ocurren en Supabase Auth,
 no bajo `/api/v1`. `usuario/crear/` crea el perfil Benefy después del login.
+
+## Motor de lealtad
+
+| Método | Ruta | Acceso | Uso |
+| --- | --- | --- | --- |
+| POST | `/api/v1/visitas/registrar/` | Consumidor | Registrar visita con QR de negocio o sucursal |
+| GET | `/api/v1/mi/billetera/` | Consumidor | Saldos, tarjetas en curso y cupones disponibles |
+| GET | `/api/v1/mi/historial/` | Consumidor | Visitas, movimientos de puntos y canjes |
+| GET | `/api/v1/negocios/{id}/catalogo/` | Autenticado | Recompensas adquiribles del negocio |
+| POST | `/api/v1/cupones/adquirir/` | Consumidor | Adquirir un cupón con puntos |
+| POST | `/api/v1/cupones/{uuid}/canjear/` | Dueño del cupón | Canje irreversible iniciado por el cliente |
+| POST | `/api/v1/admin/puntos/ajustar/` | `admin_sistema` | Ajuste auditado de puntos |
+| POST | `/api/v1/admin/visitas/{id}/anular/` | `admin_sistema` | Anular visita con motivo |
+| POST | `/api/v1/admin/cupones/{uuid}/anular/` | `admin_sistema` | Anular cupón con motivo |
+| GET | `/api/v1/negocios/{id}/metricas/` | Dueño o admin | Métricas básicas por rango de fechas |
+
+### Registrar visita
+
+```http
+POST /api/v1/visitas/registrar/
+Authorization: Bearer <access_token>
+Content-Type: application/json
+
+{"qr_uuid":"3f1c2a9e-8f4b-4f2a-9c1d-2b7e6a5d4c3b","metodo_validacion":"qr"}
+```
+
+La primera visita del día responde `201` con los puntos otorgados, las tarjetas
+avanzadas y los cupones emitidos. Un segundo intento el mismo día responde `200`:
+
+```json
+{
+  "visita": {"id": 101, "fecha_negocio": "2026-11-14"},
+  "already_registered": true,
+  "puntos_otorgados": 0,
+  "tarjetas": [],
+  "cupones_emitidos": []
+}
+```
+
+### Adquirir y canjear cupones
+
+```http
+POST /api/v1/cupones/adquirir/
+Authorization: Bearer <access_token>
+Content-Type: application/json
+
+{"recompensa": 12, "clave_idempotencia": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"}
+```
+
+La clave de idempotencia es obligatoria. Reutilizarla con la misma recompensa
+devuelve el mismo cupón con `200`; usarla con otra recompensa u operación
+devuelve `409 conflicto_idempotencia`.
+
+```http
+POST /api/v1/cupones/9a8b7c6d-5e4f-4a3b-2c1d-0e9f8a7b6c5d/canjear/
+Authorization: Bearer <access_token>
+```
+
+El canje responde con `token_validacion`, `expira_en`, `servidor_ahora` y
+`duracion_segundos`. El cupón queda `canjeado` en la misma transacción y no
+puede reactivarse.
+
+### Códigos de error de lealtad
+
+| Código | HTTP | Caso |
+| --- | --- | --- |
+| `qr_invalido` | 404 | QR no encontrado |
+| `negocio_inactivo` | 403 | Negocio o sucursal inactivos |
+| `puntos_insuficientes` | 409 | Saldo menor al costo |
+| `sin_stock` | 409 | Recompensa agotada |
+| `recompensa_inactiva` | 409 | Recompensa retirada |
+| `recompensa_vencida` | 409 | Vigencia no disponible |
+| `cupon_no_disponible` | 409 | Cupón canjeado, anulado o vencido |
+| `cupon_no_encontrado` | 404 | UUID inexistente |
+| `cupon_ajeno` | 403 | Cupón de otro usuario |
+| `conflicto_idempotencia` | 409 | Clave reutilizada con otros parámetros |
+| `saldo_negativo` | 409 | Ajuste que dejaría saldo negativo |
+| `alianza_vencida` | 409 | Alianza fuera de vigencia |
+
+Los errores del motor usan el formato `{"codigo":"...","detalle":"..."}`.
 
 ## Ejemplo de lectura
 
@@ -104,10 +188,11 @@ del detalle o que todos los POST devuelven un campo `id`.
 | 409 | Perfil ya existente o correo que requiere vinculación manual |
 | 503 | Supabase Auth no configurado o no disponible |
 
-Los errores DRF pueden aparecer como `{"detail":"..."}`, listas de mensajes
-o errores por campo. No hay un envoltorio global de respuesta ni un identificador
-de error estable; los textos de algunas validaciones pueden depender del idioma
-configurado en Django. Nunca distingas permisos mediante el texto de un mensaje.
+Los errores DRF del CRUD pueden aparecer como `{"detail":"..."}`, listas de
+mensajes o errores por campo. Los endpoints del motor de lealtad añaden un
+`codigo` estable (`{"codigo":"...","detalle":"..."}`); consúltalo antes que el
+texto. Los textos de algunas validaciones pueden depender del idioma configurado
+en Django. Nunca distingas permisos mediante el texto de un mensaje.
 
 ## Rutas fuera de la API de negocio
 

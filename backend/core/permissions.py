@@ -195,6 +195,11 @@ class EsUsuarioBenefy(BasePermission):
         return es_usuario_benefy(request.user)
 
 
+class EsConsumidor(EsUsuarioBenefy):
+    def has_permission(self, request, view):
+        return es_usuario_benefy(request.user) and request.user.rol == "consumidor"
+
+
 class EsAdminSistema(EsUsuarioBenefy):
     def has_permission(self, request, view):
         return es_admin_sistema(request.user)

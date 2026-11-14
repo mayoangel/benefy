@@ -2,9 +2,15 @@
 
 from django.db import transaction
 from django.db.models import F, Q
-from rest_framework.exceptions import PermissionDenied
+from django.db.models.deletion import ProtectedError
+from rest_framework.exceptions import APIException, PermissionDenied
 
 from core import models, permissions
+
+
+class ProtectedDeleteConflict(APIException):
+    status_code = 409
+    default_detail = 'No se puede eliminar el registro porque conserva historial asociado.'
 
 
 def scoped_queryset(user, queryset):
@@ -16,7 +22,8 @@ def scoped_queryset(user, queryset):
     businesses = permissions.negocios_accesibles(user)
     branches = permissions.sucursales_accesibles(user)
     rewards = models.Recompensa.objects.filter(
-        Q(dinamica__negocio__in=businesses)
+        Q(negocio__in=businesses)
+        | Q(dinamica__negocio__in=businesses)
         | Q(alianza__negocio1__in=businesses)
         | Q(alianza__negocio2__in=businesses)
     )
@@ -52,13 +59,23 @@ def scoped_queryset(user, queryset):
     if model is models.Recompensa:
         return queryset.filter(pk__in=rewards)
     if model is models.RegistroActividad:
-        return queryset.filter(Q(usuario=user) | Q(sucursal__in=branches))
+        return queryset.filter(
+            Q(usuario=user) | Q(negocio__in=businesses) | Q(sucursal__in=branches)
+        )
     if model is models.ProgresoUsuario:
         return queryset.filter(Q(usuario=user) | Q(dinamica__negocio__in=businesses))
     if model is models.CuponUsuario:
-        return queryset.filter(Q(usuario=user) | Q(recompensa__in=rewards))
+        return queryset.filter(
+            Q(usuario=user)
+            | Q(negocio__in=businesses)
+            | Q(recompensa__in=rewards)
+        )
     if model is models.Canje:
-        return queryset.filter(Q(cupon__usuario=user) | Q(sucursal__in=branches))
+        return queryset.filter(
+            Q(cupon__usuario=user) | Q(negocio__in=businesses) | Q(sucursal__in=branches)
+        )
+    if model in (models.SaldoPuntos, models.LotePuntos, models.MovimientoPuntos, models.CicloTarjeta):
+        return queryset.filter(Q(usuario=user) | Q(negocio__in=businesses))
     if model is models.Notificacion:
         return queryset.filter(usuario=user)
     return queryset.none()
@@ -102,19 +119,22 @@ def authorize_write(user, model, data, instance=None, method='POST', supplied_fi
         if instance:
             allowed = allowed and instance.negocio_id == business.pk
     elif model is models.Recompensa:
-        program, alliance = value('dinamica'), value('alianza')
+        program, alliance, business = value('dinamica'), value('alianza'), value('negocio')
         if program and not alliance:
             allowed = permissions.puede_administrar_negocio(user, program.negocio)
         elif alliance and not program:
-            allowed = all(permissions.puede_administrar_negocio(user, business)
-                          for business in (alliance.negocio1, alliance.negocio2))
+            allowed = all(permissions.puede_administrar_negocio(user, negocio)
+                          for negocio in (alliance.negocio1, alliance.negocio2))
+        elif business and not program and not alliance:
+            allowed = permissions.puede_administrar_negocio(user, business)
         # El origen de una recompensa existente no se puede trasladar a otro negocio.
         if instance:
             allowed = (allowed and instance.dinamica_id == (program.pk if program else None)
                        and instance.alianza_id == (alliance.pk if alliance else None))
-    elif model in (models.RegistroActividad, models.Canje) and method == 'POST':
-        branch = value('sucursal')
-        allowed = branch is not None and permissions.puede_operar_sucursal(user, branch)
+    elif model in (models.RegistroActividad, models.ProgresoUsuario,
+                   models.CuponUsuario, models.Canje):
+        # Estas operaciones solo se modifican mediante los servicios de lealtad.
+        allowed = False
     elif model is models.Notificacion:
         allowed = (instance is not None and instance.usuario_id == user.pk
                    and method in ('PUT', 'PATCH') and set(supplied_fields) <= {'leida'})
@@ -152,4 +172,7 @@ class ResourceAccessMixin:
 
     def perform_destroy(self, instance):
         authorize_write(self.request.user, type(instance), {}, instance, 'DELETE')
-        instance.delete()
+        try:
+            instance.delete()
+        except ProtectedError:
+            raise ProtectedDeleteConflict() from None

@@ -10,5 +10,8 @@ psycopg2-binary==2.9.13
 # Lectura de variables de entorno desde archivos .env
 python-dotenv==1.2.4
 
+# Base de datos IANA de zonas horarias (necesaria en Windows).
+tzdata==2025.2
+
 # Servidor WSGI para el contenedor de producción (Linux)
 gunicorn==23.0.0

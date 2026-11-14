@@ -15,6 +15,10 @@ docker compose -f compose.yaml exec backend python manage.py check
 docker compose -f compose.yaml exec backend python manage.py test --noinput
 docker compose -f compose.yaml exec backend python manage.py makemigrations --check --dry-run
 
+# Motor de lealtad: expiración y consistencia de puntos.
+docker compose -f compose.yaml exec backend python manage.py expirar_puntos
+docker compose -f compose.yaml exec backend python manage.py verificar_puntos
+
 # Logs y parada.
 docker compose -f compose.yaml logs -f backend
 docker compose -f compose.yaml down        # conserva el volumen
@@ -37,6 +41,14 @@ npm run start      # Expo/Metro, normalmente :8081
 
 URLs: API <http://localhost:8000/>, Admin
 <http://localhost:8000/admin/>, Benef AI <http://localhost:5000/>.
+
+La pantalla de canje dura 300 segundos por defecto. Se cambia con
+`CANJE_VALIDACION_SEGUNDOS` en `backend/.env` y se reinicia el backend.
+La zona horaria por defecto de los negocios es `America/Tijuana`; cada negocio
+puede cambiarla desde su configuración. El comando `expirar_puntos` debe
+programarse periódicamente en producción (cron, systemd timer o tarea del
+proveedor); `verificar_puntos` sirve para auditar que el saldo coincida con los
+lotes disponibles.
 
 ## Verificación en el entorno simulado de producción
 

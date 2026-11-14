@@ -9,17 +9,20 @@ independientes; no existe un gestor de paquetes ni un comando de ejecución
 
 | Componente | Implementado | Pendiente |
 | --- | --- | --- |
-| Backend | Django 5.2 + DRF, 16 modelos, cuatro migraciones de `core`, 82 rutas API, permisos por negocio/sucursal y Django Admin | Servicios completos de acumulación, emisión y canje; analítica y webhooks |
+| Backend | Django 5.2 + DRF, 20 modelos, siete migraciones de `core`, 92 rutas API, motor de visitas/puntos/tarjetas/cupones, permisos por negocio/sucursal y Django Admin | Dashboard web, migración a Supabase, analítica avanzada y webhooks |
 | Identidad | Verificación remota de Supabase Auth y perfiles/roles en Django | Login y gestión de sesión en los clientes |
 | Web | Landing React 18 + Vite: Inicio, Nosotros, Precios y acceso simulado | Dashboard administrativo y consumo de API |
 | Móvil | Dashboard Benefy en Expo SDK 58 con resumen de puntos, retos, cupones y pestañas de demostración | Datos reales, Auth, cámara QR/NFC y cliente API |
 | Benef AI | FastAPI y endpoint de estado | Agente, proveedor LLM, herramientas y comunicación autenticada con Django |
 | Hardware | Carpeta de documentación | Firmware ESP32-S3 e integración física |
 
-El CRUD existente no equivale a un flujo de lealtad terminado: registrar una
-actividad no actualiza automáticamente el progreso ni emite cupones; crear
-un canje no cambia automáticamente el estado del cupón ni evita carreras
-concurrentes. Consulta [estado y correspondencia con el SRS](./docs/estado-implementacion.md).
+El backend ya implementa el flujo transaccional del MVP: visitas por QR con
+límite diario, puntos por lotes con FIFO, tarjetas de visitas, adquisición
+idempotente y canje irreversible. El CRUD genérico de esas entidades es solo
+lectura; las operaciones pasan por endpoints y servicios dedicados. Faltan los
+clientes conectados y el panel web. Consulta
+[estado y correspondencia con el SRS](./docs/estado-implementacion.md) y
+[reglas de lealtad](./docs/reglas-lealtad.md).
 
 ## Estructura
 

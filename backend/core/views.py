@@ -16,6 +16,12 @@ class ProfileConflict(APIException):
     default_detail = 'El perfil ya existe o requiere una vinculación manual. Contacta al administrador.'
 
 
+class SoloLecturaMixin:
+    """Bloquea escrituras del CRUD genérico; el motor usa endpoints propios."""
+
+    http_method_names = ['get', 'options']
+
+
 class UsuarioCreateAPIView(generics.CreateAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = serializers.UsuarioSerializerCreate
@@ -249,7 +255,7 @@ class RecompensaDeleteAPIView(ResourceAccessMixin, generics.DestroyAPIView):
 
 
 # RegistroActividad: las cinco operaciones mantienen sus rutas independientes.
-class RegistroActividadCreateAPIView(ResourceAccessMixin, generics.CreateAPIView):
+class RegistroActividadCreateAPIView(SoloLecturaMixin, ResourceAccessMixin, generics.CreateAPIView):
     queryset = models.RegistroActividad.objects.all()
     serializer_class = serializers.RegistroActividadSerializerCreate
 
@@ -264,18 +270,18 @@ class RegistroActividadDetailAPIView(ResourceAccessMixin, generics.RetrieveAPIVi
     serializer_class = serializers.RegistroActividadSerializerDetail
 
 
-class RegistroActividadUpdateAPIView(ResourceAccessMixin, generics.UpdateAPIView):
+class RegistroActividadUpdateAPIView(SoloLecturaMixin, ResourceAccessMixin, generics.UpdateAPIView):
     queryset = models.RegistroActividad.objects.all()
     serializer_class = serializers.RegistroActividadSerializerUpdate
 
 
-class RegistroActividadDeleteAPIView(ResourceAccessMixin, generics.DestroyAPIView):
+class RegistroActividadDeleteAPIView(SoloLecturaMixin, ResourceAccessMixin, generics.DestroyAPIView):
     queryset = models.RegistroActividad.objects.all()
     serializer_class = serializers.RegistroActividadSerializerDelete
 
 
 # ProgresoUsuario: las cinco operaciones mantienen sus rutas independientes.
-class ProgresoUsuarioCreateAPIView(ResourceAccessMixin, generics.CreateAPIView):
+class ProgresoUsuarioCreateAPIView(SoloLecturaMixin, ResourceAccessMixin, generics.CreateAPIView):
     queryset = models.ProgresoUsuario.objects.all()
     serializer_class = serializers.ProgresoUsuarioSerializerCreate
 
@@ -290,18 +296,18 @@ class ProgresoUsuarioDetailAPIView(ResourceAccessMixin, generics.RetrieveAPIView
     serializer_class = serializers.ProgresoUsuarioSerializerDetail
 
 
-class ProgresoUsuarioUpdateAPIView(ResourceAccessMixin, generics.UpdateAPIView):
+class ProgresoUsuarioUpdateAPIView(SoloLecturaMixin, ResourceAccessMixin, generics.UpdateAPIView):
     queryset = models.ProgresoUsuario.objects.all()
     serializer_class = serializers.ProgresoUsuarioSerializerUpdate
 
 
-class ProgresoUsuarioDeleteAPIView(ResourceAccessMixin, generics.DestroyAPIView):
+class ProgresoUsuarioDeleteAPIView(SoloLecturaMixin, ResourceAccessMixin, generics.DestroyAPIView):
     queryset = models.ProgresoUsuario.objects.all()
     serializer_class = serializers.ProgresoUsuarioSerializerDelete
 
 
 # CuponUsuario: las cinco operaciones mantienen sus rutas independientes.
-class CuponUsuarioCreateAPIView(ResourceAccessMixin, generics.CreateAPIView):
+class CuponUsuarioCreateAPIView(SoloLecturaMixin, ResourceAccessMixin, generics.CreateAPIView):
     queryset = models.CuponUsuario.objects.all()
     serializer_class = serializers.CuponUsuarioSerializerCreate
 
@@ -316,18 +322,18 @@ class CuponUsuarioDetailAPIView(ResourceAccessMixin, generics.RetrieveAPIView):
     serializer_class = serializers.CuponUsuarioSerializerDetail
 
 
-class CuponUsuarioUpdateAPIView(ResourceAccessMixin, generics.UpdateAPIView):
+class CuponUsuarioUpdateAPIView(SoloLecturaMixin, ResourceAccessMixin, generics.UpdateAPIView):
     queryset = models.CuponUsuario.objects.all()
     serializer_class = serializers.CuponUsuarioSerializerUpdate
 
 
-class CuponUsuarioDeleteAPIView(ResourceAccessMixin, generics.DestroyAPIView):
+class CuponUsuarioDeleteAPIView(SoloLecturaMixin, ResourceAccessMixin, generics.DestroyAPIView):
     queryset = models.CuponUsuario.objects.all()
     serializer_class = serializers.CuponUsuarioSerializerDelete
 
 
 # Canje: las cinco operaciones mantienen sus rutas independientes.
-class CanjeCreateAPIView(ResourceAccessMixin, generics.CreateAPIView):
+class CanjeCreateAPIView(SoloLecturaMixin, ResourceAccessMixin, generics.CreateAPIView):
     queryset = models.Canje.objects.all()
     serializer_class = serializers.CanjeSerializerCreate
 
@@ -342,12 +348,12 @@ class CanjeDetailAPIView(ResourceAccessMixin, generics.RetrieveAPIView):
     serializer_class = serializers.CanjeSerializerDetail
 
 
-class CanjeUpdateAPIView(ResourceAccessMixin, generics.UpdateAPIView):
+class CanjeUpdateAPIView(SoloLecturaMixin, ResourceAccessMixin, generics.UpdateAPIView):
     queryset = models.Canje.objects.all()
     serializer_class = serializers.CanjeSerializerUpdate
 
 
-class CanjeDeleteAPIView(ResourceAccessMixin, generics.DestroyAPIView):
+class CanjeDeleteAPIView(SoloLecturaMixin, ResourceAccessMixin, generics.DestroyAPIView):
     queryset = models.Canje.objects.all()
     serializer_class = serializers.CanjeSerializerDelete
 

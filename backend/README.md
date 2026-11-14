@@ -1,22 +1,27 @@
 # Backend
 
 API Django 5.2 + Django REST Framework. La configuración está en `config/`;
-`core/` contiene 16 modelos, serializers, vistas, permisos y cuatro migraciones
+`core/` contiene 20 modelos, serializers, vistas, permisos y siete migraciones
 de dominio. La entrada de URLs es `config/urls.py`.
 
 ## Funcionalidad disponible
 
-- 80 rutas CRUD, con acciones en español, y dos rutas adicionales de perfil/roles.
+- 80 rutas CRUD, con acciones en español, dos rutas de perfil/roles y diez rutas del motor de lealtad.
 - Verificación de sesiones Supabase Auth y permisos según usuario, negocio y sucursal.
+- Registro de visitas por QR de negocio o sucursal con límite diario por zona horaria.
+- Puntos por lotes con consumo FIFO, expiración configurable y ajustes auditados.
+- Tarjetas de visitas repetibles o de una sola vez, con snapshots por ciclo.
+- Adquisición idempotente de cupones con stock y canje irreversible iniciado por el cliente.
 - Django Admin con los modelos registrados y cuentas staff separadas de los perfiles Benefy.
 - PostgreSQL local para desarrollo o PostgreSQL Supabase con SSL para producción.
-- Comando `db_info` para inspeccionar el destino sin imprimir passwords.
-- Pruebas de salud, autenticación, permisos, aislamiento y migración de perfiles.
+- Comandos `db_info`, `expirar_puntos` y `verificar_puntos`.
+- 93 pruebas de salud, autenticación, permisos, aislamiento, migración, lealtad y concurrencia.
 
 Consulta [API](../docs/api.md) para las rutas y
 [autenticación](../docs/autenticacion.md) para los payloads y la matriz de acceso.
 Los modelos de Stripe y notificaciones no implican que esas integraciones estén
-implementadas. Los servicios transaccionales completos de lealtad siguen pendientes.
+implementadas. El dashboard web, las alianzas con puntos compartidos y los
+clientes conectados siguen pendientes.
 
 ## Entornos y variables
 

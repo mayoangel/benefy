@@ -35,6 +35,15 @@ def _env_bool(name, default=False):
     return os.getenv(name, str(default)).strip().lower() in ('1', 'true', 'yes')
 
 
+def _env_int(name, default):
+    """Lee un entero positivo de entorno, con respaldo seguro."""
+    try:
+        value = int(os.getenv(name, str(default)))
+    except (TypeError, ValueError):
+        return default
+    return value if value > 0 else default
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
@@ -224,3 +233,6 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': ['core.authentication.SupabaseAuthentication'],
     'DEFAULT_PERMISSION_CLASSES': ['core.permissions.EsUsuarioBenefy'],
 }
+
+# Tiempo que el cliente puede mostrar la pantalla de validación de un canje.
+CANJE_VALIDACION_SEGUNDOS = _env_int('CANJE_VALIDACION_SEGUNDOS', 300)

@@ -71,7 +71,7 @@ class UrlLanguageTests(SimpleTestCase):
     acciones_espanol = ("crear", "listar", "detalle", "actualizar", "eliminar")
 
     def test_rutas_y_nombres_de_url_estan_en_espanol(self):
-        self.assertEqual(len(urls.urlpatterns), 82)
+        self.assertEqual(len(urls.urlpatterns), 92)
 
         rutas = [str(pattern.pattern) for pattern in urls.urlpatterns]
         nombres = [pattern.name for pattern in urls.urlpatterns]

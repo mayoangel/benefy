@@ -198,6 +198,25 @@ Content-Type: application/json
 en detalles. Una acción no permitida sobre un recurso visible responde 403.
 No se exponen los identificadores Firebase heredados.
 
+## Endpoints de lealtad
+
+| Ruta | Rol requerido | Alcance |
+| --- | --- | --- |
+| `POST /visitas/registrar/` | `consumidor` | Registra la visita del usuario autenticado |
+| `GET /mi/billetera/` | `consumidor` | Solo saldos, tarjetas y cupones propios |
+| `GET /mi/historial/` | `consumidor` | Solo visitas, movimientos y canjes propios |
+| `GET /negocios/{id}/catalogo/` | Cualquier perfil activo | Recompensas activas del negocio |
+| `POST /cupones/adquirir/` | `consumidor` | Descuenta puntos y emite el cupón propio |
+| `POST /cupones/{uuid}/canjear/` | Dueño del cupón | Canje irreversible; un cupón ajeno responde 403 |
+| `POST /admin/puntos/ajustar/` | `admin_sistema` | Ajuste auditado sin saldo negativo |
+| `POST /admin/visitas/{id}/anular/` | `admin_sistema` | Anulación con motivo |
+| `POST /admin/cupones/{uuid}/anular/` | `admin_sistema` | Anulación con motivo y sin devolución automática |
+| `GET /negocios/{id}/metricas/` | Dueño del negocio o admin | Métricas del negocio solicitado |
+
+Los usuarios con rol `negocio` no pueden registrar visitas ni canjear cupones
+como consumidores. El personal del negocio conserva la lectura de su alcance,
+pero no interviene en el canje del cliente.
+
 ## Matriz de permisos
 
 `Usuario.rol` distingue consumidor, usuario de negocio y administrador del
@@ -214,9 +233,10 @@ un negocio/sucursal concretos. Tener rol `negocio` por sí solo no concede acces
 | Dinámicas | Miembros del negocio | Dueño del negocio |
 | Recompensas | Miembros de los negocios asociados | Dueño de la dinámica; si es de alianza, dueño de ambos negocios |
 | Alianzas | Miembros de los negocios involucrados | Solo admin hasta implementar aprobación bilateral |
-| Actividades | Consumidor: propias; personal: su alcance de sucursal | Dueño/admin/empleado puede registrar en una sucursal operable; modificar/borrar solo admin |
-| Progreso y cupones | Consumidor: propios; personal: su negocio | CRUD de escritura solo admin, hasta implementar servicios de acumulación/emisión |
-| Canjes | Consumidor: propios; personal: su alcance de sucursal | Crear: operador de sucursal; modificar/borrar solo admin |
+| Actividades | Consumidor: propias; personal: su alcance de sucursal | Solo lectura por CRUD; alta exclusiva desde `POST /visitas/registrar/`; anulación solo admin |
+| Progreso y cupones | Consumidor: propios; personal: su negocio | Solo lectura por CRUD; adquisición y emisión desde servicios de lealtad |
+| Canjes | Consumidor: propios; personal: su negocio | Solo lectura por CRUD; canje exclusivo del dueño del cupón desde `POST /cupones/{uuid}/canjear/` |
+| Saldos y lotes de puntos | Consumidor: propios; personal: su negocio | Solo servicios; ajustes exclusivos de `admin_sistema` |
 | Pagos y suscripciones | Dueño del negocio y admin del sistema | Solo admin hasta implementar webhooks verificados |
 | Notificaciones | Propias y admin del sistema | Usuario solo marca `leida`; crear/borrar solo admin |
 
@@ -229,12 +249,13 @@ ni transferir una membresía a otro usuario/negocio mediante actualización.
 
 Al crear negocio se actualiza el rol consumidor a negocio y se crea la membresía
 de dueño en una transacción. Al asignar la primera membresía a un consumidor,
-se actualiza su rol a negocio. El operador del canje se toma del usuario
-autenticado; no se puede suplantar otro operador con `validado_por`.
+se actualiza su rol a negocio.
 
-Los servicios transaccionales completos de acumulación, emisión y canje siguen
-pendientes. Esta integración protege acceso y autoría, pero el CRUD de canjes
-todavía no actualiza automáticamente el cupón ni evita carreras concurrentes.
+El canje del MVP lo inicia el cliente autenticado desde
+`POST /cupones/{uuid}/canjear/`. El backend valida la propiedad del cupón, su
+estado y vigencia, y lo consume en la misma transacción. No se acepta
+`validado_por` ni se suplanta al personal; el cajero solo verifica visualmente
+la pantalla de validación. El CRUD genérico de canjes es de solo lectura.
 
 ## Primer administrador y usuarios anteriores
 

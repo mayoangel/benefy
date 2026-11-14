@@ -1,7 +1,19 @@
+from datetime import timedelta
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
 from rest_framework import serializers
 from django.utils import timezone
 
 from core import models
+
+
+def validar_zona_horaria(value):
+    """Valida un nombre IANA de zona horaria."""
+    try:
+        ZoneInfo(value)
+    except (ZoneInfoNotFoundError, ValueError):
+        raise serializers.ValidationError("La zona horaria no es válida.")
+    return value
 
 
 # Usuario Serializers
@@ -152,6 +164,7 @@ class NegocioSerializerCreate(serializers.ModelSerializer):
             "logo_url",
             "banner_url",
             "slug",
+            "zona_horaria",
             "status",
             "categoria",
         ]
@@ -167,6 +180,9 @@ class NegocioSerializerCreate(serializers.ModelSerializer):
         if not value:
             raise serializers.ValidationError("La dirección del negocio no puede estar vacía.")
         return value
+
+    def validate_zona_horaria(self, value):
+        return validar_zona_horaria(value)
 
     def validate_correo(self, value):
         value = value.strip()
@@ -212,6 +228,7 @@ class NegocioSerializerUpdate(serializers.ModelSerializer):
             "logo_url",
             "banner_url",
             "slug",
+            "zona_horaria",
             "status",
             "categoria",
         ]
@@ -227,6 +244,9 @@ class NegocioSerializerUpdate(serializers.ModelSerializer):
         if not value:
             raise serializers.ValidationError("La dirección del negocio no puede estar vacía.")
         return value
+
+    def validate_zona_horaria(self, value):
+        return validar_zona_horaria(value)
 
     def validate_correo(self, value):
         value = value.strip()
@@ -480,6 +500,67 @@ class UsuarioNegocioSerializerDelete(serializers.ModelSerializer):
 #Dinamica Serializers
 
 #Create
+def validar_dinamica(attrs, instance=None):
+    def valor(campo, por_defecto=None):
+        return attrs.get(campo, getattr(instance, campo, por_defecto) if instance else por_defecto)
+
+    tipo = valor("tipo")
+    meta = valor("meta")
+    regla = valor("regla_conversion", 1)
+    fecha_inicio = valor("fecha_inicio")
+    fecha_fin = valor("fecha_fin")
+    negocio = valor("negocio")
+    status = valor("status", True)
+    es_repetible = valor("es_repetible", False)
+    dias_expiracion = valor("dias_expiracion_puntos")
+
+    if instance is not None and tipo != instance.tipo:
+        raise serializers.ValidationError({
+            "tipo": "No se puede cambiar el tipo de una dinámica existente."
+        })
+    if fecha_inicio and fecha_fin and fecha_fin <= fecha_inicio:
+        raise serializers.ValidationError({
+            "fecha_fin": "La fecha de fin debe ser posterior a la fecha de inicio."
+        })
+    if tipo == "sellos":
+        if meta is None or meta <= 0:
+            raise serializers.ValidationError({
+                "meta": "Una tarjeta de sellos requiere una meta mayor que cero."
+            })
+    if tipo == "puntos":
+        if regla is None or regla <= 0:
+            raise serializers.ValidationError({
+                "regla_conversion": "La regla de conversión debe ser mayor que cero."
+            })
+        if regla != regla.to_integral_value():
+            raise serializers.ValidationError({
+                "regla_conversion": "Los puntos por visita deben ser un número entero."
+            })
+        if dias_expiracion is not None and dias_expiracion <= 0:
+            raise serializers.ValidationError({
+                "dias_expiracion_puntos": "La vigencia de puntos debe ser mayor que cero."
+            })
+        if status and negocio is not None:
+            activas = models.Dinamica.objects.filter(
+                negocio=negocio, tipo="puntos", status=True,
+            )
+            if instance is not None:
+                activas = activas.exclude(pk=instance.pk)
+            if activas.exists():
+                raise serializers.ValidationError({
+                    "status": "Ya existe una dinámica de puntos activa para este negocio."
+                })
+    if tipo != "sellos" and es_repetible:
+        raise serializers.ValidationError({
+            "es_repetible": "Solo las tarjetas de sellos pueden ser repetibles."
+        })
+    if tipo != "puntos" and dias_expiracion is not None:
+        raise serializers.ValidationError({
+            "dias_expiracion_puntos": "Solo las dinámicas de puntos pueden configurar caducidad."
+        })
+    return attrs
+
+
 class DinamicaSerializerCreate(serializers.ModelSerializer):
     class Meta:
         model = models.Dinamica
@@ -489,6 +570,8 @@ class DinamicaSerializerCreate(serializers.ModelSerializer):
             "tipo",
             "meta",
             "regla_conversion",
+            "es_repetible",
+            "dias_expiracion_puntos",
             "fecha_inicio",
             "fecha_fin",
             "status",
@@ -501,7 +584,7 @@ class DinamicaSerializerCreate(serializers.ModelSerializer):
         return value
 
     def validate_meta(self, value):
-        if value <= 0:
+        if value is not None and value <= 0:
             raise serializers.ValidationError("La meta debe ser mayor que cero.")
         return value
 
@@ -511,13 +594,8 @@ class DinamicaSerializerCreate(serializers.ModelSerializer):
         return value
 
     def validate(self, attrs):
-        fecha_inicio = attrs["fecha_inicio"]
-        fecha_fin = attrs["fecha_fin"]
-        if fecha_fin <= fecha_inicio:
-            raise serializers.ValidationError({
-                "fecha_fin": "La fecha de fin debe ser posterior a la fecha de inicio."
-            })
-        return attrs
+        return validar_dinamica(attrs)
+
 
 #List
 class DinamicaSerializerList(serializers.ModelSerializer):
@@ -527,6 +605,8 @@ class DinamicaSerializerList(serializers.ModelSerializer):
             "id",
             "nombre",
             "tipo",
+            "meta",
+            "es_repetible",
             "fecha_inicio",
             "fecha_fin",
             "status",
@@ -549,6 +629,8 @@ class DinamicaSerializerUpdate(serializers.ModelSerializer):
             "tipo",
             "meta",
             "regla_conversion",
+            "es_repetible",
+            "dias_expiracion_puntos",
             "fecha_inicio",
             "fecha_fin",
             "status",
@@ -561,7 +643,7 @@ class DinamicaSerializerUpdate(serializers.ModelSerializer):
         return value
 
     def validate_meta(self, value):
-        if value <= 0:
+        if value is not None and value <= 0:
             raise serializers.ValidationError("La meta debe ser mayor que cero.")
         return value
 
@@ -571,13 +653,7 @@ class DinamicaSerializerUpdate(serializers.ModelSerializer):
         return value
 
     def validate(self, attrs):
-        fecha_inicio = attrs.get("fecha_inicio", self.instance.fecha_inicio)
-        fecha_fin = attrs.get("fecha_fin", self.instance.fecha_fin)
-        if fecha_fin <= fecha_inicio:
-            raise serializers.ValidationError({
-                "fecha_fin": "La fecha de fin debe ser posterior a la fecha de inicio."
-            })
-        return attrs
+        return validar_dinamica(attrs, self.instance)
 
 #Delete
 class DinamicaSerializerDelete(serializers.ModelSerializer):
@@ -694,6 +770,92 @@ class AlianzaSerializerDelete(serializers.ModelSerializer):
 #Recompensa Serializers
 
 #Create
+def validar_recompensa(attrs, instance=None):
+    def valor(campo, por_defecto=None):
+        return attrs.get(campo, getattr(instance, campo, por_defecto) if instance else por_defecto)
+
+    tipo = valor("tipo", "gratis")
+    descuento = valor("descuento")
+    dinamica = valor("dinamica")
+    alianza = valor("alianza")
+    negocio = valor("negocio")
+    es_meta = valor("es_meta", False)
+    fecha_expiracion = valor("fecha_expiracion")
+    vigencia_dias = valor("vigencia_dias")
+
+    if dinamica is not None and alianza is not None:
+        raise serializers.ValidationError(
+            "La recompensa no puede pertenecer a una dinámica y a una alianza a la vez."
+        )
+    if negocio is None and dinamica is not None:
+        negocio = dinamica.negocio
+        attrs["negocio"] = negocio
+    if negocio is None and alianza is None:
+        raise serializers.ValidationError(
+            "La recompensa debe pertenecer a un negocio o a una alianza."
+        )
+    if dinamica is not None and negocio is not None and dinamica.negocio_id != negocio.pk:
+        raise serializers.ValidationError({
+            "negocio": "El negocio de la recompensa debe coincidir con el de la dinámica."
+        })
+    if instance is not None and instance.negocio_id is not None and negocio is not None:
+        if negocio.pk != instance.negocio_id:
+            raise serializers.ValidationError({
+                "negocio": "No se puede trasladar una recompensa a otro negocio."
+            })
+    if bool(fecha_expiracion) == bool(vigencia_dias):
+        raise serializers.ValidationError(
+            "La recompensa debe definir una fecha de expiración o una duración, pero no ambas."
+        )
+    if fecha_expiracion is not None and fecha_expiracion <= timezone.now():
+        raise serializers.ValidationError({
+            "fecha_expiracion": "La fecha de expiración debe ser futura."
+        })
+    if vigencia_dias is not None and vigencia_dias <= 0:
+        raise serializers.ValidationError({
+            "vigencia_dias": "La vigencia debe ser mayor que cero."
+        })
+    if es_meta:
+        if dinamica is None:
+            raise serializers.ValidationError({
+                "es_meta": "Solo una dinámica puede tener una recompensa meta."
+            })
+        metas = models.Recompensa.objects.filter(dinamica=dinamica, es_meta=True)
+        if instance is not None:
+            metas = metas.exclude(pk=instance.pk)
+        if metas.exists():
+            raise serializers.ValidationError({
+                "es_meta": "Esta dinámica ya tiene una recompensa meta."
+            })
+    if dinamica is not None and dinamica.fecha_fin is not None and fecha_expiracion is not None:
+        if fecha_expiracion > dinamica.fecha_fin:
+            raise serializers.ValidationError({
+                "fecha_expiracion": "La recompensa no puede vencer después de su dinámica."
+            })
+    if alianza is not None:
+        if fecha_expiracion is not None and fecha_expiracion > alianza.fecha_fin:
+            raise serializers.ValidationError({
+                "fecha_expiracion": "La recompensa no puede vencer después de la alianza."
+            })
+        if vigencia_dias is not None and timezone.now() + timedelta(days=vigencia_dias) > alianza.fecha_fin:
+            raise serializers.ValidationError({
+                "vigencia_dias": "La vigencia supera la fecha de fin de la alianza."
+            })
+    if tipo == "descuento" and (descuento is None or descuento <= 0 or descuento > 100):
+        raise serializers.ValidationError({
+            "descuento": "El descuento porcentual debe ser mayor que cero y no superar 100."
+        })
+    if tipo == "descuento_fijo" and (descuento is None or descuento <= 0):
+        raise serializers.ValidationError({
+            "descuento": "El descuento fijo debe ser mayor que cero."
+        })
+    if tipo == "gratis" and descuento is not None:
+        raise serializers.ValidationError({
+            "descuento": "Una recompensa gratis no debe especificar un descuento."
+        })
+    return attrs
+
+
 class RecompensaSerializerCreate(serializers.ModelSerializer):
     class Meta:
         model = models.Recompensa
@@ -705,6 +867,11 @@ class RecompensaSerializerCreate(serializers.ModelSerializer):
             "costo_desbloqueo",
             "terminos_condiciones",
             "status",
+            "negocio",
+            "es_meta",
+            "fecha_expiracion",
+            "vigencia_dias",
+            "cantidad_disponible",
             "dinamica",
             "alianza",
         ]
@@ -715,28 +882,7 @@ class RecompensaSerializerCreate(serializers.ModelSerializer):
         return value
 
     def validate(self, attrs):
-        tipo = attrs["tipo"]
-        descuento = attrs.get("descuento")
-        dinamica = attrs.get("dinamica")
-        alianza = attrs.get("alianza")
-
-        if (dinamica is None) == (alianza is None):
-            raise serializers.ValidationError(
-                "La recompensa debe pertenecer a una dinámica o a una alianza, pero no a ambas."
-            )
-        if tipo == "descuento" and (descuento is None or descuento <= 0 or descuento > 100):
-            raise serializers.ValidationError({
-                "descuento": "El descuento porcentual debe ser mayor que cero y no superar 100."
-            })
-        if tipo == "descuento_fijo" and (descuento is None or descuento <= 0):
-            raise serializers.ValidationError({
-                "descuento": "El descuento fijo debe ser mayor que cero."
-            })
-        if tipo == "gratis" and descuento is not None:
-            raise serializers.ValidationError({
-                "descuento": "Una recompensa gratis no debe especificar un descuento."
-            })
-        return attrs
+        return validar_recompensa(attrs)
 
 
 #List
@@ -749,6 +895,11 @@ class RecompensaSerializerList(serializers.ModelSerializer):
             "tipo",
             "costo_desbloqueo",
             "status",
+            "negocio",
+            "es_meta",
+            "fecha_expiracion",
+            "vigencia_dias",
+            "cantidad_disponible",
             "dinamica",
             "alianza",
         ]
@@ -773,6 +924,11 @@ class RecompensaSerializerUpdate(serializers.ModelSerializer):
             "costo_desbloqueo",
             "terminos_condiciones",
             "status",
+            "negocio",
+            "es_meta",
+            "fecha_expiracion",
+            "vigencia_dias",
+            "cantidad_disponible",
             "dinamica",
             "alianza",
         ]
@@ -783,28 +939,7 @@ class RecompensaSerializerUpdate(serializers.ModelSerializer):
         return value
 
     def validate(self, attrs):
-        tipo = attrs.get("tipo", self.instance.tipo)
-        descuento = attrs.get("descuento", self.instance.descuento)
-        dinamica = attrs.get("dinamica", self.instance.dinamica)
-        alianza = attrs.get("alianza", self.instance.alianza)
-
-        if (dinamica is None) == (alianza is None):
-            raise serializers.ValidationError(
-                "La recompensa debe pertenecer a una dinámica o a una alianza, pero no a ambas."
-            )
-        if tipo == "descuento" and (descuento is None or descuento <= 0 or descuento > 100):
-            raise serializers.ValidationError({
-                "descuento": "El descuento porcentual debe ser mayor que cero y no superar 100."
-            })
-        if tipo == "descuento_fijo" and (descuento is None or descuento <= 0):
-            raise serializers.ValidationError({
-                "descuento": "El descuento fijo debe ser mayor que cero."
-            })
-        if tipo == "gratis" and descuento is not None:
-            raise serializers.ValidationError({
-                "descuento": "Una recompensa gratis no debe especificar un descuento."
-            })
-        return attrs
+        return validar_recompensa(attrs, self.instance)
 
 #Delete
 class RecompensaSerializerDelete(serializers.ModelSerializer):
@@ -857,11 +992,14 @@ class RegistroActividadSerializerList(serializers.ModelSerializer):
         fields = [
             "id",
             "usuario",
+            "negocio",
             "sucursal",
             "metodo_validacion",
             "tipo",
             "monto_transaccion",
             "fecha",
+            "fecha_negocio",
+            "es_valida",
         ]
 
 
@@ -1053,7 +1191,10 @@ class CuponUsuarioSerializerList(serializers.ModelSerializer):
             "uuid",
             "usuario",
             "recompensa",
+            "negocio",
+            "origen",
             "status",
+            "costo_pagado",
             "fecha_expiracion",
         ]
 
@@ -1192,7 +1333,12 @@ class CanjeSerializerList(serializers.ModelSerializer):
             "id",
             "cupon",
             "sucursal",
+            "negocio",
             "validado_por",
+            "origen",
+            "metodo",
+            "token_validacion",
+            "expira_en",
             "fecha",
         ]
 

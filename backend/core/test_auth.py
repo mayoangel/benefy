@@ -104,16 +104,19 @@ class AuthAndPermissionsTests(TestCase):
             meta=5, fecha_inicio=timezone.now(), fecha_fin=timezone.now() + timedelta(days=30),
             negocio=self.business)
         self.reward = models.Recompensa.objects.create(titulo='Café gratis',
-            descripcion='Café', terminos_condiciones='Uno', dinamica=self.program)
+            descripcion='Café', terminos_condiciones='Uno', negocio=self.business,
+            dinamica=self.program, vigencia_dias=30)
         self.coupon = models.CuponUsuario.objects.create(usuario=self.consumer,
-            recompensa=self.reward, fecha_expiracion=timezone.now() + timedelta(days=7))
+            recompensa=self.reward, negocio=self.business,
+            fecha_expiracion=timezone.now() + timedelta(days=7))
 
     def auth(self, user):
         self.client.force_authenticate(user=user)
 
     def test_todas_las_rutas_api_requieren_identidad(self):
         for pattern in urls.urlpatterns:
-            path = '/api/' + str(pattern.pattern).replace('<int:pk>', '1')
+            path = '/api/' + str(pattern.pattern)
+            path = path.replace('<int:pk>', '1').replace('<uuid:uuid>', str(uuid4()))
             with self.subTest(path=path):
                 self.assertEqual(self.client.get(path).status_code, 401)
 
@@ -197,13 +200,20 @@ class AuthAndPermissionsTests(TestCase):
         foreign_program = models.Dinamica.objects.create(nombre='Ajena', tipo='sellos', meta=5,
             fecha_inicio=timezone.now(), fecha_fin=timezone.now() + timedelta(days=30), negocio=self.foreign)
         foreign_reward = models.Recompensa.objects.create(titulo='Ajena', descripcion='Ajena',
-            terminos_condiciones='Otro', dinamica=foreign_program)
+            terminos_condiciones='Otro', negocio=self.foreign,
+            dinamica=foreign_program, vigencia_dias=30)
         models.CuponUsuario.objects.create(usuario=self.other, recompensa=foreign_reward,
-            fecha_expiracion=timezone.now() + timedelta(days=7))
+            negocio=self.foreign, fecha_expiracion=timezone.now() + timedelta(days=7))
         progress = models.ProgresoUsuario.objects.create(usuario=self.consumer, dinamica=self.program)
         models.ProgresoUsuario.objects.create(usuario=self.other, dinamica=foreign_program)
-        activity = models.RegistroActividad.objects.create(usuario=self.consumer, sucursal=self.branch)
-        models.RegistroActividad.objects.create(usuario=self.other, sucursal=self.foreign_branch)
+        activity = models.RegistroActividad.objects.create(
+            usuario=self.consumer, negocio=self.business, sucursal=self.branch,
+            fecha_negocio=timezone.localdate(),
+        )
+        models.RegistroActividad.objects.create(
+            usuario=self.other, negocio=self.foreign, sucursal=self.foreign_branch,
+            fecha_negocio=timezone.localdate(),
+        )
         self.auth(self.employee)
         for resource, expected in (('dinamicas', self.program.pk), ('recompensas', self.reward.pk),
                                    ('progresos-usuario', progress.pk), ('registros-actividad', activity.pk),
@@ -234,14 +244,19 @@ class AuthAndPermissionsTests(TestCase):
             self.auth(user)
             self.assertEqual(self.client.patch(path, {'rol_comercio': 'dueno'}).status_code, 403)
 
-    def test_canje_ajeno_o_sucursal_inactiva_no_se_puede_usar(self):
-        self.auth(self.employee)
-        payload = {'cupon': self.coupon.pk, 'sucursal': self.foreign_branch.pk}
-        self.assertIn(self.client.post('/api/v1/canje/crear/', payload).status_code, (400, 403))
-        self.branch.status = False
-        self.branch.save()
-        payload['sucursal'] = self.branch.pk
-        self.assertIn(self.client.post('/api/v1/canje/crear/', payload).status_code, (400, 403))
+    def test_canje_cliente_es_irreversible_y_solo_del_propietario(self):
+        self.auth(self.other)
+        ajeno = self.client.post(f'/api/v1/cupones/{self.coupon.uuid}/canjear/')
+        self.assertEqual(ajeno.status_code, 403)
+        self.assertEqual(ajeno.data['codigo'], 'cupon_ajeno')
+
+        self.auth(self.consumer)
+        propio = self.client.post(f'/api/v1/cupones/{self.coupon.uuid}/canjear/')
+        self.assertEqual(propio.status_code, 200)
+        self.assertEqual(propio.data['cupon']['status'], 'canjeado')
+        repetido = self.client.post(f'/api/v1/cupones/{self.coupon.uuid}/canjear/')
+        self.assertEqual(repetido.status_code, 409)
+        self.assertEqual(repetido.data['codigo'], 'cupon_no_disponible')
 
     def test_no_puede_trasladar_dinamica_a_otro_negocio(self):
         self.auth(self.owner)
@@ -276,20 +291,12 @@ class AuthAndPermissionsTests(TestCase):
         self.other.refresh_from_db()
         self.assertEqual(self.other.rol, 'negocio')
 
-    def test_canje_usa_operador_autenticado(self):
-        self.auth(self.employee)
-        payload = {'cupon': self.coupon.pk, 'sucursal': self.branch.pk, 'validado_por': self.manager.pk}
-        self.assertEqual(self.client.post('/api/v1/canje/crear/', payload).status_code, 400)
-        del payload['validado_por']
-        self.assertEqual(self.client.post('/api/v1/canje/crear/', payload).status_code, 201)
-        self.assertEqual(models.Canje.objects.get().validado_por_id, self.employee.pk)
-
-    def test_consumidor_no_emite_sus_propios_cupones(self):
-        self.auth(self.consumer)
-        response = self.client.post('/api/v1/cupon-usuario/crear/', {
-            'usuario': self.consumer.pk, 'recompensa': self.reward.pk,
-            'fecha_expiracion': (timezone.now() + timedelta(days=2)).isoformat()}, format='json')
-        self.assertEqual(response.status_code, 403)
+    def test_crud_generico_de_canje_y_cupones_es_solo_lectura(self):
+        self.auth(self.admin)
+        self.assertEqual(self.client.post('/api/v1/canje/crear/', {}).status_code, 405)
+        self.assertEqual(self.client.post('/api/v1/cupon-usuario/crear/', {}).status_code, 405)
+        self.assertEqual(self.client.post('/api/v1/registro-actividad/crear/', {}).status_code, 405)
+        self.assertEqual(self.client.post('/api/v1/progreso-usuario/crear/', {}).status_code, 405)
 
     def test_admin_sistema_gestiona_roles(self):
         path = f'/api/v1/usuario/rol/{self.consumer.pk}/'

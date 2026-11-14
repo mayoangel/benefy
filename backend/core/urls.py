@@ -1,11 +1,24 @@
 from django.urls import path
 
-from core import views
+from core import views, views_lealtad
 
 app_name = "core"
 
 urlpatterns = [
     path("v1/autenticacion/perfil/", views.PerfilAPIView.as_view(), name="autenticacion-perfil"),
+
+    # Motor de lealtad
+    path("v1/visitas/registrar/", views_lealtad.RegistrarVisitaAPIView.as_view(), name="visita-registrar"),
+    path("v1/mi/billetera/", views_lealtad.BilleteraAPIView.as_view(), name="mi-billetera"),
+    path("v1/mi/historial/", views_lealtad.HistorialAPIView.as_view(), name="mi-historial"),
+    path("v1/negocios/<int:pk>/catalogo/", views_lealtad.CatalogoAPIView.as_view(), name="negocio-catalogo"),
+    path("v1/cupones/adquirir/", views_lealtad.AdquirirCuponAPIView.as_view(), name="cupon-adquirir"),
+    path("v1/cupones/<uuid:uuid>/canjear/", views_lealtad.CanjearCuponAPIView.as_view(), name="cupon-canjear"),
+    path("v1/admin/puntos/ajustar/", views_lealtad.AjustarPuntosAPIView.as_view(), name="admin-puntos-ajustar"),
+    path("v1/admin/visitas/<int:pk>/anular/", views_lealtad.AnularVisitaAPIView.as_view(), name="admin-visita-anular"),
+    path("v1/admin/cupones/<uuid:uuid>/anular/", views_lealtad.AnularCuponAPIView.as_view(), name="admin-cupon-anular"),
+    path("v1/negocios/<int:pk>/metricas/", views_lealtad.MetricasAPIView.as_view(), name="negocio-metricas"),
+
     path("v1/usuario/rol/<int:pk>/", views.UsuarioRolAPIView.as_view(), name="usuario-rol"),
     # Usuario URLs
     path("v1/usuario/crear/", views.UsuarioCreateAPIView.as_view(), name="usuario-crear"),
