@@ -39,7 +39,8 @@ concurrentes. Consulta [estado y correspondencia con el SRS](./docs/estado-imple
 
 Requisitos: Docker con Compose v2 para los servicios y npm/Node.js para los
 clientes. Los proyectos Node usan sus propios `package-lock.json`; utiliza
-`npm ci`. No hay CI ni un comando global de lint/pruebas.
+`npm ci`. El CI de GitHub Actions ejecuta las pruebas de Django, el typecheck
+y el build del frontend; no hay un comando global de lint/pruebas en la raíz.
 
 Desde la raíz, crea los archivos de entorno que no existan:
 
@@ -66,7 +67,8 @@ docker compose -f compose.yaml exec backend python manage.py test --noinput
 
 URLs locales: backend en <http://localhost:8000/>, Admin en
 <http://localhost:8000/admin/>, Benef AI en <http://localhost:5000/>.
-Los health checks no verifican las conexiones con PostgreSQL o Supabase Auth.
+Los health checks comprueban Django y su conexión con PostgreSQL; no
+verifican Supabase Auth.
 
 Para crear una cuenta staff del Admin de Django:
 

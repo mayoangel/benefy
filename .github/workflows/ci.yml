@@ -14,7 +14,7 @@ jobs:
         working-directory: backend
     services:
       postgres:
-        image: postgres:15-alpine
+        image: postgres:17-alpine
         env:
           POSTGRES_DB: benefy_db
           POSTGRES_USER: benefy_user

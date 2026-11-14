@@ -9,8 +9,9 @@ un servidor concreto ni una certificación de aceptación del producto.
 
 - Django 5.2 y DRF concentran persistencia, perfiles y autorización. Hay 16
   modelos de dominio y cuatro migraciones de `core`, además de las de Django.
-- Desarrollo usa PostgreSQL 15 dentro de Docker. Producción apunta a PostgreSQL
-  Supabase con SSL mediante un Compose independiente y el mismo ORM.
+- Desarrollo usa PostgreSQL 17 dentro de Docker, la misma versión mayor que
+  Supabase. El montaje de demostración apunta a PostgreSQL Supabase con SSL
+  mediante un Compose independiente y el mismo ORM.
 - Supabase Auth verifica las cuentas; Django consulta `/auth/v1/user` y resuelve
   el perfil por UUID. Los roles/membresías se consultan en Django en cada petición.
 - La web usa React 18, React Router y CSS propio. Solo tiene landing pública.

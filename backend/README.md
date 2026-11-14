@@ -86,7 +86,8 @@ docker compose -f compose.yaml down
 ```
 
 No uses `down -v` para una parada normal. El puerto PostgreSQL local está
-fijado a `5432:5432`; `POSTGRES_PORT` no se referencia en el Compose actual.
+fijado a `127.0.0.1:5432:5432` (solo loopback); `POSTGRES_PORT` no se
+referencia en el Compose actual.
 
 Si cambias `backend/.env`, reinicia Django:
 

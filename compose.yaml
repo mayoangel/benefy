@@ -1,15 +1,16 @@
 services:
-  # Base de datos PostgreSQL para el entorno de desarrollo
+  # Base de datos PostgreSQL para el entorno de desarrollo.
+  # Usa la misma versión mayor que Supabase (17) para reducir diferencias.
   db:
-    image: postgres:15-alpine
-    container_name: benefy-db
-    restart: always
+    image: postgres:17-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-benefy_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-benefy_pass}
       POSTGRES_DB: ${POSTGRES_DB:-benefy_db}
     ports:
-      - "5432:5432"
+      # Solo loopback: la base no debe quedar expuesta a la red local.
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -24,11 +25,12 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: benefy-backend
     command: python manage.py runserver 0.0.0.0:8000
+    restart: unless-stopped
     volumes:
       - ./backend:/app
     ports:
+      # 0.0.0.0 para que un teléfono con Expo Go alcance la API por la IP local.
       - "8000:8000"
     environment:
       - ENVIRONMENT=development
@@ -41,17 +43,38 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      # Comprueba Django y la conexión con PostgreSQL.
+      test:
+        - CMD
+        - python
+        - -c
+        - "import sys, urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health/db/', timeout=5).status == 200 else 1)"
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
   # Base del servicio de inteligencia artificial (Python/FastAPI)
   benef-ai:
     build:
       context: ./benef-ai
       dockerfile: Dockerfile
-    container_name: benefy-ai
+    restart: unless-stopped
     volumes:
       - ./benef-ai:/app
     ports:
       - "5000:5000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import sys, urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:5000/', timeout=5).status == 200 else 1)"
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
 volumes:
   postgres_data:
