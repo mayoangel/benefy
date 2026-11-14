@@ -12,6 +12,8 @@ Esta carpeta contiene la documentación funcional y técnica de Benefy.
   migraciones, contratos y fases implementadas.
 - [Validación funcional del MVP](./validacion-mvp-lealtad.md): pruebas contra
   Supabase, estado de los servicios y brechas de integración web/móvil.
+- [Validación E2E de autenticación](./validacion-e2e-auth.md): JWT real de
+  Supabase, asociación con Django, HTTPS y permisos.
 - [Comandos del proyecto](./run_project.md): referencia rápida de desarrollo,
   verificación del montaje demo y presentación.
 - [Estado de implementación](./estado-implementacion.md): correspondencia con
