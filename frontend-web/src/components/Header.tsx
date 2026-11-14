@@ -34,7 +34,7 @@ export default function Header() {
           ))}
         </nav>
         <div className="header-actions">
-          <a className="login" href="#footer">Iniciar sesión</a>
+          <NavLink className="login" to="/login">Iniciar sesión</NavLink>
           <NavLink className="button button-small" to="/precios">
             Comenzar gratis
           </NavLink>
