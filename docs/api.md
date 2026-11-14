@@ -9,8 +9,9 @@ el alcance de acceso está en `backend/core/access.py` y `permissions.py`.
 | Entorno | Base de la API |
 | --- | --- |
 | Desarrollo Docker | `http://localhost:8000/api/v1` |
-| Producción Compose, acceso desde el mismo host | `http://127.0.0.1:8001/api/v1` por defecto |
-| Producción pública | Dominio HTTPS configurado en el proxy; aún no definido en el repositorio |
+| Demostración con Caddy | `https://localhost/api/v1` |
+| Dentro de la red Compose | `http://backend:8000/api/v1` |
+| Túnel o dominio público | URL HTTPS del túnel o del dominio configurado en Caddy |
 
 Todas las rutas de negocio requieren `Authorization: Bearer <access_token>`
 de Supabase y un perfil Benefy activo. El alta propia admite una identidad

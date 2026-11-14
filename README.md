@@ -34,7 +34,6 @@ concurrentes. Consulta [estado y correspondencia con el SRS](./docs/estado-imple
 | [Caddyfile](./Caddyfile) | Proxy inverso y servidor de la web en el montaje de demostración |
 | [compose.yaml](./compose.yaml) | Desarrollo: PostgreSQL local, backend y Benef AI |
 | [compose.demo.yaml](./compose.demo.yaml) | Demostración local tipo producción: Caddy, Gunicorn y Supabase |
-| [compose.production.yaml](./compose.production.yaml) | Producción: backend con Supabase PostgreSQL y Benef AI interno |
 
 ## Inicio rápido de desarrollo
 
@@ -101,25 +100,19 @@ docker compose -f compose.yaml down
 El volumen de PostgreSQL se conserva. Evita `down -v` si necesitas sus datos.
 Si otro proyecto usa 5432, 8000 o 5000, resuelve el conflicto antes del inicio.
 
-## Producción y selección de base de datos
+## Base de datos y entornos
 
-Desarrollo fija PostgreSQL en `db:5432`. Producción toma los parámetros
-`DB_*` de `backend/.env.production`, usa SSL obligatorio y Gunicorn.
-Los modelos y archivos de migraciones son los mismos; los datos de ambos
-entornos no se sincronizan.
+Desarrollo fija PostgreSQL en `db:5432`. El montaje de demostración usa
+Supabase con los parámetros `DB_*` de `backend/.env.production`, SSL
+obligatorio y Gunicorn. Los modelos y archivos de migración son los mismos;
+los datos de ambos entornos no se sincronizan ni se copian automáticamente.
 
 ```bash
-docker compose --env-file backend/.env.production -f compose.production.yaml config --quiet
-docker compose --env-file backend/.env.production -f compose.production.yaml up -d --build
+docker compose --env-file backend/.env.production -f compose.demo.yaml config --quiet
 ```
 
-El backend de producción se publica solo en `127.0.0.1:8001` por defecto;
-Benef AI no publica puertos en el host. Estos contenedores usan el proyecto
-`benefy-production`, separado del desarrollo. No combines los dos Compose.
-
 Consulta la [guía del backend](./backend/README.md) para migraciones manuales,
-comprobación de conexión, secretos y pasos de despliegue público. Iniciar
-contenedores no configura dominio, HTTPS, estáticos ni aplica migraciones.
+comprobación de conexión y secretos. Iniciar contenedores no aplica migraciones.
 
 ## Demostración local tipo producción
 

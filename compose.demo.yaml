@@ -1,5 +1,5 @@
 # Montaje de demostración local tipo producción.
-# Independiente: no combinar con compose.yaml ni con compose.production.yaml.
+# Independiente: no combinar con compose.yaml.
 # Requiere backend/.env.production (ver backend/.env.production.example).
 name: benefy-demo
 

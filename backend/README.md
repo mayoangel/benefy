@@ -47,7 +47,6 @@ archivo no modifica la contraseña almacenada en un volumen existente.
 | `SUPABASE_PUBLISHABLE_KEY` | Clave pública usada para verificar tokens en Supabase Auth |
 | `CORS_ALLOWED_ORIGINS` | Orígenes completos separados por comas |
 | `CSRF_TRUSTED_ORIGINS` | Orígenes confiables completos separados por comas |
-| `BACKEND_PORT` | Sustitución exclusiva de Compose de producción; puerto host por defecto 8001 |
 | `SESSION_COOKIE_SECURE`, `CSRF_COOKIE_SECURE` | En producción valen `true`; el montaje local puede fijarlas a `false` si sirve HTTP sin TLS |
 | `CLOUDFLARE_TUNNEL_TOKEN` | Token del túnel opcional de demostración (`compose.demo.yaml`) |
 
@@ -147,65 +146,65 @@ Revisa y versiona el archivo de migración. No edites migraciones ya aplicadas
 para introducir cambios nuevos. Agregar campos obligatorios, eliminar columnas
 o cambiar tipos requiere revisar los datos y la estrategia de despliegue.
 
-## Producción con Supabase
+## Montaje de demostración con Supabase
 
-`compose.production.yaml` es independiente: no lo combines con `compose.yaml`.
-Usa el proyecto `benefy-production`, Gunicorn con dos workers y PostgreSQL
-externo. Conserva Benef AI sin recarga y sin puerto público.
+`compose.demo.yaml` es independiente: no lo combines con `compose.yaml`. Usa
+el proyecto `benefy-demo`, Gunicorn con dos workers, PostgreSQL Supabase y
+Caddy como único punto de entrada. Benef AI conserva la red interna sin
+puerto público.
 
-`Dockerfile.prod` es la imagen equivalente para el montaje de demostración
-descrito en [docs/despliegue-local.md](../docs/despliegue-local.md): ejecuta
-`collectstatic` en el entrypoint, sirve los estáticos con WhiteNoise y corre
-como usuario sin privilegios. `GET /` solo comprueba que Django responde;
-`GET /health/db/` ejecuta `SELECT 1` y devuelve 503 si PostgreSQL no responde.
+`Dockerfile.prod` es la imagen de producción: ejecuta `collectstatic` en el
+entrypoint, sirve los estáticos con WhiteNoise y corre como usuario sin
+privilegios. `GET /` solo comprueba que Django responde; `GET /health/db/`
+ejecuta `SELECT 1` y devuelve 503 si PostgreSQL no responde. Caddy, TLS y el
+túnel se detallan en [docs/despliegue-local.md](../docs/despliegue-local.md).
 
 Configura `backend/.env.production` antes de iniciar. La imagen excluye los
-archivos reales de entorno y no monta el código local. En producción Django
-no carga `backend/.env`; Compose pasa únicamente las variables declaradas
-en su bloque `environment`.
+archivos reales de entorno y no monta el código local. Django no carga
+`backend/.env` en producción: Compose pasa las variables de ese archivo.
 
 ```bash
-docker compose --env-file backend/.env.production -f compose.production.yaml config --quiet
-docker compose --env-file backend/.env.production -f compose.production.yaml up -d --build
-docker compose --env-file backend/.env.production -f compose.production.yaml exec backend python manage.py check
+docker compose --env-file backend/.env.production -f compose.demo.yaml config --quiet
+docker compose --env-file backend/.env.production -f compose.demo.yaml up -d --build
+docker compose --env-file backend/.env.production -f compose.demo.yaml exec backend python manage.py check
 ```
 
-El backend se publica solo en `127.0.0.1:8001` por defecto; dentro de Docker
-escucha en `8000`. Benef AI escucha en `5000` dentro de la red Compose.
-La configuración permite coexistir con desarrollo, pero no sincroniza datos.
+El backend y Benef AI no publican puertos: solo Caddy los alcanza dentro de la
+red Compose. Caddy publica 80 y 443 en loopback. Esta configuración permite
+coexistir con desarrollo, pero no sincroniza datos.
 
-Para actualizar variables de producción, recrea el servicio:
+Para actualizar variables, recrea el servicio:
 
 ```bash
-docker compose --env-file backend/.env.production -f compose.production.yaml up -d --force-recreate backend
+docker compose --env-file backend/.env.production -f compose.demo.yaml up -d --force-recreate backend
 ```
 
 Para detenerlo:
 
 ```bash
-docker compose --env-file backend/.env.production -f compose.production.yaml down
+docker compose --env-file backend/.env.production -f compose.demo.yaml down
 ```
 
 El pooler Supabase configurado usa modo sesión en el puerto 5432.
 `sslmode=require` cifra la conexión; no verifica hostname/certificado.
-Usar `verify-full` requiere adaptar explícitamente Compose para pasar el modo,
-montar el certificado CA y configurar `DB_SSLROOTCERT`.
+Usar `verify-full` requiere pasar el modo, montar el certificado CA y
+configurar `DB_SSLROOTCERT`.
 
-## Migraciones en producción
+## Migraciones sobre Supabase
 
 Los modelos y archivos de migración son los mismos que en desarrollo. Cambiar
 de destino no copia registros desde PostgreSQL local ni aplica el esquema
 automáticamente. Para consultar qué falta:
 
 ```bash
-docker compose --env-file backend/.env.production -f compose.production.yaml run --rm --no-deps backend python manage.py showmigrations core
-docker compose --env-file backend/.env.production -f compose.production.yaml run --rm --no-deps backend python manage.py migrate --plan
+docker compose --env-file backend/.env.production -f compose.demo.yaml run --rm --no-deps backend python manage.py showmigrations core
+docker compose --env-file backend/.env.production -f compose.demo.yaml run --rm --no-deps backend python manage.py migrate --plan
 ```
 
 Solo después de revisión, respaldo y autorización para ese entorno:
 
 ```bash
-docker compose --env-file backend/.env.production -f compose.production.yaml run --rm --no-deps backend python manage.py migrate --noinput
+docker compose --env-file backend/.env.production -f compose.demo.yaml run --rm --no-deps backend python manage.py migrate --noinput
 ```
 
 Las migraciones disponibles en Git no prueban que estén aplicadas en un servidor.
@@ -218,19 +217,19 @@ Sin conexión a la base:
 
 ```bash
 docker compose -f compose.yaml run --rm --no-deps backend python manage.py db_info
-docker compose --env-file backend/.env.production -f compose.production.yaml run --rm --no-deps backend python manage.py db_info
+docker compose --env-file backend/.env.production -f compose.demo.yaml run --rm --no-deps backend python manage.py db_info
 ```
 
 Para conexión real, añade `--connect`:
 
 ```bash
 docker compose -f compose.yaml run --rm --no-deps backend python manage.py db_info --connect
-docker compose --env-file backend/.env.production -f compose.production.yaml run --rm --no-deps backend python manage.py db_info --connect
+docker compose --env-file backend/.env.production -f compose.demo.yaml run --rm --no-deps backend python manage.py db_info --connect
 ```
 
 Se muestra entorno, host, puerto, motor, base y modo SSL; nunca la contraseña.
 `--connect` ejecuta `SELECT current_database(), current_user` y consulta si se
-negoció SSL. Desarrollo debe mostrar `host=db`; producción, el host Supabase
+negoció SSL. Desarrollo debe mostrar `host=db`; el montaje con Supabase, el host
 configurado y `ssl_in_use=true`. `GET /` solo comprueba que Django responde.
 
 ## Administradores
@@ -247,18 +246,16 @@ No existen credenciales de administrador predeterminadas en el código.
 
 ## Despliegue público y secretos
 
-- Configura dominio, proxy HTTPS, certificados y firewall delante de Gunicorn.
-  El proxy puede alcanzar el puerto loopback 8001 en el mismo host; un proxy
-  en otro contenedor necesita red/puertos adecuados.
-- Define hosts y orígenes HTTPS permitidos. Configura redirección HTTPS, HSTS
-  y confianza en cabeceras del proxy cuando el proxy sobrescriba esas cabeceras
-  y sea el único que pueda llegar al backend.
-- Ejecuta el chequeo de despliegue y resuelve los avisos:
-  `docker compose --env-file backend/.env.production -f compose.production.yaml run --rm --no-deps backend python manage.py check --deploy`.
-- Publica estáticos de Admin con un volumen o proceso de extracción:
-  `docker compose --env-file backend/.env.production -f compose.production.yaml exec backend python manage.py collectstatic --noinput`.
-  Se recopilan en `/app/staticfiles`. Gunicorn no los sirve y el Compose actual
-  no configura almacenamiento persistente ni servidor de estáticos.
+- Caddy sirve HTTPS con su CA interna. Para publicar la demo usa el perfil
+  `tunnel` de `compose.demo.yaml` o cambia `localhost` por tu dominio en el
+  `Caddyfile`; Caddy emite y renueva el certificado.
+- Define hosts y orígenes HTTPS permitidos. Caddy envía `X-Forwarded-Proto` y
+  Django lo usa para detectar HTTPS; no actives `SECURE_SSL_REDIRECT` con el
+  túnel, que le habla por HTTP interno.
+- Ejecuta el chequeo de despliegue y revisa los avisos:
+  `docker compose --env-file backend/.env.production -f compose.demo.yaml run --rm --no-deps backend python manage.py check --deploy`.
+- Los estáticos se recopilan en el entrypoint y WhiteNoise los sirve desde
+  Gunicorn; no necesitas un servidor de estáticos aparte.
 - Revisa la matriz de permisos, la verificación de email y los flujos incompletos
   de lealtad antes de exponer el servicio. Los límites y pendientes están en
   [estado de implementación](../docs/estado-implementacion.md).

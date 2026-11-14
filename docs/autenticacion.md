@@ -66,15 +66,15 @@ Los ejemplos solo contienen placeholders. Completa las dos variables en los
 archivos reales antes de hacer una prueba real de login. Si falta configuración,
 una petición con bearer devuelve 503; el health check sigue público.
 
-En desarrollo se recomienda un proyecto Auth de pruebas, distinto al de
-producción. El almacenamiento de negocio se sigue seleccionando con Compose:
+En desarrollo se recomienda un proyecto Auth de pruebas, distinto al del
+montaje con Supabase. El almacenamiento de negocio se sigue seleccionando con Compose:
 
 ```bash
 # Desde la raíz: desarrollo con PostgreSQL local.
 docker compose -f compose.yaml up -d --build
 
-# Producción con PostgreSQL Supabase, solo después de revisar la migración.
-docker compose --env-file backend/.env.production -f compose.production.yaml up -d --build
+# Montaje de demostración con PostgreSQL Supabase, solo después de revisar la migración.
+docker compose --env-file backend/.env.production -f compose.demo.yaml up -d --build
 ```
 
 Después de cambiar Auth en `backend/.env`, ejecuta desde la raíz:
@@ -83,10 +83,10 @@ Después de cambiar Auth en `backend/.env`, ejecuta desde la raíz:
 docker compose -f compose.yaml restart backend
 ```
 
-Para cambiar variables inyectadas en producción, recrea el contenedor:
+Para cambiar variables del montaje con Supabase, recrea el contenedor:
 
 ```bash
-docker compose --env-file backend/.env.production -f compose.production.yaml up -d --force-recreate backend
+docker compose --env-file backend/.env.production -f compose.demo.yaml up -d --force-recreate backend
 ```
 
 Deshabilita la **Data API** de Supabase si no se utiliza, o excluye las tablas
@@ -128,14 +128,14 @@ docker compose -f compose.yaml exec backend python manage.py migrate
 docker compose -f compose.yaml exec backend python manage.py test core config.test_database_settings --noinput
 ```
 
-Producción requiere revisión y respaldo antes de ejecutar manualmente:
+El montaje con Supabase requiere revisión y respaldo antes de ejecutar manualmente:
 
 ```bash
-docker compose --env-file backend/.env.production -f compose.production.yaml run --rm --no-deps backend python manage.py migrate --plan
-docker compose --env-file backend/.env.production -f compose.production.yaml run --rm --no-deps backend python manage.py migrate --noinput
+docker compose --env-file backend/.env.production -f compose.demo.yaml run --rm --no-deps backend python manage.py migrate --plan
+docker compose --env-file backend/.env.production -f compose.demo.yaml run --rm --no-deps backend python manage.py migrate --noinput
 ```
 
-No ejecutes las pruebas con las credenciales de producción. Tampoco reviertas
+No ejecutes las pruebas con las credenciales del proyecto Supabase. Tampoco reviertas
 la migración después de crear nuevos perfiles sin evaluar los datos: la columna
 Firebase anterior exigía valores no nulos y los perfiles nuevos no los tienen.
 
@@ -260,10 +260,10 @@ user.rol = "admin_sistema"
 user.save(update_fields=["rol"])
 ```
 
-Para abrir el shell del entorno de producción:
+Para abrir el shell del montaje con Supabase:
 
 ```bash
-docker compose --env-file backend/.env.production -f compose.production.yaml run --rm --no-deps backend python manage.py shell
+docker compose --env-file backend/.env.production -f compose.demo.yaml run --rm --no-deps backend python manage.py shell
 ```
 
 La promoción es una escritura manual privilegiada y debe aprobarse para el

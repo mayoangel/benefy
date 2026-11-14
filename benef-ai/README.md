@@ -61,12 +61,12 @@ El hostname `backend` solo se resuelve en la red Compose. Para una ejecución
 futura fuera de Docker se deberá usar una URL accesible como
 `http://localhost:8000/api/v1`.
 
-## Producción y trabajo pendiente
+## Montaje de demostración y trabajo pendiente
 
-[compose.production.yaml](../compose.production.yaml) conserva el servicio,
-ejecuta Uvicorn sin `--reload` y expone `5000` únicamente dentro de su red.
-No monta el código ni el `.env` local. Solo inyecta `ENVIRONMENT=production`
-y `BACKEND_API_URL`; las claves LLM no se pasan a producción.
+[compose.demo.yaml](../compose.demo.yaml) conserva el servicio, ejecuta Uvicorn
+sin `--reload` y expone `5000` únicamente dentro de su red. No monta el código
+ni el `.env` local. Solo inyecta `ENVIRONMENT=production` y `BACKEND_API_URL`;
+las claves LLM no se pasan a producción.
 
 El siguiente trabajo requiere definir un caso de uso, un contrato interno
 y autenticación entre servicios. La API Django actual exige identidad Supabase
