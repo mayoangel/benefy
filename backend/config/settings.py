@@ -30,6 +30,11 @@ ENVIRONMENT = os.getenv('ENVIRONMENT', 'development')
 IS_PRODUCTION = ENVIRONMENT == 'production'
 
 
+def _env_bool(name, default=False):
+    """Lee un booleano de entorno con valores explícitos."""
+    return os.getenv(name, str(default)).strip().lower() in ('1', 'true', 'yes')
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
@@ -86,6 +91,14 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+# En desarrollo runserver sirve los estáticos; en producción los publica
+# WhiteNoise desde el mismo Gunicorn, justo después de SecurityMiddleware.
+if IS_PRODUCTION:
+    MIDDLEWARE.insert(
+        MIDDLEWARE.index('django.middleware.security.SecurityMiddleware') + 1,
+        'whitenoise.middleware.WhiteNoiseMiddleware',
+    )
 
 ROOT_URLCONF = 'config.urls'
 
@@ -165,8 +178,21 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# En producción WhiteNoise sirve los estáticos con hash y compresión.
+# En desarrollo se mantiene el almacenamiento simple de Django.
+STORAGES = {
+    'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+    'staticfiles': {
+        'BACKEND': (
+            'whitenoise.storage.CompressedManifestStaticFilesStorage'
+            if IS_PRODUCTION
+            else 'django.contrib.staticfiles.storage.StaticFilesStorage'
+        ),
+    },
+}
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -180,8 +206,16 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ALLOW_ALL_ORIGINS = DEBUG
 CORS_ALLOWED_ORIGINS = [value.strip() for value in os.getenv('CORS_ALLOWED_ORIGINS', '').split(',') if value.strip()]
 CSRF_TRUSTED_ORIGINS = [value.strip() for value in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if value.strip()]
-SESSION_COOKIE_SECURE = IS_PRODUCTION
-CSRF_COOKIE_SECURE = IS_PRODUCTION
+
+# El backend nunca se publica: solo Caddy (y Cloudflare Tunnel delante de él)
+# puede alcanzarlo, y es quien anuncia el esquema real de la petición.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+
+# Cookies seguras por defecto en producción. El montaje local puede servir
+# HTTP sin TLS y necesita desactivarlas explícitamente.
+SESSION_COOKIE_SECURE = _env_bool('SESSION_COOKIE_SECURE', IS_PRODUCTION)
+CSRF_COOKIE_SECURE = _env_bool('CSRF_COOKIE_SECURE', IS_PRODUCTION)
 
 # Auth verifica tokens en Supabase; los permisos se resuelven con los datos de Django.
 SUPABASE_URL = os.getenv('SUPABASE_URL', '').rstrip('/')

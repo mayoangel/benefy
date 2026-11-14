@@ -48,6 +48,8 @@ archivo no modifica la contraseña almacenada en un volumen existente.
 | `CORS_ALLOWED_ORIGINS` | Orígenes completos separados por comas |
 | `CSRF_TRUSTED_ORIGINS` | Orígenes confiables completos separados por comas |
 | `BACKEND_PORT` | Sustitución exclusiva de Compose de producción; puerto host por defecto 8001 |
+| `SESSION_COOKIE_SECURE`, `CSRF_COOKIE_SECURE` | En producción valen `true`; el montaje local puede fijarlas a `false` si sirve HTTP sin TLS |
+| `CLOUDFLARE_TUNNEL_TOKEN` | Token del túnel opcional de demostración (`compose.demo.yaml`) |
 
 Con `DEBUG=True`, CORS permite cualquier origen. En producción se utiliza la
 lista explícita y se activan cookies seguras de sesión/CSRF.
@@ -150,6 +152,12 @@ o cambiar tipos requiere revisar los datos y la estrategia de despliegue.
 `compose.production.yaml` es independiente: no lo combines con `compose.yaml`.
 Usa el proyecto `benefy-production`, Gunicorn con dos workers y PostgreSQL
 externo. Conserva Benef AI sin recarga y sin puerto público.
+
+`Dockerfile.prod` es la imagen equivalente para el montaje de demostración
+descrito en [docs/despliegue-local.md](../docs/despliegue-local.md): ejecuta
+`collectstatic` en el entrypoint, sirve los estáticos con WhiteNoise y corre
+como usuario sin privilegios. `GET /` solo comprueba que Django responde;
+`GET /health/db/` ejecuta `SELECT 1` y devuelve 503 si PostgreSQL no responde.
 
 Configura `backend/.env.production` antes de iniciar. La imagen excluye los
 archivos reales de entorno y no monta el código local. En producción Django

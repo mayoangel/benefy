@@ -1,0 +1,50 @@
+# Proxy inverso del montaje local tipo producción.
+# Caddy sirve la SPA compilada y reenvía la API, el Admin y los estáticos.
+{
+	admin off
+	# Confía en X-Forwarded-Proto de cloudflared (rango privado de Docker)
+	# para que Django detecte HTTPS cuando la petición llega del túnel.
+	servers {
+		trusted_proxies static private_ranges
+	}
+}
+
+# Reglas compartidas por el acceso local y el túnel.
+(benefy) {
+	encode zstd gzip
+
+	handle /api/* {
+		reverse_proxy backend:8000
+	}
+
+	handle /admin/* {
+		reverse_proxy backend:8000
+	}
+
+	handle /static/* {
+		reverse_proxy backend:8000
+	}
+
+	handle /health/* {
+		reverse_proxy backend:8000
+	}
+
+	# Fallback de SPA: react-router maneja /precios, /nosotros, etc.
+	handle {
+		root * /srv/web
+		try_files {path} /index.html
+		file_server
+	}
+}
+
+# Acceso local: https://localhost con la CA interna de Caddy.
+# El navegador avisa hasta que se confía en esa CA (ver docs/despliegue-local.md).
+https://localhost {
+	import benefy
+}
+
+# Cloudflare Tunnel: el TLS termina en el borde y cloudflared llega por HTTP.
+# No se publica en el host; solo es alcanzable dentro de la red Compose.
+:8080 {
+	import benefy
+}

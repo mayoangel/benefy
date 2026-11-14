@@ -9,6 +9,8 @@ Esta carpeta contiene la documentación funcional y técnica de Benefy.
 - [API actual](./api.md): rutas, métodos, respuestas y límites de los CRUD.
 - [Estado de implementación](./estado-implementacion.md): correspondencia con
   los requisitos del SRS y diferencias respecto al código actual.
+- [Montaje local tipo producción](./despliegue-local.md): Gunicorn, WhiteNoise,
+  Caddy, Cloudflare Tunnel y operación del entorno de demostración.
 
 - [`Benefy SRS.pdf`](./Benefy%20SRS.pdf): especificación de requisitos de
   software, revisión 1.0.

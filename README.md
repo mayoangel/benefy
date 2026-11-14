@@ -31,7 +31,9 @@ concurrentes. Consulta [estado y correspondencia con el SRS](./docs/estado-imple
 | [benef-ai/](./benef-ai/README.md) | `main.py`: servicio IA en preparación |
 | [hardware/](./hardware/README.md) | Futuro firmware ESP32-S3 |
 | [docs/](./docs/README.md) | Guías técnicas y SRS revisión 1.0 |
+| [Caddyfile](./Caddyfile) | Proxy inverso y servidor de la web en el montaje de demostración |
 | [compose.yaml](./compose.yaml) | Desarrollo: PostgreSQL local, backend y Benef AI |
+| [compose.demo.yaml](./compose.demo.yaml) | Demostración local tipo producción: Caddy, Gunicorn y Supabase |
 | [compose.production.yaml](./compose.production.yaml) | Producción: backend con Supabase PostgreSQL y Benef AI interno |
 
 ## Inicio rápido de desarrollo
@@ -118,6 +120,25 @@ Benef AI no publica puertos en el host. Estos contenedores usan el proyecto
 Consulta la [guía del backend](./backend/README.md) para migraciones manuales,
 comprobación de conexión, secretos y pasos de despliegue público. Iniciar
 contenedores no configura dominio, HTTPS, estáticos ni aplica migraciones.
+
+## Demostración local tipo producción
+
+`compose.demo.yaml` ejecuta el mismo stack con Gunicorn, WhiteNoise y Caddy en
+un solo origen (`https://localhost`), usando Supabase como base de datos. Sirve
+para presentar el proyecto y practicar un despliegue real sin publicar puertos
+ni pagar hosting.
+
+```bash
+cp backend/.env.production.example backend/.env.production   # completar secretos
+docker compose --env-file backend/.env.production -f compose.demo.yaml build
+docker compose --env-file backend/.env.production -f compose.demo.yaml up -d
+docker compose --env-file backend/.env.production -f compose.demo.yaml run --rm --no-deps backend python manage.py migrate --noinput
+```
+
+El backend no publica puertos: solo Caddy lo alcanza. Los puertos 80 y 443 se
+enlazan a `127.0.0.1`. Para una demo pública existe el perfil `tunnel`
+(Cloudflare Tunnel). Los detalles, la CA interna de Caddy y las diferencias con
+desarrollo están en [docs/despliegue-local.md](./docs/despliegue-local.md).
 
 ## Documentación y convenciones
 

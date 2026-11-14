@@ -1,0 +1,18 @@
+# Contexto de build de la imagen web (ver frontend-web/Dockerfile).
+# Solo se necesita frontend-web y el Caddyfile; el resto se excluye para
+# mantener el contexto pequeño y evitar filtrar archivos locales.
+.git
+.gitignore
+**/node_modules
+**/dist
+**/__pycache__
+**/*.py[cod]
+**/.venv
+**/venv
+**/.env
+**/.env.*
+backend
+benef-ai
+mobile-app
+hardware
+docs

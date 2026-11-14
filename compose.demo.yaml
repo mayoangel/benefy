@@ -1,0 +1,85 @@
+# Montaje de demostración local tipo producción.
+# Independiente: no combinar con compose.yaml ni con compose.production.yaml.
+# Requiere backend/.env.production (ver backend/.env.production.example).
+name: benefy-demo
+
+services:
+  # API Django con Gunicorn y WhiteNoise. No publica puertos: solo Caddy
+  # puede alcanzarla dentro de la red Compose.
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env.production
+    environment:
+      ENVIRONMENT: production
+      DEBUG: "False"
+      DB_SSLMODE: require
+    expose:
+      - "8000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import sys, urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health/db/', timeout=5).status == 200 else 1)"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Microservicio de IA, sin recarga y sin puerto público.
+  benef-ai:
+    build:
+      context: ./benef-ai
+    command: uvicorn main:app --host 0.0.0.0 --port 5000
+    restart: unless-stopped
+    expose:
+      - "5000"
+    environment:
+      ENVIRONMENT: production
+      BACKEND_API_URL: http://backend:8000/api/v1
+
+  # Caddy: sirve frontend-web/dist y hace de proxy hacia el backend.
+  web:
+    build:
+      context: .
+      dockerfile: frontend-web/Dockerfile
+      args:
+        VITE_API_BASE_URL: /api/v1
+    restart: unless-stopped
+    ports:
+      # Solo loopback: evita exponer la demo a la red local por accidente.
+      - "127.0.0.1:80:80"
+      - "127.0.0.1:443:443"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # Cloudflare Tunnel opcional: apunta al puerto 8080 interno de Caddy.
+  # Se activa con: docker compose ... --profile tunnel up -d
+  cloudflared:
+    profiles: ["tunnel"]
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    depends_on:
+      web:
+        condition: service_started
+
+volumes:
+  caddy_data:
+  caddy_config:

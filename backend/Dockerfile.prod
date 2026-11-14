@@ -1,0 +1,34 @@
+# Imagen de producción del backend: Gunicorn + WhiteNoise, usuario no-root.
+# Se usa desde compose.demo.yaml; el Dockerfile de desarrollo no cambia.
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+WORKDIR /app
+
+# Las dependencias van primero para aprovechar la caché de capas.
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+COPY . .
+
+# collectstatic se ejecuta en el entrypoint, no aquí: los settings de
+# producción exigen SECRET_KEY y ALLOWED_HOSTS, que no deben ser build args.
+RUN useradd --create-home --uid 10001 benefy \
+    && mkdir -p /app/staticfiles \
+    && chmod +x /app/entrypoint.sh \
+    && chown -R benefy:benefy /app
+
+USER benefy
+
+EXPOSE 8000
+
+ENTRYPOINT ["sh", "/app/entrypoint.sh"]
+CMD ["gunicorn", "config.wsgi:application", \
+     "--bind", "0.0.0.0:8000", \
+     "--workers", "2", \
+     "--access-logfile", "-", \
+     "--error-logfile", "-"]

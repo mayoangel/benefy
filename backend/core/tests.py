@@ -21,6 +21,17 @@ class HealthCheckTests(SimpleTestCase):
         )
 
 
+class HealthCheckDatabaseTests(TestCase):
+    def test_health_check_db_consulta_postgresql(self):
+        response = self.client.get("/health/db/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(
+            response.content,
+            {"service": "backend", "status": "ok", "database": "ok"},
+        )
+
+
 class DetailNotFoundTests(TestCase):
     def setUp(self):
         user = models.Usuario.objects.create(
