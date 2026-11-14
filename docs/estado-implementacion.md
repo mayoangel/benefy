@@ -13,6 +13,9 @@ un servidor concreto ni una certificación de aceptación del producto.
   zona horaria del negocio, otorga puntos por lotes con consumo FIFO, avanza
   tarjetas repetibles o de una sola vez y permite adquirir y canjear cupones
   de forma transaccional e idempotente.
+- La validación funcional contra Supabase pasó 17/17 comprobaciones el
+  14 de noviembre de 2026. Los clientes web y móvil todavía no consumen estos
+  endpoints; el detalle está en [validación del MVP](./validacion-mvp-lealtad.md).
 - Desarrollo usa PostgreSQL 17 dentro de Docker, la misma versión mayor que
   Supabase. El montaje de demostración apunta a PostgreSQL Supabase con SSL
   mediante un Compose independiente y el mismo ORM.
