@@ -11,7 +11,7 @@ independientes; no existe un gestor de paquetes ni un comando de ejecución
 | --- | --- | --- |
 | Backend | Django 5.2 + DRF, 16 modelos, cuatro migraciones de `core`, 82 rutas API, permisos por negocio/sucursal y Django Admin | Servicios completos de acumulación, emisión y canje; analítica y webhooks |
 | Identidad | Verificación remota de Supabase Auth y perfiles/roles en Django | Login y gestión de sesión en los clientes |
-| Web | Landing React 18 + Vite: Inicio, Nosotros y Precios | Dashboard administrativo y consumo de API |
+| Web | Landing React 18 + Vite: Inicio, Nosotros, Precios y acceso simulado | Dashboard administrativo y consumo de API |
 | Móvil | Dashboard Benefy en Expo SDK 58 con resumen de puntos, retos, cupones y pestañas de demostración | Datos reales, Auth, cámara QR/NFC y cliente API |
 | Benef AI | FastAPI y endpoint de estado | Agente, proveedor LLM, herramientas y comunicación autenticada con Django |
 | Hardware | Carpeta de documentación | Firmware ESP32-S3 e integración física |
@@ -48,7 +48,7 @@ Desde la raíz, crea los archivos de entorno que no existan:
 | --- | --- | --- |
 | `.env` | [.env.example](./.env.example) | Credenciales del PostgreSQL local para Compose |
 | `backend/.env` | [backend/.env.example](./backend/.env.example) | Settings locales y conexión con Supabase Auth |
-| `backend/.env.production` | [backend/.env.production.example](./backend/.env.production.example) | Variables de producción; no necesarias para iniciar desarrollo |
+| `backend/.env.production` | [backend/.env.production.example](./backend/.env.production.example) | Variables del montaje de demostración; no necesarias para iniciar desarrollo |
 | `benef-ai/.env` | [benef-ai/.env.example](./benef-ai/.env.example) | Entorno del servicio; integraciones aún sin uso |
 | `frontend-web/.env` | [frontend-web/.env.example](./frontend-web/.env.example) | Variables públicas web previstas |
 | `mobile-app/.env` | [mobile-app/.env.example](./mobile-app/.env.example) | Variables públicas móviles previstas |
@@ -123,12 +123,8 @@ un solo origen (`https://localhost`), usando Supabase como base de datos. Sirve
 para presentar el proyecto y practicar un despliegue real sin publicar puertos
 ni pagar hosting.
 
-```bash
-cp backend/.env.production.example backend/.env.production   # completar secretos
-docker compose --env-file backend/.env.production -f compose.demo.yaml build
-docker compose --env-file backend/.env.production -f compose.demo.yaml up -d
-docker compose --env-file backend/.env.production -f compose.demo.yaml run --rm --no-deps backend python manage.py migrate --noinput
-```
+La guía paso a paso está en [docs/despliegue-local.md](./docs/despliegue-local.md)
+y la lista de comandos en [docs/run_project.md](./docs/run_project.md).
 
 El backend no publica puertos: solo Caddy lo alcanza. Los puertos 80 y 443 se
 enlazan a `127.0.0.1`. Para una demo pública existe el perfil `tunnel`
@@ -139,6 +135,7 @@ desarrollo están en [docs/despliegue-local.md](./docs/despliegue-local.md).
 
 - [API actual](./docs/api.md): rutas y métodos implementados.
 - [Autenticación y permisos](./docs/autenticacion.md): Supabase Auth, perfiles y roles.
+- [Comandos del proyecto](./docs/run_project.md): desarrollo, verificación demo y presentación.
 - [Estado y SRS](./docs/estado-implementacion.md): funcionalidades existentes y pendientes.
 - [SRS original](./docs/Benefy%20SRS.pdf): requisitos de producto; no certifica implementación.
 

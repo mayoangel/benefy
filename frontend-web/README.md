@@ -1,7 +1,8 @@
 # Frontend web
 
 Landing pública de Benefy, implementada con React 18, React Router 6,
-TypeScript 5 y Vite 5. El dashboard administrativo sigue pendiente.
+TypeScript 5 y Vite 5. Incluye pantallas de acceso (login, registro y
+recuperación) simuladas. El dashboard administrativo sigue pendiente.
 
 ## Código y páginas
 
@@ -13,6 +14,9 @@ La entrada es `src/main.tsx`, que configura `BrowserRouter` y carga
 | `/` | Inicio |
 | `/about` | Información del proyecto |
 | `/precios` | Planes y precios de presentación |
+| `/login` | Inicio de sesión simulado |
+| `/registro` | Registro de negocio simulado |
+| `/recuperar` | Recuperación de contraseña simulada |
 | Cualquier otra | Muestra Inicio mediante la ruta comodín |
 
 Cabecera y pie se comparten entre páginas. El diseño usa CSS en
@@ -20,7 +24,8 @@ Cabecera y pie se comparten entre páginas. El diseño usa CSS en
 Tailwind no está instalado. Los textos de planes e IA de la landing son
 contenido comercial: no implican integraciones de pagos o analítica.
 
-No hay login, SDK Supabase, cliente HTTP ni conexión a los endpoints Django.
+Las pantallas de acceso validan el formulario y muestran un éxito simulado:
+no hay SDK Supabase, cliente HTTP ni conexión con los endpoints Django.
 Consulta el [estado del producto](../docs/estado-implementacion.md).
 
 ## Ejecución y verificación
@@ -66,5 +71,7 @@ claves `service_role`, contraseñas de base de datos ni claves secretas.
 
 `npm run build` produce `dist/`. El hosting debe devolver `index.html`
 para rutas como `/about` y `/precios`, dado que se utiliza BrowserRouter.
-El frontend no se incluye en ninguno de los Compose actuales; requiere un
-despliegue independiente. El servidor Vite de desarrollo no es el hosting de producción.
+El montaje de demostración (`compose.demo.yaml`) compila `dist/` con
+`frontend-web/Dockerfile` y Caddy lo sirve junto a la API; para un hosting
+aparte, publica ese contenido con la misma regla de fallback. El servidor
+Vite de desarrollo no es el hosting de producción.

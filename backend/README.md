@@ -26,7 +26,7 @@ Todos los comandos Docker de esta guía se ejecutan desde la raíz del repositor
 | --- | --- |
 | `.env` | Sustituciones de Compose de desarrollo: `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` |
 | `backend/.env` | Django local: se carga con python-dotenv, sin sobrescribir el entorno del proceso |
-| `backend/.env.production` | Variables que Compose de producción inyecta explícitamente en el contenedor |
+| `backend/.env.production` | Variables que el montaje de demostración inyecta explícitamente en el contenedor |
 
 Usa [.env.example](./.env.example) y
 [.env.production.example](./.env.production.example) solo para crear archivos
@@ -151,45 +151,28 @@ o cambiar tipos requiere revisar los datos y la estrategia de despliegue.
 
 `compose.demo.yaml` es independiente: no lo combines con `compose.yaml`. Usa
 el proyecto `benefy-demo`, Gunicorn con dos workers, PostgreSQL Supabase y
-Caddy como único punto de entrada. Benef AI conserva la red interna sin
-puerto público.
-
-`Dockerfile.prod` es la imagen de producción: ejecuta `collectstatic` en el
-entrypoint, sirve los estáticos con WhiteNoise y corre como usuario sin
-privilegios. `GET /` solo comprueba que Django responde; `GET /health/db/`
-ejecuta `SELECT 1` y devuelve 503 si PostgreSQL no responde. Caddy, TLS y el
-túnel se detallan en [docs/despliegue-local.md](../docs/despliegue-local.md).
+Caddy como único punto de entrada. Los pasos completos de arranque, TLS,
+túnel y verificación están en
+[docs/despliegue-local.md](../docs/despliegue-local.md).
 
 Configura `backend/.env.production` antes de iniciar. La imagen excluye los
 archivos reales de entorno y no monta el código local. Django no carga
 `backend/.env` en producción: Compose pasa las variables de ese archivo.
 
-```bash
-docker compose --env-file backend/.env.production -f compose.demo.yaml config --quiet
-docker compose --env-file backend/.env.production -f compose.demo.yaml up -d --build
-docker compose --env-file backend/.env.production -f compose.demo.yaml exec backend python manage.py check
-```
+`Dockerfile.prod` ejecuta `collectstatic` en el entrypoint, sirve los estáticos
+con WhiteNoise y corre como usuario sin privilegios. `GET /` solo comprueba que
+Django responde; `GET /health/db/` ejecuta `SELECT 1` y devuelve 503 si
+PostgreSQL no responde.
 
 El backend y Benef AI no publican puertos: solo Caddy los alcanza dentro de la
-red Compose. Caddy publica 80 y 443 en loopback. Esta configuración permite
-coexistir con desarrollo, pero no sincroniza datos.
-
-Para actualizar variables, recrea el servicio:
-
-```bash
-docker compose --env-file backend/.env.production -f compose.demo.yaml up -d --force-recreate backend
-```
-
-Para detenerlo:
-
-```bash
-docker compose --env-file backend/.env.production -f compose.demo.yaml down
-```
+red Compose. Caddy publica 80 y 443 en loopback, lo que permite coexistir con
+desarrollo sin sincronizar datos.
 
 El pooler Supabase configurado usa modo sesión en el puerto 5432.
 `sslmode=require` cifra la conexión; no verifica hostname/certificado.
 Usar `verify-full` requiere pasar el modo, montar el certificado CA y
-configurar `DB_SSLROOTCERT`.
+configurar `DB_SSLROOTCERT`. Para actualizar variables o detener el montaje,
+consulta la guía de despliegue local.
 
 ## Migraciones sobre Supabase
 

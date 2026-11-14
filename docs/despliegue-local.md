@@ -4,6 +4,10 @@ Guía del montaje de demostración: mismos servicios que producción, ejecutados
 en la máquina local y sin publicar puertos fuera de `127.0.0.1`. No sustituye
 al entorno de desarrollo de [compose.yaml](../compose.yaml).
 
+Esta guía es la referencia completa del montaje demo. El
+[README raíz](../README.md) y la [guía del backend](../backend/README.md)
+resumen los pasos y enlazan aquí para evitar duplicar el runbook.
+
 ## Qué incluye
 
 | Servicio | Imagen | Función |

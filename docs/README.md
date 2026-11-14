@@ -7,6 +7,8 @@ Esta carpeta contiene la documentación funcional y técnica de Benefy.
 - [Autenticación y permisos](./autenticacion.md): Supabase Auth, configuración,
   migración de usuarios y matriz de acceso de Django.
 - [API actual](./api.md): rutas, métodos, respuestas y límites de los CRUD.
+- [Comandos del proyecto](./run_project.md): referencia rápida de desarrollo,
+  verificación del montaje demo y presentación.
 - [Estado de implementación](./estado-implementacion.md): correspondencia con
   los requisitos del SRS y diferencias respecto al código actual.
 - [Montaje local tipo producción](./despliegue-local.md): Gunicorn, WhiteNoise,

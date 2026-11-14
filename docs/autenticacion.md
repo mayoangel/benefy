@@ -67,23 +67,17 @@ archivos reales antes de hacer una prueba real de login. Si falta configuración
 una petición con bearer devuelve 503; el health check sigue público.
 
 En desarrollo se recomienda un proyecto Auth de pruebas, distinto al del
-montaje con Supabase. El almacenamiento de negocio se sigue seleccionando con Compose:
+montaje con Supabase. El almacenamiento de negocio se selecciona con
+`compose.yaml` o `compose.demo.yaml`; los pasos están en el
+[README](../README.md) y en [despliegue local](./despliegue-local.md).
 
-```bash
-# Desde la raíz: desarrollo con PostgreSQL local.
-docker compose -f compose.yaml up -d --build
-
-# Montaje de demostración con PostgreSQL Supabase, solo después de revisar la migración.
-docker compose --env-file backend/.env.production -f compose.demo.yaml up -d --build
-```
-
-Después de cambiar Auth en `backend/.env`, ejecuta desde la raíz:
+Después de cambiar Auth en `backend/.env`, reinicia Django:
 
 ```bash
 docker compose -f compose.yaml restart backend
 ```
 
-Para cambiar variables del montaje con Supabase, recrea el contenedor:
+En el montaje con Supabase, recrea el contenedor:
 
 ```bash
 docker compose --env-file backend/.env.production -f compose.demo.yaml up -d --force-recreate backend

@@ -1,6 +1,6 @@
 # Estado de implementación y relación con el SRS
 
-Revisión documental: 12 de noviembre de 2026. Este documento contrasta los
+Revisión documental: 14 de noviembre de 2026. Este documento contrasta los
 archivos versionados con [Benefy SRS.pdf, revisión 1.0](./Benefy%20SRS.pdf).
 Describe capacidades del código, no el estado de migraciones/configuración de
 un servidor concreto ni una certificación de aceptación del producto.
@@ -14,11 +14,14 @@ un servidor concreto ni una certificación de aceptación del producto.
   mediante un Compose independiente y el mismo ORM.
 - Supabase Auth verifica las cuentas; Django consulta `/auth/v1/user` y resuelve
   el perfil por UUID. Los roles/membresías se consultan en Django en cada petición.
-- La web usa React 18, React Router y CSS propio. Solo tiene landing pública.
-- La app Expo SDK 58 permanece en la plantilla; no hay navegación ni cliente API.
+- La web usa React 18, React Router y CSS propio: landing pública y pantallas
+  de acceso simuladas; no consume la API ni Supabase.
+- La app Expo SDK 58 tiene un dashboard de demostración con Expo Router y cuatro
+  pestañas; usa datos locales y no tiene cliente API ni Auth.
 - Benef AI solo expone salud y la documentación automática FastAPI. El nombre de
   una rama o un commit de IA no demuestra que exista un agente en `main.py`.
-- Hardware no contiene firmware. No hay CI ni herramientas de prueba comunes.
+- Hardware no contiene firmware. El CI cubre pruebas de Django, typecheck y
+  build del frontend; no hay pruebas de móvil, IA ni E2E.
 
 ## Decisiones que difieren de la revisión 1.0
 
@@ -27,7 +30,7 @@ un servidor concreto ni una certificación de aceptación del producto.
 | Firebase Auth, sección 3.1.3.2 | Supabase Auth con verificación remota en Django | Actualizar proveedor y flujo en la próxima revisión formal |
 | Google API, RF-01 y RS-01 | Auth admite cuentas de correo confirmadas; no hay UI ni integración Google en clientes | Google puede habilitarse en Supabase, pero no está implementado en el repositorio |
 | React con Tailwind, sección 2.4 | React 18 y CSS propio; no hay Tailwind instalado | No presentar Tailwind como dependencia existente |
-| Dashboard y aplicación de consumidores | Landing pública y plantilla móvil | Pantallas y recorridos descritos siguen pendientes |
+| Dashboard y aplicación de consumidores | Landing pública, acceso simulado y dashboard móvil de demostración | Pantallas conectadas a datos reales y recorridos del SRS siguen pendientes |
 | IA/ESP-CLAW, sección 3.1.3.6 | FastAPI sin agente ni proveedor, hardware vacío | No hay function calling, WebSocket ni herramientas de IA funcionando |
 | Stripe/FCM/Cloudinary/Sentry | Modelos o placeholders en algunos casos; SDKs e integraciones ausentes | Distinguir diseño previsto de servicios conectados |
 
@@ -70,8 +73,8 @@ pero no el flujo completo ni la interfaz exigidos por el SRS.
 | RS-04: auditoría | Hay fechas, actividades y canjes; no existe un registro integral de eventos API y autenticación |
 | Rendimiento y concurrencia | No hay pruebas de carga que acrediten 100 usuarios, 15 TPS o latencias del SRS |
 | Disponibilidad y recuperación | No hay monitoreo/SLA verificado ni procedimientos automatizados de backup, retención o restauración |
-| HTTPS | SSL de PostgreSQL configurado; el proxy/TLS público del backend debe desplegarse aparte |
-| Portabilidad | Imágenes Python 3.11 y Compose; clientes fuera de Docker. No hay builds móviles de publicación configurados |
+| HTTPS | SSL de PostgreSQL y HTTPS local con Caddy en el montaje demo; el TLS público sigue pendiente de despliegue |
+| Portabilidad | Imágenes Python 3.11 y Compose; la web se compila en el montaje demo y el móvil se ejecuta fuera de Docker. No hay builds móviles de publicación configurados |
 | Privacidad y exposición de datos | Permisos Python no protegen accesos directos por Data API; revisar exposición, privilegios y alcance de alianzas |
 | Pruebas | Django cubre salud, configuración, Auth, permisos y migración; no hay suite web/móvil/IA ni E2E completa |
 

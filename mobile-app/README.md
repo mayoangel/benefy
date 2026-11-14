@@ -54,7 +54,7 @@ no se consumen en `App.tsx`.
 Para un dispositivo físico, `EXPO_PUBLIC_API_URL` deberá usar la IP LAN del
 equipo que ejecuta Django, por ejemplo `http://192.168.1.50:8000/api/v1`.
 `localhost` en el teléfono apunta al propio teléfono. Comprueba red y firewall.
-El backend del Compose de producción está ligado al loopback del servidor;
+El backend del montaje de demostración está ligado al loopback del servidor;
 requiere publicación HTTPS para el acceso móvil externo.
 
 La autenticación prevista para los clientes es Supabase Auth; el backend ya
