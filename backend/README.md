@@ -131,14 +131,14 @@ Ejecuta pruebas únicamente contra PostgreSQL local o una base de pruebas aislad
 
 ```bash
 docker compose -f compose.yaml run --rm --no-deps backend python manage.py test --noinput
-docker compose -f compose.yaml run --rm --no-deps backend python manage.py test core.test_auth --noinput
+docker compose -f compose.yaml run --rm --no-deps backend python manage.py test core.tests.test_auth --noinput
 docker compose -f compose.yaml exec backend python manage.py makemigrations --check --dry-run
 ```
 
 `run --no-deps` presupone que `db` ya está levantado. Django crea y destruye
 una base de prueba; el usuario PostgreSQL local necesita permiso para crearla.
-`core/test_auth_migration.py` prueba la transición de identidad solo dentro
-de esa base aislada.
+`core/tests/test_auth_migration.py` prueba la transición de identidad solo
+dentro de esa base aislada.
 
 Para un cambio deliberado en modelos:
 

@@ -7,7 +7,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from core import models
-from core.test_helpers import (
+from core.tests.helpers import (
     crear_cupon,
     crear_negocio,
     crear_recompensa,

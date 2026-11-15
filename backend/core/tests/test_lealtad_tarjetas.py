@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from core import models
 from core.services.lealtad import visitas
-from core.test_helpers import (
+from core.tests.helpers import (
     crear_negocio,
     crear_recompensa,
     crear_tarjeta,

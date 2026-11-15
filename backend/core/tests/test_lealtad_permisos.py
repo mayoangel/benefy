@@ -5,7 +5,7 @@ from rest_framework.test import APIClient
 
 from core import models
 from core.services.lealtad import puntos, visitas
-from core.test_helpers import (
+from core.tests.helpers import (
     crear_cupon,
     crear_negocio,
     crear_recompensa,

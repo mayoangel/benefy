@@ -11,7 +11,7 @@ from django.utils import timezone
 
 from core import models
 from core.services.lealtad import cupones, puntos, tarjetas, visitas
-from core.test_helpers import (
+from core.tests.helpers import (
     crear_dinamica_puntos,
     crear_negocio,
     crear_recompensa,

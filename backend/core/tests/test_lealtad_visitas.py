@@ -9,7 +9,7 @@ from rest_framework.test import APIClient
 
 from core import models
 from core.services.lealtad import visitas
-from core.test_helpers import (
+from core.tests.helpers import (
     crear_dinamica_puntos,
     crear_negocio,
     crear_sucursal,
