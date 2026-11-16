@@ -1,223 +1,144 @@
 import { FormEvent, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faArrowRight,
   faCircleCheck,
+  faCircleExclamation,
   faEnvelope,
   faEye,
   faEyeSlash,
   faIdBadge,
   faLock,
   faStore,
-  faUserShield,
 } from '@fortawesome/free-solid-svg-icons';
-import logo from '../assets/LogoR.png';
-import AuthLayout, { GoogleMark, MicrosoftMark } from '../components/AuthLayout.tsx';
 
-type Strength = {
-  score: number;
-  label: string;
-  tone: 'muted' | 'error' | 'warn' | 'good' | 'strong';
-};
-
-function passwordStrength(value: string): Strength {
-  if (!value) {
-    return { score: 0, label: 'Introduce tu contraseña', tone: 'muted' };
-  }
-
-  let score = 0;
-  if (value.length >= 6) score += 1;
-  if (value.length >= 8 && /[A-Z]/.test(value)) score += 1;
-  if (/\d/.test(value)) score += 1;
-  if (/[^A-Za-z0-9]/.test(value)) score += 1;
-
-  if (score <= 1) return { score, label: 'Seguridad débil', tone: 'error' };
-  if (score === 2) return { score, label: 'Seguridad regular', tone: 'warn' };
-  if (score === 3) return { score, label: 'Seguridad buena', tone: 'good' };
-  return { score, label: 'Excelente seguridad', tone: 'strong' };
-}
+import AuthLayout from '../components/AuthLayout.tsx';
+import { supabase } from '../lib/supabase.ts';
 
 export default function RegisterPage() {
+  const navigate = useNavigate();
   const [business, setBusiness] = useState('');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [accepted, setAccepted] = useState(false);
-  const strength = passwordStrength(password);
+  const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent) {
     event.preventDefault();
+    if (!accepted) {
+      setError('Debes aceptar los términos para continuar.');
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const { data, error: authError } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: {
+          data: { nombre: name.trim(), negocio: business.trim() },
+        },
+      });
+      if (authError) throw new Error(authError.message);
+      if (data.session) {
+        navigate('/completar-perfil', { replace: true });
+      } else {
+        setSent(true);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo crear la cuenta.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (sent) {
+    return (
+      <AuthLayout>
+        <div className="auth-card auth-card-wide">
+          <div className="auth-card-head">
+            <h1>Revisa tu correo</h1>
+            <p>Enviamos un enlace de confirmación a {email}.</p>
+          </div>
+          <div className="auth-note">
+            <FontAwesomeIcon icon={faCircleCheck} />
+            <p>Después de confirmar tu cuenta, inicia sesión para completar tu perfil y registrar tu negocio.</p>
+          </div>
+          <p className="auth-signup"><Link to="/login">Volver a iniciar sesión</Link></p>
+        </div>
+      </AuthLayout>
+    );
   }
 
   return (
     <AuthLayout>
-      <div className="auth-stage">
-        <span className="auth-glow auth-glow-mint" aria-hidden="true" />
-        <span className="auth-glow auth-glow-navy" aria-hidden="true" />
-        <div className="auth-card auth-card-wide auth-card-register">
-          <div className="auth-card-head">
-            <img className="auth-card-logo auth-card-logo-lg" src={logo} alt="Benefy" width="500" height="331" />
-            <span className="auth-pill">
-              <i />
-              Prueba Pro 14 Días
-            </span>
-            <h1>Crear cuenta en Benefy</h1>
-            <p>Comienza tu prueba gratuita de 14 días sin tarjeta de crédito</p>
-          </div>
-
-          <form className="auth-form auth-form-tight" id="signup-form" onSubmit={handleSubmit}>
-            <div className="auth-field">
-              <label htmlFor="business-name">Nombre comercial o de tu negocio</label>
-              <div className="auth-control">
-                <span className="auth-control-icon" aria-hidden="true">
-                  <FontAwesomeIcon icon={faStore} />
-                </span>
-                <input
-                  id="business-name"
-                  type="text"
-                  required
-                  placeholder="Ej: Café Blend Roma"
-                  value={business}
-                  onChange={(event) => setBusiness(event.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="auth-field">
-              <label htmlFor="full-name">Nombre completo del responsable</label>
-              <div className="auth-control">
-                <span className="auth-control-icon" aria-hidden="true">
-                  <FontAwesomeIcon icon={faIdBadge} />
-                </span>
-                <input
-                  id="full-name"
-                  type="text"
-                  autoComplete="name"
-                  required
-                  placeholder="Ej: Valeria Sandoval Ruiz"
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="auth-field">
-              <label htmlFor="work-email">Correo electrónico comercial</label>
-              <div className="auth-control">
-                <span className="auth-control-icon" aria-hidden="true">
-                  <FontAwesomeIcon icon={faEnvelope} />
-                </span>
-                <input
-                  id="work-email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  placeholder="hola@tudominio.com"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="auth-field">
-              <label htmlFor="password-input">Contraseña</label>
-              <div className="auth-control">
-                <span className="auth-control-icon" aria-hidden="true">
-                  <FontAwesomeIcon icon={faLock} />
-                </span>
-                <input
-                  id="password-input"
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="new-password"
-                  required
-                  minLength={8}
-                  placeholder="Mínimo 8 caracteres"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                />
-                <button
-                  className="auth-eye"
-                  id="toggle-password"
-                  type="button"
-                  aria-label="Mostrar u ocultar contraseña"
-                  onClick={() => setShowPassword((value) => !value)}
-                >
-                  <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
-                </button>
-              </div>
-              <div className="auth-strength" aria-live="polite">
-                <div className="auth-strength-bars">
-                  {[1, 2, 3, 4].map((step) => (
-                    <span
-                      key={step}
-                      className={step <= strength.score ? `is-${strength.tone}` : undefined}
-                    />
-                  ))}
-                </div>
-                <div className="auth-strength-meta">
-                  <span className={`is-${strength.tone}`}>{strength.label}</span>
-                  <span>8+ carácteres</span>
-                </div>
-              </div>
-            </div>
-
-            <label className="auth-terms">
-              <input
-                id="terms-check"
-                type="checkbox"
-                required
-                checked={accepted}
-                onChange={(event) => setAccepted(event.target.checked)}
-              />
-              <span>
-                Acepto los <Link to="/">Términos de Servicio</Link> y la{' '}
-                <Link to="/">Política de Privacidad</Link> de Benefy.
-              </span>
-            </label>
-
-            <button className="auth-submit auth-submit-arrow" id="submit-btn" type="submit">
-              <span>Crear mi cuenta gratis</span>
-              <FontAwesomeIcon icon={faArrowRight} />
-            </button>
-          </form>
-
-          <div className="auth-divider">
-            <span>O regístrate con</span>
-          </div>
-
-          <div className="auth-alt auth-alt-soft">
-            <button type="button">
-              <GoogleMark />
-              <span>Workspace</span>
-            </button>
-            <button type="button">
-              <MicrosoftMark />
-              <span>Microsoft</span>
-            </button>
-          </div>
-
-          <p className="auth-switch">
-            ¿Ya tienes una cuenta comercial?
-            <Link to="/login">Iniciar sesión</Link>
-          </p>
+      <div className="auth-card auth-card-wide auth-card-register">
+        <div className="auth-card-head">
+          <span className="auth-pill"><i />Portal para negocios</span>
+          <h1>Crear cuenta en Benefy</h1>
+          <p>Registra tu negocio y comienza a fidelizar clientes.</p>
         </div>
 
-        <ul className="auth-assurances">
-          <li>
-            <FontAwesomeIcon icon={faCircleCheck} />
-            Sin compromiso
-          </li>
-          <li>
-            <FontAwesomeIcon icon={faLock} />
-            Cifrado SSL 256-bit
-          </li>
-          <li>
-            <FontAwesomeIcon icon={faUserShield} />
-            Cumplimiento RGPD
-          </li>
-        </ul>
+        {error ? (
+          <div className="auth-alert auth-alert--error" role="alert">
+            <FontAwesomeIcon icon={faCircleExclamation} />
+            <p>{error}</p>
+          </div>
+        ) : null}
+
+        <form className="auth-form auth-form-tight" onSubmit={submit}>
+          <div className="auth-field">
+            <label htmlFor="business-name">Nombre comercial o de tu negocio</label>
+            <div className="auth-control">
+              <span className="auth-control-icon"><FontAwesomeIcon icon={faStore} /></span>
+              <input id="business-name" value={business} onChange={(e) => setBusiness(e.target.value)} required placeholder="Ej: Café Blend Roma" />
+            </div>
+          </div>
+          <div className="auth-field">
+            <label htmlFor="full-name">Nombre completo del responsable</label>
+            <div className="auth-control">
+              <span className="auth-control-icon"><FontAwesomeIcon icon={faIdBadge} /></span>
+              <input id="full-name" value={name} onChange={(e) => setName(e.target.value)} required autoComplete="name" />
+            </div>
+          </div>
+          <div className="auth-field">
+            <label htmlFor="work-email">Correo electrónico comercial</label>
+            <div className="auth-control">
+              <span className="auth-control-icon"><FontAwesomeIcon icon={faEnvelope} /></span>
+              <input id="work-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
+            </div>
+          </div>
+          <div className="auth-field">
+            <label htmlFor="password-input">Contraseña</label>
+            <div className="auth-control">
+              <span className="auth-control-icon"><FontAwesomeIcon icon={faLock} /></span>
+              <input
+                id="password-input"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={8}
+                autoComplete="new-password"
+              />
+              <button type="button" className="auth-eye" onClick={() => setShowPassword((v) => !v)} aria-label="Mostrar u ocultar contraseña">
+                <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
+              </button>
+            </div>
+          </div>
+          <label className="auth-terms">
+            <input type="checkbox" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} />
+            <span>Acepto los términos, la política de privacidad y el tratamiento de datos.</span>
+          </label>
+          <button className="auth-submit" type="submit" disabled={busy}>
+            {busy ? 'Creando cuenta...' : 'Crear cuenta'}
+          </button>
+        </form>
+        <p className="auth-signup">¿Ya tienes cuenta? <Link to="/login">Inicia sesión</Link></p>
       </div>
     </AuthLayout>
   );

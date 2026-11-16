@@ -1,32 +1,57 @@
 # Frontend web
 
-Landing pública de Benefy, implementada con React 18, React Router 6,
-TypeScript 5 y Vite 5. Incluye pantallas de acceso (login, registro y
-recuperación) simuladas. El dashboard administrativo sigue pendiente.
+Landing pública y portal de negocios de Benefy, implementados con React 18,
+React Router 6, TypeScript 5, Vite 5 y Supabase Auth. El portal consume la API
+real de Django; no hay datos ni inicios de sesión simulados.
 
 ## Código y páginas
 
-La entrada es `src/main.tsx`, que configura `BrowserRouter` y carga
-`src/App.tsx`. Las rutas implementadas son:
+La entrada es `src/main.tsx`, que configura `BrowserRouter`, `AuthProvider` y
+carga `src/App.tsx`. Las rutas implementadas son:
 
 | Ruta | Página |
 | --- | --- |
 | `/` | Inicio |
 | `/about` | Información del proyecto |
 | `/precios` | Planes y precios de presentación |
-| `/login` | Inicio de sesión simulado |
-| `/registro` | Registro de negocio simulado |
-| `/recuperar` | Recuperación de contraseña simulada |
+| `/login` | Inicio de sesión con Supabase |
+| `/registro` | Alta de cuenta de negocio |
+| `/recuperar` | Envío de enlace de recuperación |
+| `/actualizar-password` | Definición de nueva contraseña |
+| `/completar-perfil` | Onboarding del perfil Django |
+| `/registrar-negocio` | Alta de negocio y membresía de dueño |
+| `/acceso-restringido` | Consumidor sin membresía comercial |
+| `/portal` | Redirección según rol y contexto |
+| `/portal/negocio/:id` | Resumen del negocio o sucursal |
+| `/portal/negocio/:id/sucursales` | Sucursales accesibles |
+| `/portal/negocio/:id/equipo` | Membresías visibles |
+| `/portal/negocio/:id/visitas` | Visitas del alcance |
+| `/portal/negocio/:id/cupones` | Cupones del negocio (solo dueño) |
+| `/portal/admin` | Administración global (`admin_sistema`) |
 | Cualquier otra | Muestra Inicio mediante la ruta comodín |
 
-Cabecera y pie se comparten entre páginas. El diseño usa CSS en
-`src/styles/tokens.css` y `src/styles/site.css`, además de Font Awesome.
-Tailwind no está instalado. Los textos de planes e IA de la landing son
-contenido comercial: no implican integraciones de pagos o analítica.
+Cabecera y pie se comparten en la landing. El portal usa
+`src/styles/portal.css`. El diseño emplea CSS propio y Font Awesome; Tailwind
+no está instalado. Los textos de planes e IA de la landing son contenido
+comercial: no implican pagos ni analítica implementados.
 
-Las pantallas de acceso validan el formulario y muestran un éxito simulado:
-no hay SDK Supabase, cliente HTTP ni conexión con los endpoints Django.
-Consulta el [estado del producto](../docs/estado-implementacion.md).
+## Autenticación y API
+
+- `src/lib/supabase.ts`: cliente único con `persistSession`, `autoRefreshToken`
+  y `detectSessionInUrl`. Solo usa la clave publicable.
+- `src/auth/AuthProvider.tsx`: restaura la sesión, escucha cambios, carga el
+  perfil y `GET /mi/contexto/`, y expone login, logout y onboarding.
+- `src/lib/api.ts`: cliente HTTP con bearer, refresh único ante `401`, sin
+  reintentos en `403`, y lectura de los errores `codigo`/`detalle` de DRF.
+- `src/auth/guards.tsx`: `RequireSession`, `RequirePortalAccess` y `RequireAdmin`.
+  Solo controlan navegación; Django valida cada petición.
+- `src/portal/PortalLayout.tsx`: shell compartido, selector de negocio y
+  sucursal, navegación por rol y adaptación móvil.
+
+Un consumidor sin membresías no entra al portal: se le redirige a
+`/acceso-restringido` con el CTA para registrar su negocio. El detalle del
+contrato está en [autenticación](../docs/autenticacion.md) y las rutas en
+[API](../docs/api.md).
 
 ## Ejecución y verificación
 
@@ -46,23 +71,27 @@ npm run build
 npm run preview
 ```
 
-`typecheck` ejecuta `tsc --noEmit`. `build` solo ejecuta `vite build`;
-por eso deben ejecutarse ambos comandos. `preview` sirve el contenido de
-`dist/` para revisión local. No hay scripts de pruebas ni lint.
+`typecheck` ejecuta `tsc --noEmit`. `build` solo ejecuta `vite build`; por eso
+deben ejecutarse ambos comandos. `preview` sirve el contenido de `dist/` para
+revisión local. No hay scripts de pruebas ni lint.
 
 En PowerShell con scripts deshabilitados puedes usar `npm.cmd` en lugar
 de `npm`. No es necesario cambiar la política de ejecución del sistema.
 
-## Variables y autenticación futura
+## Variables
 
-Crea `.env` desde [.env.example](./.env.example) si no existe. Vite utiliza
-`VITE_*` y el código debe leerlo mediante `import.meta.env`; actualmente
-las variables API, Google y Stripe del ejemplo no se consumen.
+El código lee `import.meta.env`; crea `.env` desde [.env.example](./.env.example):
 
-Para integrar sesiones, el cliente deberá autenticarse en Supabase y enviar
-el access token a Django como bearer. El contrato está en
-[autenticación](../docs/autenticacion.md) y las rutas en [API](../docs/api.md).
-Los nombres `NEXT_PUBLIC_*` de ejemplos Next.js no son los usados por Vite.
+```dotenv
+VITE_API_BASE_URL=http://localhost:8000/api/v1
+VITE_SUPABASE_URL=https://tu-proyecto.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_reemplazar
+```
+
+En producción, `VITE_API_BASE_URL=/api/v1` porque Caddy sirve la SPA y la API
+en el mismo origen. `Dockerfile` recibe las tres variables como `ARG` y
+`compose.demo.yaml` toma las de Supabase de `SUPABASE_URL` y
+`SUPABASE_PUBLISHABLE_KEY`.
 
 Todo valor `VITE_*` termina siendo público en el navegador. No incluyas
 claves `service_role`, contraseñas de base de datos ni claves secretas.
@@ -70,8 +99,8 @@ claves `service_role`, contraseñas de base de datos ni claves secretas.
 ## Publicación
 
 `npm run build` produce `dist/`. El hosting debe devolver `index.html`
-para rutas como `/about` y `/precios`, dado que se utiliza BrowserRouter.
-El montaje de demostración (`compose.demo.yaml`) compila `dist/` con
-`frontend-web/Dockerfile` y Caddy lo sirve junto a la API; para un hosting
+para rutas como `/about`, `/precios` o `/portal/negocio/1`, dado que se utiliza
+BrowserRouter. El montaje de demostración (`compose.demo.yaml`) compila `dist/`
+con `frontend-web/Dockerfile` y Caddy lo sirve junto a la API; para un hosting
 aparte, publica ese contenido con la misma regla de fallback. El servidor
 Vite de desarrollo no es el hosting de producción.

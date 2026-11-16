@@ -10,10 +10,13 @@ RUN npm ci
 
 COPY frontend-web/ ./
 
-# Ruta relativa: la SPA y la API comparten origen a través de Caddy.
-# Vite la incrusta en el bundle durante el build.
+# Variables públicas de build. Vite las incrusta en el bundle.
 ARG VITE_API_BASE_URL=/api/v1
-ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_PUBLISHABLE_KEY
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL} \
+    VITE_SUPABASE_URL=${VITE_SUPABASE_URL} \
+    VITE_SUPABASE_PUBLISHABLE_KEY=${VITE_SUPABASE_PUBLISHABLE_KEY}
 
 RUN npm run build
 

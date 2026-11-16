@@ -35,12 +35,12 @@ export default function Header() {
         </nav>
         <div className="header-actions">
           <NavLink className="login" to="/login">Iniciar sesión</NavLink>
-          <NavLink className="button button-small" to="/precios">
+          <NavLink className="button button-small" to="/registro">
             Comenzar gratis
           </NavLink>
-          <a className="account" href="#footer" aria-label="Cuenta">
+          <NavLink className="account" to="/login" aria-label="Cuenta">
             <Icon name="person" />
-          </a>
+          </NavLink>
         </div>
         <button
           className="menu-toggle"

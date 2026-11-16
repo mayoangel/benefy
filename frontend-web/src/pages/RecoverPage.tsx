@@ -3,118 +3,91 @@ import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faArrowLeft,
-  faArrowRight,
   faCircleCheck,
-  faCircleInfo,
+  faCircleExclamation,
   faEnvelope,
   faEnvelopeOpenText,
-  faKey,
 } from '@fortawesome/free-solid-svg-icons';
-import logo from '../assets/LogoR.png';
-import AuthLayout from '../components/AuthLayout.tsx';
 
-function isCorporateEmail(value: string) {
-  return value.includes('@') && value.includes('.');
-}
+import AuthLayout from '../components/AuthLayout.tsx';
+import { supabase } from '../lib/supabase.ts';
 
 export default function RecoverPage() {
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
-  const emailLooksValid = isCorporateEmail(email.trim());
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent) {
     event.preventDefault();
-    if (!emailLooksValid) return;
-    setSent(true);
+    if (!email.includes('@') || !email.includes('.')) {
+      setError('Ingresa un correo válido.');
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const { error: authError } = await supabase.auth.resetPasswordForEmail(
+        email.trim(),
+        { redirectTo: `${window.location.origin}/actualizar-password` },
+      );
+      if (authError) throw new Error(authError.message);
+      setSent(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo enviar el enlace.');
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
     <AuthLayout>
-      <div className="auth-stage">
-        <span className="auth-glow auth-glow-mint auth-glow-top" aria-hidden="true" />
-        <span className="auth-glow auth-glow-navy auth-glow-bottom" aria-hidden="true" />
-        <div className="auth-card auth-card-wide">
-          <div className="auth-logo-plate">
-            <img src={logo} alt="Benefy" width="500" height="331" />
-          </div>
+      <div className="auth-card auth-card-wide">
+        <div className="auth-card-head auth-card-head-left">
+          <h1>Recuperar contraseña</h1>
+          <p>Ingresa tu correo y te enviaremos un enlace para restablecer tu acceso.</p>
+        </div>
 
-          <div className="auth-secure">
-            <FontAwesomeIcon icon={faKey} />
-            Recuperación Segura
+        {sent ? (
+          <div className="auth-sent" role="status">
+            <span className="auth-sent-icon"><FontAwesomeIcon icon={faEnvelopeOpenText} /></span>
+            <h2>Revisa tu correo</h2>
+            <p>Si el correo está registrado, recibirás un enlace de recuperación.</p>
+            <button type="button" onClick={() => setSent(false)}>Enviar de nuevo</button>
           </div>
-
-          <div className="auth-card-head auth-card-head-left">
-            <h1>Recuperar contraseña</h1>
-            <p>
-              Ingresa tu correo electrónico registrado y te enviaremos las instrucciones para
-              restablecer tu acceso.
-            </p>
-          </div>
-
-          {sent ? (
-            <div className="auth-sent" id="success-feedback">
-              <span className="auth-sent-icon" aria-hidden="true">
-                <FontAwesomeIcon icon={faEnvelopeOpenText} />
-              </span>
-              <h2>¡Enlace enviado!</h2>
-              <p>
-                Hemos enviado las instrucciones a tu correo. Revisa tu bandeja de entrada en los
-                próximos instantes.
-              </p>
-              <button type="button" onClick={() => setSent(false)}>
-                Reenviar enlace
-              </button>
-            </div>
-          ) : (
-            <form className="auth-form" id="recovery-form" onSubmit={handleSubmit}>
-              <div className="auth-field">
-                <label htmlFor="corporate-email">Correo electrónico comercial</label>
-                <div className="auth-control">
-                  <span className="auth-control-icon" aria-hidden="true">
-                    <FontAwesomeIcon icon={faEnvelope} />
-                  </span>
-                  <input
-                    id="corporate-email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    placeholder="gerencia@tudominio.com"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                  />
-                  {emailLooksValid ? (
-                    <span className="auth-valid" aria-hidden="true">
-                      <FontAwesomeIcon icon={faCircleCheck} />
-                    </span>
-                  ) : null}
-                </div>
-                <p className="auth-hint">
-                  Asociado a tu cuenta corporativa o portal de beneficios B2B.
-                </p>
+        ) : (
+          <form className="auth-form" onSubmit={submit}>
+            {error ? (
+              <div className="auth-alert auth-alert--error" role="alert">
+                <FontAwesomeIcon icon={faCircleExclamation} /><p>{error}</p>
               </div>
+            ) : null}
+            <div className="auth-field">
+              <label htmlFor="recovery-email">Correo electrónico</label>
+              <div className="auth-control">
+                <span className="auth-control-icon"><FontAwesomeIcon icon={faEnvelope} /></span>
+                <input
+                  id="recovery-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
+                  required
+                />
+              </div>
+            </div>
+            <button className="auth-submit" type="submit" disabled={busy}>
+              <span>{busy ? 'Enviando...' : 'Enviar enlace de recuperación'}</span>
+            </button>
+          </form>
+        )}
 
-              <button className="auth-submit auth-submit-arrow auth-submit-tall" type="submit">
-                <span>Enviar enlace de recuperación</span>
-                <FontAwesomeIcon icon={faArrowRight} />
-              </button>
-            </form>
-          )}
-
-          <div className="auth-note">
-            <FontAwesomeIcon icon={faCircleInfo} />
-            <p>
-              Si no recibes el correo en unos minutos, revisa tu carpeta de correo no deseado
-              (spam) o <Link to="/precios">contacta a soporte</Link>.
-            </p>
-          </div>
-
-          <p className="auth-return">
-            <Link to="/login">
-              <FontAwesomeIcon icon={faArrowLeft} />
-              Volver a Iniciar sesión
-            </Link>
-          </p>
+        <p className="auth-return">
+          <Link to="/login"><FontAwesomeIcon icon={faArrowLeft} /> Volver a iniciar sesión</Link>
+        </p>
+        <div className="auth-note">
+          <FontAwesomeIcon icon={faCircleCheck} />
+          <p>El enlace se envía mediante Supabase Auth.</p>
         </div>
       </div>
     </AuthLayout>

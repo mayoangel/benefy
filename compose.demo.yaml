@@ -49,6 +49,8 @@ services:
       dockerfile: frontend-web/Dockerfile
       args:
         VITE_API_BASE_URL: /api/v1
+        VITE_SUPABASE_URL: ${SUPABASE_URL:-}
+        VITE_SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY:-}
     restart: unless-stopped
     ports:
       # Solo loopback: evita exponer la demo a la red local por accidente.
