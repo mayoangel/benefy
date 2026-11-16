@@ -216,6 +216,7 @@ class NegocioSerializerList(serializers.ModelSerializer):
             "id",
             "nombre",
             "slug",
+            "logo_url",
             "status",
             "categoria",
         ]
@@ -488,13 +489,22 @@ class UsuarioNegocioSerializerCreate(serializers.ModelSerializer):
 
 #List
 class UsuarioNegocioSerializerList(serializers.ModelSerializer):
+    usuario_nombre = serializers.CharField(source="usuario.nombre", read_only=True)
+    usuario_correo = serializers.EmailField(source="usuario.correo", read_only=True)
+    sucursal_nombre = serializers.CharField(
+        source="sucursal.nombre", read_only=True, allow_null=True,
+    )
+
     class Meta:
         model = models.UsuarioNegocio
         fields = [
             "id",
             "usuario",
+            "usuario_nombre",
+            "usuario_correo",
             "negocio",
             "sucursal",
+            "sucursal_nombre",
             "rol_comercio",
             "status",
         ]
@@ -1042,13 +1052,20 @@ class RegistroActividadSerializerCreate(serializers.ModelSerializer):
 
 #List
 class RegistroActividadSerializerList(serializers.ModelSerializer):
+    usuario_correo = serializers.EmailField(source="usuario.correo", read_only=True)
+    sucursal_nombre = serializers.CharField(
+        source="sucursal.nombre", read_only=True, allow_null=True,
+    )
+
     class Meta:
         model = models.RegistroActividad
         fields = [
             "id",
             "usuario",
+            "usuario_correo",
             "negocio",
             "sucursal",
+            "sucursal_nombre",
             "metodo_validacion",
             "tipo",
             "monto_transaccion",
@@ -1239,16 +1256,20 @@ class CuponUsuarioSerializerCreate(serializers.ModelSerializer):
 
 #List
 class CuponUsuarioSerializerList(serializers.ModelSerializer):
+    usuario_correo = serializers.EmailField(source="usuario.correo", read_only=True)
+
     class Meta:
         model = models.CuponUsuario
         fields = [
             "id",
             "uuid",
             "usuario",
+            "usuario_correo",
             "recompensa",
             "negocio",
             "origen",
             "status",
+            "titulo_beneficio",
             "costo_pagado",
             "fecha_expiracion",
         ]

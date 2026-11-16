@@ -1,6 +1,6 @@
 from django.urls import path
 
-from core import views, views_lealtad
+from core import views, views_lealtad, views_portal
 
 app_name = "core"
 
@@ -9,6 +9,7 @@ urlpatterns = [
 
     # Motor de lealtad
     path("v1/visitas/registrar/", views_lealtad.RegistrarVisitaAPIView.as_view(), name="visita-registrar"),
+    path("v1/mi/contexto/", views_portal.MiContextoAPIView.as_view(), name="mi-contexto"),
     path("v1/mi/billetera/", views_lealtad.BilleteraAPIView.as_view(), name="mi-billetera"),
     path("v1/mi/historial/", views_lealtad.HistorialAPIView.as_view(), name="mi-historial"),
     path("v1/negocios/<int:pk>/catalogo/", views_lealtad.CatalogoAPIView.as_view(), name="negocio-catalogo"),

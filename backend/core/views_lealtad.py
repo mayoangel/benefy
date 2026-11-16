@@ -309,4 +309,52 @@ class MetricasAPIView(APIView):
                 {'codigo': 'rango_invalido', 'detalle': 'La fecha inicial no puede ser posterior.'},
                 status=400,
             )
-        return Response(metricas.metricas_negocio(negocio, desde, hasta))
+
+        es_admin_o_dueno = (
+            permissions.es_admin_sistema(request.user)
+            or permissions.puede_administrar_negocio(request.user, negocio)
+        )
+        if es_admin_o_dueno:
+            sucursales = None
+            incluir_totales = True
+        else:
+            sucursales = permissions.sucursales_accesibles(request.user).filter(
+                negocio=negocio, status=True,
+            )
+            if not sucursales.exists():
+                return Response(
+                    {'codigo': 'sin_permiso', 'detalle': 'No tienes sucursales autorizadas.'},
+                    status=403,
+                )
+            incluir_totales = False
+
+        sucursal_param = request.query_params.get('sucursal')
+        if sucursal_param:
+            try:
+                sucursal_id = int(sucursal_param)
+            except (TypeError, ValueError):
+                return Response(
+                    {'codigo': 'sucursal_invalida', 'detalle': 'La sucursal no es válida.'},
+                    status=400,
+                )
+            sucursal = get_object_or_404(
+                models.Sucursal, pk=sucursal_id, negocio=negocio,
+            )
+            if not sucursal.status:
+                return Response(
+                    {'codigo': 'sucursal_inactiva', 'detalle': 'La sucursal está inactiva.'},
+                    status=403,
+                )
+            if not es_admin_o_dueno and not sucursales.filter(pk=sucursal.pk).exists():
+                return Response(
+                    {'codigo': 'sin_permiso', 'detalle': 'No tienes acceso a esa sucursal.'},
+                    status=403,
+                )
+            sucursales = [sucursal]
+            incluir_totales = False
+
+        return Response(metricas.metricas_negocio(
+            negocio, desde, hasta,
+            sucursales=sucursales,
+            incluir_totales=incluir_totales,
+        ))

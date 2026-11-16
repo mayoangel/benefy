@@ -165,6 +165,37 @@ def negocios_accesibles(user):
         Q(pk__in=dueno_negocio_ids) | Q(pk__in=usuario_comercio_ids)
     ).distinct()
 
+#Negocios sobre los que el usuario tiene control de dueño.
+def negocios_administrados(user):
+    if es_admin_sistema(user):
+        return models.Negocio.objects.all()
+    if not es_usuario_benefy(user):
+        return models.Negocio.objects.none()
+    return models.Negocio.objects.filter(
+        usuarionegocio__usuario=user,
+        usuarionegocio__rol_comercio='dueno',
+        usuarionegocio__sucursal__isnull=True,
+        usuarionegocio__status=True,
+    ).distinct()
+
+
+#Membresías activas y efectivas: negocio y sucursal habilitados.
+def membresias_efectivas(user):
+    if not es_usuario_benefy(user):
+        return models.UsuarioNegocio.objects.none()
+    return models.UsuarioNegocio.objects.filter(
+        usuario=user,
+        status=True,
+        negocio__status=True,
+    ).filter(
+        Q(sucursal__isnull=True) | Q(sucursal__status=True),
+    ).select_related('negocio', 'sucursal')
+
+
+def puede_portal(user):
+    return es_admin_sistema(user) or membresias_efectivas(user).exists()
+
+
 #Negocios accesibles por rol (para operaciones que involucren sucursales de negocios)
 def sucursales_accesibles(user):
     if es_admin_sistema(user):

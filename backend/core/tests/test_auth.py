@@ -216,11 +216,17 @@ class AuthAndPermissionsTests(TestCase):
         )
         self.auth(self.employee)
         for resource, expected in (('dinamicas', self.program.pk), ('recompensas', self.reward.pk),
-                                   ('progresos-usuario', progress.pk), ('registros-actividad', activity.pk),
-                                   ('cupones-usuario', self.coupon.pk)):
+                                   ('progresos-usuario', progress.pk), ('registros-actividad', activity.pk)):
             with self.subTest(resource=resource):
                 rows = self.client.get(f'/api/v1/{resource}/listar/').data
                 self.assertEqual([row['id'] for row in rows], [expected])
+
+        # Un empleado no debe ver los cupones de todo el negocio.
+        self.assertEqual(self.client.get('/api/v1/cupones-usuario/listar/').data, [])
+
+        self.auth(self.owner)
+        owner_coupons = self.client.get('/api/v1/cupones-usuario/listar/').data
+        self.assertEqual([row['id'] for row in owner_coupons], [self.coupon.pk])
 
     def test_facturacion_solo_es_visible_para_dueno_del_negocio(self):
         plan = models.PlanSuscripcion.objects.create(nombre='Plan', descripcion='Plan', stripe_price_id='price_test')

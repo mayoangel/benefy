@@ -21,6 +21,7 @@ def scoped_queryset(user, queryset):
         return queryset.none()
     model = queryset.model
     businesses = permissions.negocios_accesibles(user)
+    owner_businesses = permissions.negocios_administrados(user)
     branches = permissions.sucursales_accesibles(user)
     rewards = models.Recompensa.objects.filter(
         Q(negocio__in=businesses)
@@ -61,19 +62,23 @@ def scoped_queryset(user, queryset):
         return queryset.filter(pk__in=rewards)
     if model is models.RegistroActividad:
         return queryset.filter(
-            Q(usuario=user) | Q(negocio__in=businesses) | Q(sucursal__in=branches)
+            Q(usuario=user)
+            | Q(negocio__in=owner_businesses)
+            | Q(sucursal__in=branches)
         )
     if model is models.ProgresoUsuario:
         return queryset.filter(Q(usuario=user) | Q(dinamica__negocio__in=businesses))
     if model is models.CuponUsuario:
         return queryset.filter(
             Q(usuario=user)
-            | Q(negocio__in=businesses)
-            | Q(recompensa__in=rewards)
+            | Q(negocio__in=owner_businesses)
+            | Q(recompensa__negocio__in=owner_businesses)
         )
     if model is models.Canje:
         return queryset.filter(
-            Q(cupon__usuario=user) | Q(negocio__in=businesses) | Q(sucursal__in=branches)
+            Q(cupon__usuario=user)
+            | Q(negocio__in=owner_businesses)
+            | Q(sucursal__in=branches)
         )
     if model in (models.SaldoPuntos, models.LotePuntos, models.MovimientoPuntos, models.CicloTarjeta):
         return queryset.filter(Q(usuario=user) | Q(negocio__in=businesses))
