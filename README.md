@@ -9,27 +9,28 @@ independientes; no existe un gestor de paquetes ni un comando de ejecución
 
 | Componente | Implementado | Pendiente |
 | --- | --- | --- |
-| Backend | Django 5.2 + DRF, 21 modelos, diez migraciones de `core`, 92 rutas API, motor de visitas/puntos/tarjetas/cupones, membresías auditadas, permisos por negocio/sucursal y Django Admin | Dashboard web, migración a Supabase, analítica avanzada y webhooks |
-| Identidad | Verificación remota de Supabase Auth y perfiles/roles en Django | Login y gestión de sesión en los clientes |
-| Web | Landing React 18 + Vite: Inicio, Nosotros, Precios y acceso simulado | Dashboard administrativo y consumo de API |
+| Backend | Django 5.2 + DRF, 21 modelos, diez migraciones de `core`, 93 rutas API, motor de visitas/puntos/tarjetas/cupones, membresías auditadas, aislamiento por sucursal, contexto del portal y Django Admin | CRUD del portal, analítica avanzada, límites Free/Premium y webhooks |
+| Identidad | Supabase Auth con login web real, sesión persistente, refresh, recuperación y onboarding; perfiles/roles en Django | Integración de Auth en la app móvil |
+| Web | Landing React 18 + Vite y portal conectado: dashboards por rol, selectores de negocio/sucursal, métricas reales y panel global | CRUD de dinámicas, recompensas y equipo; Free/Premium; E2E en CI |
 | Móvil | Dashboard Benefy en Expo SDK 58 con resumen de puntos, retos, cupones y pestañas de demostración | Datos reales, Auth, cámara QR/NFC y cliente API |
 | Benef AI | FastAPI y endpoint de estado | Agente, proveedor LLM, herramientas y comunicación autenticada con Django |
 | Hardware | Carpeta de documentación | Firmware ESP32-S3 e integración física |
 
-El backend ya implementa el flujo transaccional del MVP: visitas por QR con
+El backend implementa el flujo transaccional del MVP: visitas por QR con
 límite diario, puntos por lotes con FIFO, tarjetas de visitas, adquisición
 idempotente y canje irreversible. El CRUD genérico de esas entidades es solo
-lectura; las operaciones pasan por endpoints y servicios dedicados. Faltan los
-clientes conectados y el panel web. Consulta
-[estado y correspondencia con el SRS](./docs/estado-implementacion.md) y
-[reglas de lealtad](./docs/reglas-lealtad.md).
+lectura; las operaciones pasan por endpoints y servicios dedicados. La web ya
+consume la API con JWT de Supabase; faltan la app móvil y los CRUD completos del
+portal. Consulta [estado y correspondencia con el SRS](./docs/estado-implementacion.md),
+[reglas de lealtad](./docs/reglas-lealtad.md) y la
+[propuesta Free/Premium](./docs/planes-free-premium.md).
 
 ## Estructura
 
 | Ruta | Entrada y propósito |
 | --- | --- |
 | [backend/](./backend/README.md) | `manage.py`, `config/urls.py` y app `core/`: API y persistencia |
-| [frontend-web/](./frontend-web/README.md) | `src/main.tsx` → `src/App.tsx`: landing pública |
+| [frontend-web/](./frontend-web/README.md) | `src/main.tsx` → `src/App.tsx`: landing y portal de negocios |
 | [mobile-app/](./mobile-app/README.md) | `index.ts` → `App.tsx`: aplicación de consumidores |
 | [benef-ai/](./benef-ai/README.md) | `main.py`: servicio IA en preparación |
 | [hardware/](./hardware/README.md) | Futuro firmware ESP32-S3 |

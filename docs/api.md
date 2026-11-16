@@ -67,11 +67,27 @@ solo se crean o modifican mediante los endpoints transaccionales de lealtad.
 | Método | Ruta | Uso |
 | --- | --- | --- |
 | GET | `/api/v1/autenticacion/perfil/` | Perfil local del usuario autenticado |
+| GET | `/api/v1/mi/contexto/` | Perfil, membresías, negocios y sucursales accesibles y `puede_portal` |
 | PATCH | `/api/v1/usuario/rol/{id}/` | Cambiar `rol` o `is_active`; solo `admin_sistema` |
 
-Hay 92 rutas de API en total. Las dos anteriores no sustituyen los CRUD.
+Hay 93 rutas de API en total. Las tres anteriores no sustituyen los CRUD.
 El login, registro de identidad, refresh y logout ocurren en Supabase Auth,
 no bajo `/api/v1`. `usuario/crear/` crea el perfil Benefy después del login.
+
+### Contexto del portal
+
+```http
+GET /api/v1/mi/contexto/
+Authorization: Bearer <access_token>
+```
+
+Devuelve `usuario`, `es_admin_sistema`, `puede_portal`, `membresias`,
+`negocios` y `sucursales`. Las membresías incluyen el rol comercial y la
+sucursal asignada. Solo aparecen membresías activas cuyo negocio y sucursal
+(esta última si aplica) estén habilitados. Un consumidor sin membresías recibe
+`puede_portal: false` y listas vacías. `admin_sistema` recibe los negocios y
+sucursales activos de la plataforma. Es la fuente de verdad para decidir qué
+dashboard mostrar; los guards de React no sustituyen los permisos de Django.
 
 ## Roles
 
@@ -164,6 +180,21 @@ puede reactivarse.
 | `alianza_vencida` | 409 | Alianza fuera de vigencia |
 
 Los errores del motor usan el formato `{"codigo":"...","detalle":"..."}`.
+
+### Métricas por negocio y sucursal
+
+```http
+GET /api/v1/negocios/1/metricas/?desde=2026-11-01&hasta=2026-11-15&sucursal=3
+Authorization: Bearer <access_token>
+```
+
+Las fechas son ISO y usan la zona horaria del negocio. Sin `sucursal`, el dueño
+y `admin_sistema` obtienen el consolidado (`alcance: "negocio"`). Un supervisor
+o empleado recibe solo sus sucursales autorizadas (`alcance: "sucursal"`); pedir
+otra sucursal responde `403`. Si se filtra por sucursal, la respuesta incluye
+`sucursales` y devuelve `null` en `puntos_otorgados`, `puntos_consumidos`,
+`cupones_emitidos` y `tarjetas_completadas`, porque esas entidades no tienen
+sucursal propia. Nunca se mezclan totales del negocio con datos de una sucursal.
 
 ## Ejemplo de lectura
 

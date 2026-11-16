@@ -2,9 +2,9 @@
 
 Supabase Auth gestiona registro, confirmación de correo, contraseñas, inicio
 de sesión, renovación y cierre de sesión. Django conserva perfiles, roles,
-membresías y reglas de acceso a los datos. El dashboard y la app móvil aún
-deben integrar sus pantallas y el cliente de Supabase; este cambio implementa
-el contrato y la protección del backend.
+membresías y reglas de acceso a los datos. El portal web ya consume Supabase
+Auth y la API de Django; la aplicación móvil todavía debe integrar sus pantallas
+y el cliente de Supabase.
 
 ## Flujo implementado
 
@@ -39,6 +39,68 @@ El cierre de sesión y la revocación siguen el ciclo de vida de Supabase; no
 se promete que un access token quede invalidado inmediatamente tras cerrar
 sesión. Desactivar `Usuario.is_active` bloquea el acceso a Benefy en la
 siguiente petición, incluso con un token todavía válido.
+
+## Portal web
+
+La web usa `@supabase/supabase-js` con la clave publicable y **nunca** una
+clave `service_role` ni secretos de Django o PostgreSQL. El cliente se crea una
+sola vez en `src/lib/supabase.ts` con `persistSession`, `autoRefreshToken` y
+`detectSessionInUrl`.
+
+Variables de build de Vite:
+
+```dotenv
+VITE_API_BASE_URL=/api/v1
+VITE_SUPABASE_URL=https://tu-proyecto.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_reemplazar
+```
+
+En desarrollo se usa `frontend-web/.env`; en producción, `VITE_API_BASE_URL=/api/v1`
+porque Caddy sirve la SPA y la API en el mismo origen. `frontend-web/Dockerfile`
+recibe las tres variables como `ARG` y `compose.demo.yaml` las toma de
+`SUPABASE_URL` y `SUPABASE_PUBLISHABLE_KEY`. Los archivos `.env` reales siguen
+excluidos de Git; los ejemplos solo contienen placeholders.
+
+### Sesión y cliente HTTP
+
+`AuthProvider` restaura la sesión con `getSession`, escucha `onAuthStateChange`
+y carga perfil y contexto. `src/lib/api.ts` centraliza las peticiones:
+
+- envía `Authorization: Bearer <access_token>`;
+- ante un `401`, fuerza un único `refreshSession` y reintenta una vez, sin
+  bucles ni solicitudes duplicadas (la renovación concurrente se comparte);
+- interpreta `codigo`/`detalle`, `detail` y errores de validación de DRF;
+- ante un `403`, no reintenta ni cierra la sesión: el portal muestra el error o
+  redirige según el contexto.
+
+`RequireSession` exige sesión para el onboarding y el portal. `RequirePortalAccess`
+usa `puede_portal` del contexto y `RequireAdmin` exige `es_admin_sistema`. Los
+guards solo controlan la navegación; Django vuelve a validar cada petición.
+
+### Onboarding y accesos
+
+1. Un usuario nuevo inicia sesión y, si Django responde que no existe perfil,
+   pasa a `/completar-perfil` y crea el perfil con `POST /usuario/crear/`.
+2. Desde `/registrar-negocio` puede crear su negocio con `POST /negocio/crear/`.
+   Esa operación crea la membresía `dueno` en la misma transacción.
+3. Un consumidor con perfil pero sin membresías queda en `/acceso-restringido`,
+   con el CTA para registrar un negocio. También conserva su uso de la app móvil.
+4. `admin_sistema` entra a `/portal/admin`; dueño, supervisor y empleado entran
+   a `/portal/negocio/{id}` con navegación filtrada por rol.
+
+Una sesión persistida se restaura al recargar. El logout llama a
+`supabase.auth.signOut()` y limpia perfil, contexto y la caché de sesión. La
+recuperación usa `resetPasswordForEmail` con retorno a `/actualizar-password`;
+la nueva contraseña se guarda con `supabase.auth.updateUser`. No hay botones de
+Google, Magic Link ni «Recordarme» simulados.
+
+### Revocación
+
+El contexto se consulta en cada carga y el backend vuelve a comprobar las
+membresías en cada petición. Si una membresía, negocio o sucursal se desactiva,
+el contexto deja de incluirla y las rutas de datos responden `403` o listas
+vacías. La interfaz muestra el error o vuelve al acceso restringido; no se
+confía en ningún estado guardado en el navegador.
 
 ## Configuración
 
@@ -227,7 +289,7 @@ No se exponen los identificadores Firebase heredados.
 | `POST /admin/puntos/ajustar/` | `admin_sistema` | Ajuste auditado sin saldo negativo |
 | `POST /admin/visitas/{id}/anular/` | `admin_sistema` | Anulación con motivo |
 | `POST /admin/cupones/{uuid}/anular/` | `admin_sistema` | Anulación con motivo y sin devolución automática |
-| `GET /negocios/{id}/metricas/` | Dueño, supervisor o admin | Métricas del negocio solicitado |
+| `GET /negocios/{id}/metricas/` | Dueño, supervisor o admin | Dueño/admin: negocio completo o `?sucursal=`; supervisor/empleado: solo su sucursal |
 
 Todos los usuarios autenticados y activos pueden registrar visitas, consultar
 su billetera, adquirir cupones y canjearlos, aunque también administren uno o
@@ -253,8 +315,8 @@ de consumidor. `admin_sistema` es un privilegio global independiente.
 | Recompensas | Miembros de los negocios asociados | Dueño de la dinámica; si es de alianza, dueño de ambos negocios |
 | Alianzas | Miembros de los negocios involucrados | Solo admin hasta implementar aprobación bilateral |
 | Actividades | Consumidor: propias; personal: su alcance de sucursal | Solo lectura por CRUD; alta exclusiva desde `POST /visitas/registrar/`; anulación solo admin |
-| Progreso y cupones | Consumidor: propios; personal: su negocio | Solo lectura por CRUD; adquisición y emisión desde servicios de lealtad |
-| Canjes | Consumidor: propios; personal: su negocio | Solo lectura por CRUD; canje exclusivo del dueño del cupón desde `POST /cupones/{uuid}/canjear/` |
+| Progreso y cupones | Consumidor: propios; dueño: negocio completo; supervisor/empleado: sin listado global de cupones | Solo lectura por CRUD; adquisición y emisión desde servicios de lealtad |
+| Canjes | Consumidor: propios; dueño: negocio completo; supervisor/empleado: su sucursal | Solo lectura por CRUD; canje exclusivo del dueño del cupón desde `POST /cupones/{uuid}/canjear/` |
 | Saldos y lotes de puntos | Consumidor: propios; personal: su negocio | Solo servicios; ajustes exclusivos de `admin_sistema` |
 | Pagos y suscripciones | Dueño del negocio y admin del sistema | Solo admin hasta implementar webhooks verificados |
 | Notificaciones | Propias y admin del sistema | Usuario solo marca `leida`; crear/borrar solo admin |
@@ -327,8 +389,16 @@ relaciones, ni copies valores antiguos de Firebase como si fueran UUID Supabase.
   claves secretas y sesiones son privadas. Conserva las variables reales fuera de Git.
 - Las pruebas simulan Supabase Auth y se ejecutan sobre PostgreSQL local aislado.
   Cubren 401/403/404/503, perfiles, escalamiento, aislamiento de negocios y
-  sucursales, autoría de canjes, roles, bloqueo y conservación de usuarios al migrar.
-- No se añadieron dependencias: se usa el cliente HTTP de Python y DRF existente.
+  sucursales, contexto del portal, revocación de membresías, autoría de canjes,
+  roles, bloqueo y conservación de usuarios al migrar (126 pruebas de Django).
+- La web se valida con `npm run typecheck` y `npm run build`. El E2E de navegador
+  con Playwright/Edge cubrió 9/9: redirección sin sesión, dashboard de dueño con
+  métricas reales, navegación, persistencia tras recarga, logout, panel global,
+  acceso restringido del consumidor, credenciales incorrectas y recuperación.
+- El E2E de API con JWT reales de Supabase cubrió 13/13 contexto, métricas y
+  permisos para `admin@benefy.com`, `business@benefy.com` y `user@benefy.com`.
+- No se añadieron dependencias al backend: se usa el cliente HTTP de Python y
+  DRF existente. La web añade `@supabase/supabase-js`.
 - El health check no implica que Auth esté configurado. La prueba real requiere
   un usuario confirmado y un access token del proyecto; nunca pegues el token
   en documentación, commits o logs.
@@ -336,8 +406,12 @@ relaciones, ni copies valores antiguos de Firebase como si fueran UUID Supabase.
 Archivos principales: `core/authentication.py` verifica identidad;
 `core/access.py` filtra querysets y autoriza escrituras;
 `core/permissions.py` conserva las reglas de membresía;
+`core/views_portal.py` y `core/serializers_portal.py` exponen el contexto;
 `core/views.py` mantiene las vistas independientes y usa las genéricas DRF para
 aplicar el alcance a listados y detalles; `core/serializers.py` restringe campos.
+En la web: `src/auth/` (sesión, guards y contexto), `src/lib/` (Supabase, API y
+tipos), `src/portal/` (layout, selectores y dashboards) y `src/pages/` (login,
+registro, recuperación, onboarding y acceso restringido).
 
 Referencias oficiales:
 
