@@ -17,8 +17,8 @@ class LealtadPermisosTests(TestCase):
     def setUp(self):
         self.consumer = crear_usuario()
         self.other = crear_usuario()
-        self.owner = crear_usuario(rol='negocio')
-        self.foreign_owner = crear_usuario(rol='negocio')
+        self.owner = crear_usuario()
+        self.foreign_owner = crear_usuario()
         self.admin = crear_usuario(rol='admin_sistema')
         self.business = crear_negocio()
         self.foreign = crear_negocio('Ajeno')

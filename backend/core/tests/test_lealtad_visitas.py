@@ -98,11 +98,23 @@ class VisitasAPITests(TestCase):
         self.assertEqual(response.status_code, 403)
         self.assertEqual(response.data['codigo'], 'negocio_inactivo')
 
-    def test_solo_consumidores_registran_visitas(self):
-        empleado = crear_usuario(rol='negocio')
+    def test_usuario_con_membresia_tambien_registra_visita(self):
+        empleado = crear_usuario()
+        models.UsuarioNegocio.objects.create(
+            usuario=empleado,
+            negocio=self.business,
+            sucursal=self.branch,
+            rol_comercio='empleado',
+        )
         self.client.force_authenticate(empleado)
         response = self.registrar()
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 201)
+
+    def test_admin_sistema_tambien_registra_visita(self):
+        admin = crear_usuario(rol='admin_sistema')
+        self.client.force_authenticate(admin)
+        response = self.registrar()
+        self.assertEqual(response.status_code, 201)
 
     def test_visita_anulada_bloquea_un_nuevo_registro(self):
         primera = self.registrar()

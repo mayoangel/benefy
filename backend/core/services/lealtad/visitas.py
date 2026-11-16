@@ -9,11 +9,7 @@ from django.utils import timezone
 
 from core import models
 from core.services.lealtad import puntos, tarjetas
-from core.services.lealtad.errores import (
-    NegocioInactivo,
-    QRInvalido,
-    SoloConsumidores,
-)
+from core.services.lealtad.errores import CuentaInactiva, NegocioInactivo, QRInvalido
 from core.utils.tiempo import ahora_utc, fecha_negocio
 
 
@@ -38,8 +34,8 @@ def resolver_qr(qr_uuid):
 
 def registrar_visita(*, usuario, qr_uuid, metodo_validacion='qr', ahora=None):
     """Registra una visita válida y aplica puntos y tarjetas una sola vez al día."""
-    if usuario.rol != 'consumidor':
-        raise SoloConsumidores('Solo los consumidores pueden registrar visitas.')
+    if not usuario.is_active:
+        raise CuentaInactiva('La cuenta está inactiva.')
     ahora = ahora or ahora_utc()
     negocio, sucursal = resolver_qr(qr_uuid)
 

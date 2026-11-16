@@ -4,6 +4,12 @@
 **Rama:** `feat/lealtad-mvp`.
 **Commits relevantes:** `9c37da6` motor de lealtad, `60d2e97` corrección de tarjetas de una sola ocasión.
 
+> **Vigencia:** los resultados de las secciones 2 y 3 corresponden a la versión
+> anterior al refactor de membresías. Desde las migraciones `0008`–`0010`, todos
+> los usuarios activos pueden consumir, el rol global `negocio` desaparece y el
+> rol comercial `admin` pasa a llamarse `supervisor`. La suite actualiza esas
+> expectativas y añade pruebas de membresías.
+
 ---
 
 ## 1. Entorno validado
@@ -29,7 +35,7 @@ Se ejecutaron 17 comprobaciones contra el backend demo y Supabase. Todas pasaron
 |---|---|
 | Visita inicial con QR de negocio | `201`, puntos y avance de tarjetas |
 | Visita duplicada con QR de sucursal | `200`, `already_registered: true`, sin nuevos beneficios |
-| Permiso de visita | Rol `negocio` recibe `403` |
+| Permiso de visita | Rol `negocio` recibía `403` (antes del refactor) |
 | Billetera aislada | Cada consumidor ve solo sus datos |
 | Ajuste administrativo | `201`; consumidor recibe `403` |
 | Adquisición de cupón | `201`, descuenta puntos y stock |
@@ -77,7 +83,7 @@ role = authenticated
 Datos generados por el E2E:
 
 ```text
-Perfil Django: id=5, rol=consumidor
+Perfil Django: id=5, rol inicial consumidor
 Negocio: 1
 Saldo: 10 puntos
 Tarjeta única: completada
@@ -97,17 +103,20 @@ Esto funciona y rechaza tokens alterados o malformados, pero si se exige validac
 
 ### Perfil de `admin@benefy.com`
 
-El alta propia creó el perfil con rol `consumidor`, aunque el correo sea `admin@benefy.com`. Si debe ser `admin_sistema`, requiere una promoción autorizada.
+El alta propia creó el perfil como `consumidor`; posteriormente se promovió a
+`admin_sistema` con autorización. Conserva una sola identidad Auth.
 
 ### Usuario manual
 
-El usuario `qa.e2e.20261114113601@example.com` fue creado manualmente antes de la restricción de SQL directo. El usuario indicó que lo eliminó desde el Dashboard; al cierre de esta revisión seguía apareciendo en `auth.users`. Conviene verificarlo nuevamente en el Dashboard.
+El usuario `qa.e2e.20261114113601@example.com`, creado manualmente antes de la
+restricción de SQL directo, fue eliminado desde el Dashboard. La verificación
+posterior confirmó que no queda ninguna fila con ese correo en `auth.users`.
 
 ---
 
 ## 5. Datos de prueba restantes
 
-Conteos al cierre:
+Conteos al cierre de la validación original:
 
 ```text
 Usuario 5, CategoriaNegocio 1, Negocio 1, Sucursal 1, UsuarioNegocio 1,

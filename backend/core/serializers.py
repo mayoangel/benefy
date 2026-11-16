@@ -77,9 +77,21 @@ class UsuarioSerializerUpdate(UsuarioSerializerCreate):
         ]
 
 class UsuarioRolSerializer(serializers.ModelSerializer):
+    rol = serializers.CharField(max_length=30)
+
     class Meta:
         model = models.Usuario
         fields = ["rol", "is_active"]
+
+    def validate_rol(self, value):
+        if value == "negocio":
+            # Alias temporal para clientes anteriores al refactor.
+            return "consumidor"
+        if value not in ("consumidor", "admin_sistema"):
+            raise serializers.ValidationError(
+                "El rol debe ser consumidor o admin_sistema."
+            )
+        return value
 
 #Delete
 class UsuarioSerializerDelete(serializers.ModelSerializer):
@@ -413,7 +425,36 @@ class SucursalSerializerDelete(serializers.ModelSerializer):
 #Usuario-Negocio Serializers
 
 #Create
+def validar_rol_comercio(value):
+    if value == "admin":
+        # Alias temporal para clientes anteriores al refactor.
+        return "supervisor"
+    if value not in dict(models.ROLES_COMERCIO):
+        raise serializers.ValidationError("El rol comercial no es válido.")
+    return value
+
+
+def validar_membresia(negocio, sucursal, rol_comercio):
+    if rol_comercio == "dueno" and sucursal is not None:
+        raise serializers.ValidationError({
+            "sucursal": "El dueño no debe tener una sucursal asignada."
+        })
+    if rol_comercio in ("supervisor", "empleado") and sucursal is None:
+        raise serializers.ValidationError({
+            "sucursal": "El supervisor y el empleado requieren una sucursal."
+        })
+    if sucursal is not None and sucursal.negocio_id != negocio.pk:
+        raise serializers.ValidationError({
+            "sucursal": "La sucursal debe pertenecer al negocio indicado."
+        })
+
+
 class UsuarioNegocioSerializerCreate(serializers.ModelSerializer):
+    rol_comercio = serializers.CharField(
+        max_length=30, required=False, default="empleado",
+    )
+    motivo = serializers.CharField(write_only=True, required=False, allow_blank=True)
+
     class Meta:
         model = models.UsuarioNegocio
         fields = [
@@ -422,21 +463,27 @@ class UsuarioNegocioSerializerCreate(serializers.ModelSerializer):
             "sucursal",
             "rol_comercio",
             "status",
+            "motivo",
         ]
+        read_only_fields = ["status"]
+
+    def validate_rol_comercio(self, value):
+        return validar_rol_comercio(value)
 
     def validate(self, attrs):
         negocio = attrs["negocio"]
         sucursal = attrs.get("sucursal")
-        if sucursal is not None and sucursal.negocio_id != negocio.pk:
-            raise serializers.ValidationError({
-                "sucursal": "La sucursal debe pertenecer al negocio indicado."
-            })
+        rol_comercio = attrs.get("rol_comercio", "empleado")
+        validar_membresia(negocio, sucursal, rol_comercio)
         if models.UsuarioNegocio.objects.filter(
             usuario=attrs["usuario"],
             negocio=negocio,
             sucursal=sucursal,
+            status=True,
         ).exists():
-            raise serializers.ValidationError("El usuario ya está asignado a esta sucursal.")
+            raise serializers.ValidationError(
+                "El usuario ya tiene una membresía activa en esta sucursal."
+            )
         return attrs
 
 #List
@@ -460,6 +507,9 @@ class UsuarioNegocioSerializerDetail(serializers.ModelSerializer):
 
 #Update
 class UsuarioNegocioSerializerUpdate(serializers.ModelSerializer):
+    rol_comercio = serializers.CharField(max_length=30, required=False)
+    motivo = serializers.CharField(write_only=True, required=False, allow_blank=True)
+
     class Meta:
         model = models.UsuarioNegocio
         fields = [
@@ -468,26 +518,31 @@ class UsuarioNegocioSerializerUpdate(serializers.ModelSerializer):
             "sucursal",
             "rol_comercio",
             "status",
+            "motivo",
         ]
+
+    def validate_rol_comercio(self, value):
+        return validar_rol_comercio(value)
 
     def validate(self, attrs):
         usuario = attrs.get("usuario", self.instance.usuario)
         negocio = attrs.get("negocio", self.instance.negocio)
         sucursal = attrs.get("sucursal", self.instance.sucursal)
-        if sucursal and negocio and sucursal.negocio_id != negocio.pk:
-            raise serializers.ValidationError({
-                "sucursal": "La sucursal debe pertenecer al negocio indicado."
-            })
+        rol_comercio = attrs.get(
+            "rol_comercio", self.instance.rol_comercio,
+        )
+        validar_membresia(negocio, sucursal, rol_comercio)
 
         membresias = models.UsuarioNegocio.objects.filter(
             usuario=usuario,
             negocio=negocio,
             sucursal=sucursal,
-        )
-        if self.instance:
-            membresias = membresias.exclude(pk=self.instance.pk)
+            status=True,
+        ).exclude(pk=self.instance.pk)
         if membresias.exists():
-            raise serializers.ValidationError("El usuario ya está asignado a esta sucursal.")
+            raise serializers.ValidationError(
+                "El usuario ya tiene una membresía activa en esta sucursal."
+            )
         return attrs
 
 #Delete
@@ -1159,9 +1214,9 @@ class CuponUsuarioSerializerCreate(serializers.ModelSerializer):
     def validate(self, attrs):
         usuario = attrs["usuario"]
         recompensa = attrs["recompensa"]
-        if usuario.rol != "consumidor":
+        if not usuario.is_active:
             raise serializers.ValidationError({
-                "usuario": "Los cupones solo pueden emitirse a usuarios consumidores."
+                "usuario": "Los cupones solo pueden emitirse a usuarios activos."
             })
         if bool(recompensa.dinamica_id) == bool(recompensa.alianza_id):
             raise serializers.ValidationError({

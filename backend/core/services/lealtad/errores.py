@@ -26,10 +26,10 @@ class NegocioInactivo(ErrorLealtad):
     http_status = 403
 
 
-class SoloConsumidores(ErrorLealtad):
-    """Solo los usuarios consumidores pueden realizar esta operación."""
+class CuentaInactiva(ErrorLealtad):
+    """La cuenta del usuario está inactiva."""
 
-    codigo = "solo_consumidores"
+    codigo = "cuenta_inactiva"
     http_status = 403
 
 

@@ -9,7 +9,7 @@ independientes; no existe un gestor de paquetes ni un comando de ejecución
 
 | Componente | Implementado | Pendiente |
 | --- | --- | --- |
-| Backend | Django 5.2 + DRF, 20 modelos, siete migraciones de `core`, 92 rutas API, motor de visitas/puntos/tarjetas/cupones, permisos por negocio/sucursal y Django Admin | Dashboard web, migración a Supabase, analítica avanzada y webhooks |
+| Backend | Django 5.2 + DRF, 21 modelos, diez migraciones de `core`, 92 rutas API, motor de visitas/puntos/tarjetas/cupones, membresías auditadas, permisos por negocio/sucursal y Django Admin | Dashboard web, migración a Supabase, analítica avanzada y webhooks |
 | Identidad | Verificación remota de Supabase Auth y perfiles/roles en Django | Login y gestión de sesión en los clientes |
 | Web | Landing React 18 + Vite: Inicio, Nosotros, Precios y acceso simulado | Dashboard administrativo y consumo de API |
 | Móvil | Dashboard Benefy en Expo SDK 58 con resumen de puntos, retos, cupones y pestañas de demostración | Datos reales, Auth, cámara QR/NFC y cliente API |

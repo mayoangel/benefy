@@ -3,9 +3,10 @@
 from django.db import transaction
 from django.db.models import F, Q
 from django.db.models.deletion import ProtectedError
-from rest_framework.exceptions import APIException, PermissionDenied
+from rest_framework.exceptions import APIException, PermissionDenied, ValidationError
 
 from core import models, permissions
+from core.services import membresias
 
 
 class ProtectedDeleteConflict(APIException):
@@ -39,13 +40,13 @@ def scoped_queryset(user, queryset):
         owner_businesses = models.UsuarioNegocio.objects.filter(
             usuario=user, rol_comercio='dueno', sucursal__isnull=True, status=True,
         ).values('negocio_id')
-        admin_branches = models.UsuarioNegocio.objects.filter(
-            usuario=user, rol_comercio='admin', status=True,
+        supervisor_branches = models.UsuarioNegocio.objects.filter(
+            usuario=user, rol_comercio='supervisor', status=True,
             sucursal__negocio_id=F('negocio_id'),
         ).values('sucursal_id')
         return queryset.filter(
             Q(usuario=user) | Q(negocio_id__in=owner_businesses)
-            | Q(sucursal_id__in=admin_branches)
+            | Q(sucursal_id__in=supervisor_branches)
         )
     if model in (models.Dinamica, models.Suscripcion, models.Pago):
         # Facturación solo para propietarios; programas para miembros del negocio.
@@ -153,25 +154,69 @@ class ResourceAccessMixin:
         model = serializer.Meta.model
         authorize_write(self.request.user, model, serializer.validated_data,
                         supplied_fields=self.request.data.keys())
+
+        if model is models.UsuarioNegocio:
+            datos = dict(serializer.validated_data)
+            motivo = datos.pop('motivo', '')
+            try:
+                serializer.instance = membresias.crear_membresia(
+                    usuario=datos['usuario'],
+                    negocio=datos['negocio'],
+                    sucursal=datos.get('sucursal'),
+                    rol_comercio=datos.get('rol_comercio', 'empleado'),
+                    actor=self.request.user,
+                    motivo=motivo,
+                )
+            except membresias.ErrorMembresia as exc:
+                raise ValidationError({'detail': str(exc)}) from None
+            return serializer.instance
+
         instance = serializer.save()
         if model is models.Negocio:
-            user = self.request.user
-            if user.rol == 'consumidor':
-                user.rol = 'negocio'
-                user.save(update_fields=['rol'])
-            models.UsuarioNegocio.objects.create(usuario=user, negocio=instance,
-                                                rol_comercio='dueno', sucursal=None)
-        elif model is models.UsuarioNegocio and instance.usuario.rol == 'consumidor':
-            instance.usuario.rol = 'negocio'
-            instance.usuario.save(update_fields=['rol'])
+            try:
+                membresias.crear_membresia(
+                    usuario=self.request.user,
+                    negocio=instance,
+                    sucursal=None,
+                    rol_comercio='dueno',
+                    actor=self.request.user,
+                    motivo='Alta de negocio y membresía de dueño.',
+                )
+            except membresias.ErrorMembresia as exc:
+                raise ValidationError({'detail': str(exc)}) from None
+        return instance
 
     def perform_update(self, serializer):
-        authorize_write(self.request.user, serializer.Meta.model, serializer.validated_data,
+        model = serializer.Meta.model
+        authorize_write(self.request.user, model, serializer.validated_data,
                         serializer.instance, self.request.method, self.request.data.keys())
+        if model is models.UsuarioNegocio:
+            datos = dict(serializer.validated_data)
+            motivo = datos.pop('motivo', '')
+            try:
+                serializer.instance = membresias.actualizar_membresia(
+                    membresia=serializer.instance,
+                    cambios=datos,
+                    actor=self.request.user,
+                    motivo=motivo,
+                )
+            except membresias.ErrorMembresia as exc:
+                raise ValidationError({'detail': str(exc)}) from None
+            return serializer.instance
         serializer.save()
+        return serializer.instance
 
     def perform_destroy(self, instance):
         authorize_write(self.request.user, type(instance), {}, instance, 'DELETE')
+        if isinstance(instance, models.UsuarioNegocio):
+            datos = getattr(self.request, 'data', None)
+            motivo = datos.get('motivo', '') if hasattr(datos, 'get') else ''
+            membresias.desactivar_membresia(
+                membresia=instance,
+                actor=self.request.user,
+                motivo=motivo,
+            )
+            return
         try:
             instance.delete()
         except ProtectedError:

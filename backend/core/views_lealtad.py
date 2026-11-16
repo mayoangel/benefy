@@ -45,7 +45,7 @@ def _negocio_filtro(request):
 
 
 class RegistrarVisitaAPIView(APIView):
-    permission_classes = [permissions.EsConsumidor]
+    permission_classes = [permissions.PuedeConsumir]
 
     def post(self, request):
         serializer = RegistrarVisitaSerializer(data=request.data)
@@ -70,7 +70,7 @@ class RegistrarVisitaAPIView(APIView):
 
 
 class BilleteraAPIView(APIView):
-    permission_classes = [permissions.EsConsumidor]
+    permission_classes = [permissions.PuedeConsumir]
 
     def get(self, request):
         negocio_id = _negocio_filtro(request)
@@ -98,7 +98,7 @@ class BilleteraAPIView(APIView):
 
 
 class HistorialAPIView(APIView):
-    permission_classes = [permissions.EsConsumidor]
+    permission_classes = [permissions.PuedeConsumir]
 
     def get(self, request):
         negocio_id = _negocio_filtro(request)
@@ -164,7 +164,7 @@ class CatalogoAPIView(APIView):
 
 
 class AdquirirCuponAPIView(APIView):
-    permission_classes = [permissions.EsConsumidor]
+    permission_classes = [permissions.PuedeConsumir]
 
     def post(self, request):
         serializer = AdquirirCuponSerializer(data=request.data)
@@ -191,7 +191,7 @@ class AdquirirCuponAPIView(APIView):
 
 
 class CanjearCuponAPIView(APIView):
-    permission_classes = [permissions.EsConsumidor]
+    permission_classes = [permissions.PuedeConsumir]
 
     def post(self, request, uuid):
         try:

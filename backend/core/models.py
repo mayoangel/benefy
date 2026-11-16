@@ -6,8 +6,7 @@ from django.utils.text import slugify
 # USUARIO
 ROLES = (
     ('consumidor', 'Consumidor'),
-    ('negocio', 'Usuario de Negocio'),
-    ('admin_sistema', 'Administrador del sistema')
+    ('admin_sistema', 'Administrador del sistema'),
 )
 
 class Usuario(models.Model):
@@ -100,8 +99,8 @@ class Sucursal(models.Model):
 
 ROLES_COMERCIO = (
     ('empleado', 'Empleado'),
-    ('admin', 'Administrador'),
-    ('dueno', 'Dueño')
+    ('supervisor', 'Supervisor'),
+    ('dueno', 'Dueño'),
 )
 
 class UsuarioNegocio(models.Model):
@@ -111,11 +110,96 @@ class UsuarioNegocio(models.Model):
     rol_comercio = models.CharField(max_length=30, choices=ROLES_COMERCIO, default=ROLES_COMERCIO[0][0])
     status = models.BooleanField(default=True)
     fecha_registro = models.DateTimeField(auto_now_add=True, auto_now=False)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+    fecha_baja = models.DateTimeField(null=True, blank=True)
+    baja_por = models.ForeignKey(
+        Usuario, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='membresias_dadas_de_baja',
+    )
+    motivo_baja = models.TextField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    models.Q(rol_comercio='dueno', sucursal__isnull=True)
+                    | models.Q(
+                        rol_comercio__in=['supervisor', 'empleado'],
+                        sucursal__isnull=False,
+                    )
+                ),
+                name='membresia_sucursal_coherente',
+            ),
+            models.UniqueConstraint(
+                fields=['usuario', 'negocio'],
+                condition=models.Q(sucursal__isnull=True),
+                name='uniq_membresia_negocio',
+            ),
+            models.UniqueConstraint(
+                fields=['usuario', 'negocio', 'sucursal'],
+                condition=models.Q(sucursal__isnull=False),
+                name='uniq_membresia_sucursal',
+            ),
+        ]
 
     def __str__(self):
         return (
             f"{self.usuario.correo} - {self.negocio.nombre} "
             f"({self.get_rol_comercio_display()})"
+        )
+
+
+class AuditoriaMembresia(models.Model):
+    ACCIONES = (
+        ('alta', 'Alta'),
+        ('modificacion', 'Modificación'),
+        ('baja', 'Baja'),
+        ('reactivacion', 'Reactivación'),
+        ('migracion', 'Migración'),
+    )
+
+    membresia = models.ForeignKey(
+        UsuarioNegocio, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='auditorias',
+    )
+    usuario = models.ForeignKey(
+        Usuario, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='auditorias_membresias',
+    )
+    usuario_correo = models.CharField(max_length=255, blank=True, default='')
+    negocio = models.ForeignKey(
+        Negocio, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='auditorias_membresias',
+    )
+    negocio_nombre = models.CharField(max_length=150, blank=True, default='')
+    sucursal = models.ForeignKey(
+        Sucursal, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='auditorias_membresias',
+    )
+    sucursal_nombre = models.CharField(max_length=150, blank=True, default='')
+    rol_comercio = models.CharField(max_length=30, choices=ROLES_COMERCIO)
+    accion = models.CharField(max_length=30, choices=ACCIONES)
+    datos_anteriores = models.JSONField(null=True, blank=True)
+    datos_nuevos = models.JSONField(null=True, blank=True)
+    motivo = models.TextField(null=True, blank=True)
+    actor = models.ForeignKey(
+        Usuario, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='auditorias_membresias_realizadas',
+    )
+    actor_correo = models.CharField(max_length=255, blank=True, default='')
+    fecha = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ['-fecha']
+        indexes = [
+            models.Index(fields=['usuario', 'fecha'], name='auditoria_memb_usuario_idx'),
+            models.Index(fields=['negocio', 'fecha'], name='auditoria_memb_negocio_idx'),
+        ]
+
+    def __str__(self):
+        return (
+            f"{self.get_accion_display()} - {self.usuario_correo} "
+            f"en {self.negocio_nombre}"
         )
 
 TIPOS_DINAMICAS = (

@@ -1,7 +1,7 @@
 # Backend
 
 API Django 5.2 + Django REST Framework. La configuración está en `config/`;
-`core/` contiene 20 modelos, serializers, vistas, permisos y siete migraciones
+`core/` contiene 21 modelos, serializers, vistas, permisos y diez migraciones
 de dominio. La entrada de URLs es `config/urls.py`.
 
 ## Funcionalidad disponible
@@ -15,7 +15,7 @@ de dominio. La entrada de URLs es `config/urls.py`.
 - Django Admin con los modelos registrados y cuentas staff separadas de los perfiles Benefy.
 - PostgreSQL local para desarrollo o PostgreSQL Supabase con SSL para producción.
 - Comandos `db_info`, `expirar_puntos` y `verificar_puntos`.
-- 91 pruebas de salud, autenticación, permisos, aislamiento, migración, lealtad y concurrencia.
+- 110 pruebas de salud, autenticación, permisos, membresías, aislamiento, migración, lealtad y concurrencia.
 
 Consulta [API](../docs/api.md) para las rutas y
 [autenticación](../docs/autenticacion.md) para los payloads y la matriz de acceso.

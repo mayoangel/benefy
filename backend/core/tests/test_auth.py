@@ -79,9 +79,9 @@ class AuthAndPermissionsTests(TestCase):
         self.client = APIClient()
         self.consumer = self.user('consumer')
         self.other = self.user('other')
-        self.owner = self.user('owner', 'negocio')
-        self.manager = self.user('manager', 'negocio')
-        self.employee = self.user('employee', 'negocio')
+        self.owner = self.user('owner')
+        self.manager = self.user('manager')
+        self.employee = self.user('employee')
         self.admin = self.user('admin', 'admin_sistema')
         self.category = models.CategoriaNegocio.objects.create(nombre='Café')
         self.business = models.Negocio.objects.create(nombre='Uno', direccion='Centro',
@@ -97,7 +97,7 @@ class AuthAndPermissionsTests(TestCase):
         models.UsuarioNegocio.objects.create(usuario=self.owner, negocio=self.business,
             rol_comercio='dueno')
         models.UsuarioNegocio.objects.create(usuario=self.manager, negocio=self.business,
-            sucursal=self.branch, rol_comercio='admin')
+            sucursal=self.branch, rol_comercio='supervisor')
         models.UsuarioNegocio.objects.create(usuario=self.employee, negocio=self.business,
             sucursal=self.branch, rol_comercio='empleado')
         self.program = models.Dinamica.objects.create(nombre='Sellos', tipo='sellos',
@@ -237,12 +237,20 @@ class AuthAndPermissionsTests(TestCase):
                     ids = [row['id'] for row in self.client.get(f'/api/v1/{resource}/listar/').data]
                     self.assertEqual(ids, [expected] if visible else [])
 
-    def test_admin_y_empleado_no_pueden_elevar_membresia(self):
-        membership = models.UsuarioNegocio.objects.get(usuario=self.employee)
-        path = f'/api/v1/usuario-negocio/actualizar/{membership.pk}/'
-        for user in (self.manager, self.employee, self.owner):
+    def test_supervisor_y_empleado_no_pueden_elevar_a_supervisor(self):
+        membresia = models.UsuarioNegocio.objects.get(usuario=self.employee)
+        path = f'/api/v1/usuario-negocio/actualizar/{membresia.pk}/'
+        for user in (self.manager, self.employee):
             self.auth(user)
-            self.assertEqual(self.client.patch(path, {'rol_comercio': 'dueno'}).status_code, 403)
+            self.assertEqual(
+                self.client.patch(path, {'rol_comercio': 'supervisor'}).status_code,
+                403,
+            )
+        self.auth(self.owner)
+        self.assertEqual(
+            self.client.patch(path, {'rol_comercio': 'supervisor'}).status_code,
+            200,
+        )
 
     def test_no_puede_trasladar_dinamica_a_otro_negocio(self):
         self.auth(self.owner)
@@ -275,7 +283,7 @@ class AuthAndPermissionsTests(TestCase):
         payload['sucursal'] = self.branch.pk
         self.assertEqual(self.client.post('/api/v1/usuario-negocio/crear/', payload).status_code, 201)
         self.other.refresh_from_db()
-        self.assertEqual(self.other.rol, 'negocio')
+        self.assertEqual(self.other.rol, 'consumidor')
 
     def test_crud_generico_de_canje_y_cupones_es_solo_lectura(self):
         self.auth(self.admin)
@@ -289,7 +297,10 @@ class AuthAndPermissionsTests(TestCase):
         self.auth(self.owner)
         self.assertEqual(self.client.patch(path, {'rol': 'admin_sistema'}).status_code, 403)
         self.auth(self.admin)
-        self.assertEqual(self.client.patch(path, {'rol': 'negocio'}).status_code, 200)
+        self.assertEqual(self.client.patch(path, {'rol': 'admin_sistema'}).status_code, 200)
+        self.consumer.refresh_from_db()
+        self.assertEqual(self.consumer.rol, 'admin_sistema')
+        self.assertEqual(self.client.patch(path, {'rol': 'consumidor'}).status_code, 200)
 
     def test_crear_negocio_crea_membresia_de_dueno(self):
         self.auth(self.consumer)
@@ -297,7 +308,7 @@ class AuthAndPermissionsTests(TestCase):
             'correo': 'nuevo-negocio@example.com', 'categoria': self.category.pk})
         self.assertEqual(response.status_code, 201)
         self.consumer.refresh_from_db()
-        self.assertEqual(self.consumer.rol, 'negocio')
+        self.assertEqual(self.consumer.rol, 'consumidor')
         self.assertTrue(models.UsuarioNegocio.objects.filter(usuario=self.consumer,
             negocio__nombre='Nuevo', rol_comercio='dueno', sucursal__isnull=True).exists())
 

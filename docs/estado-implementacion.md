@@ -7,8 +7,8 @@ un servidor concreto ni una certificación de aceptación del producto.
 
 ## Arquitectura implementada
 
-- Django 5.2 y DRF concentran persistencia, perfiles y autorización. Hay 20
-  modelos de dominio y siete migraciones de `core`, además de las de Django.
+- Django 5.2 y DRF concentran persistencia, perfiles y autorización. Hay 21
+  modelos de dominio y diez migraciones de `core`, además de las de Django.
 - El motor de lealtad registra visitas por QR, aplica el límite diario con la
   zona horaria del negocio, otorga puntos por lotes con consumo FIFO, avanza
   tarjetas repetibles o de una sola vez y permite adquirir y canjear cupones
@@ -17,6 +17,10 @@ un servidor concreto ni una certificación de aceptación del producto.
   autenticación real con JWT pasó 12/12 el 14 de noviembre de 2026. Los clientes
   web y móvil todavía no consumen estos endpoints; el detalle está en
   [validación del MVP](./validacion-mvp-lealtad.md).
+- Los roles globales son `consumidor` y `admin_sistema`; el acceso comercial
+  se determina con `UsuarioNegocio.rol_comercio` (`dueno`, `supervisor`,
+  `empleado`). Todos los usuarios activos pueden consumir. Las altas, cambios y
+  bajas de membresías se auditan en `AuditoriaMembresia`.
 - Desarrollo usa PostgreSQL 17 dentro de Docker, la misma versión mayor que
   Supabase. El montaje de demostración apunta a PostgreSQL Supabase con SSL
   mediante un Compose independiente y el mismo ORM.
@@ -84,7 +88,7 @@ pero no el flujo completo ni la interfaz exigidos por el SRS.
 | HTTPS | SSL de PostgreSQL y HTTPS local con Caddy en el montaje demo; el TLS público sigue pendiente de despliegue |
 | Portabilidad | Imágenes Python 3.11 y Compose; la web se compila en el montaje demo y el móvil se ejecuta fuera de Docker. No hay builds móviles de publicación configurados |
 | Privacidad y exposición de datos | Permisos Python no protegen accesos directos por Data API; revisar exposición, privilegios y alcance de alianzas |
-| Pruebas | Django cubre salud, configuración, Auth, permisos, migración, motor de lealtad y concurrencia PostgreSQL (91 pruebas); el E2E de Auth se ejecutó manualmente contra Supabase. No hay suite web/móvil/IA ni E2E automatizada completa |
+| Pruebas | Django cubre salud, configuración, Auth, permisos, membresías, migración, motor de lealtad y concurrencia PostgreSQL (110 pruebas); el E2E de Auth se ejecutó manualmente contra Supabase. No hay suite web/móvil/IA ni E2E automatizada completa |
 
 Los porcentajes, ventanas de mantenimiento, retención de respaldos y objetivos
 de fiabilidad del PDF son requisitos pendientes de implementación/medición,

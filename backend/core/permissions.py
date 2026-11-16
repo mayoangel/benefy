@@ -3,8 +3,8 @@ from rest_framework.permissions import BasePermission
 
 from core import models
 
-#Roles de usuarios de comercio
-ROLES_COMERCIO_SUCURSAL = ("admin", "empleado")
+#Roles de usuarios de comercio con alcance de sucursal
+ROLES_SUCURSAL = ("supervisor", "empleado")
 
 #Validar si es usuario de Benefy
 def es_usuario_benefy(user):
@@ -18,30 +18,30 @@ def es_admin_sistema(user):
 def puede_acceder_negocio(user, negocio):
     if es_admin_sistema(user):
         return True
-    if not es_usuario_benefy(user) or user.rol != "negocio":
+    if not es_usuario_benefy(user):
         return False
 
-    membresia = models.UsuarioNegocio.objects.filter( #Obtener membresia
+    membresia = models.UsuarioNegocio.objects.filter(
         usuario=user,
         negocio=negocio,
         status=True,
     )
-    membresia_dueno = membresia.filter( #Si es el dueño del negocio
+    membresia_dueno = membresia.filter(
         rol_comercio="dueno",
         sucursal__isnull=True,
     )
-    membresia_usuario_comercio = membresia.filter( #Si es admin o empleado de sucursal del negocio
-        rol_comercio__in=ROLES_COMERCIO_SUCURSAL,
+    membresia_sucursal = membresia.filter(
+        rol_comercio__in=ROLES_SUCURSAL,
         sucursal__isnull=False,
         sucursal__negocio=negocio,
     )
-    return membresia_dueno.exists() or membresia_usuario_comercio.exists()
+    return membresia_dueno.exists() or membresia_sucursal.exists()
 
 #Permisos para gestionar datos de negocio
 def puede_administrar_negocio(user, negocio):
     if es_admin_sistema(user):
         return True
-    if not es_usuario_benefy(user) or user.rol != "negocio":
+    if not es_usuario_benefy(user):
         return False
     return models.UsuarioNegocio.objects.filter(
         usuario=user,
@@ -53,7 +53,7 @@ def puede_administrar_negocio(user, negocio):
 
 #Verificar si el usuario tiene membresía activa (enlazada al negocio)
 def _tiene_membresia_sucursal(user, sucursal, roles):
-    if not es_usuario_benefy(user) or user.rol != "negocio":
+    if not es_usuario_benefy(user):
         return False
     return models.UsuarioNegocio.objects.filter(
         usuario=user,
@@ -70,7 +70,7 @@ def puede_acceder_sucursal(user, sucursal):
     return puede_administrar_negocio(user, sucursal.negocio) or _tiene_membresia_sucursal(
         user,
         sucursal,
-        ROLES_COMERCIO_SUCURSAL,
+        ROLES_SUCURSAL,
     )
 
 #Verificar si se puede operar una sucursal
@@ -82,7 +82,7 @@ def puede_operar_sucursal(user, sucursal):
         and sucursal.negocio.status
         and (
             puede_administrar_negocio(user, sucursal.negocio)
-            or _tiene_membresia_sucursal(user, sucursal, ROLES_COMERCIO_SUCURSAL)
+            or _tiene_membresia_sucursal(user, sucursal, ROLES_SUCURSAL)
         )
     )
 
@@ -93,7 +93,7 @@ def puede_administrar_operaciones_sucursal(user, sucursal):
     return puede_administrar_negocio(user, sucursal.negocio) or _tiene_membresia_sucursal(
         user,
         sucursal,
-        ("admin",),
+        ("supervisor",),
     )
 
 #Permisos para gestionar membresía de suscripcion a Benefy
@@ -107,7 +107,7 @@ def puede_administrar_membresia(user, membresia):
     return (
         membresia.rol_comercio == "empleado"
         and membresia.sucursal_id is not None
-        and _tiene_membresia_sucursal(user, membresia.sucursal, ("admin",))
+        and _tiene_membresia_sucursal(user, membresia.sucursal, ("supervisor",))
     )
 
 #Permisos para crear membresía de suscripción a Benefy
@@ -122,7 +122,7 @@ def puede_crear_membresia(user, negocio, sucursal, rol_comercio):
         return True
     return (
         rol_comercio == "empleado"
-        and _tiene_membresia_sucursal(user, sucursal, ("admin",))
+        and _tiene_membresia_sucursal(user, sucursal, ("supervisor",))
     )
 
 #Permisos para acceder a datos de un usuario
@@ -145,7 +145,7 @@ def queryset_datos_usuario(user, queryset):
 def negocios_accesibles(user):
     if es_admin_sistema(user):
         return models.Negocio.objects.all()
-    if not es_usuario_benefy(user) or user.rol != "negocio":
+    if not es_usuario_benefy(user):
         return models.Negocio.objects.none()
 
     dueno_negocio_ids = models.UsuarioNegocio.objects.filter(
@@ -156,7 +156,7 @@ def negocios_accesibles(user):
     ).values("negocio_id")
     usuario_comercio_ids = models.UsuarioNegocio.objects.filter(
         usuario=user,
-        rol_comercio__in=ROLES_COMERCIO_SUCURSAL,
+        rol_comercio__in=ROLES_SUCURSAL,
         sucursal__isnull=False,
         sucursal__negocio_id=F("negocio_id"),
         status=True,
@@ -169,7 +169,7 @@ def negocios_accesibles(user):
 def sucursales_accesibles(user):
     if es_admin_sistema(user):
         return models.Sucursal.objects.all()
-    if not es_usuario_benefy(user) or user.rol != "negocio":
+    if not es_usuario_benefy(user):
         return models.Sucursal.objects.none()
 
     dueno_negocio_ids = models.UsuarioNegocio.objects.filter(
@@ -180,7 +180,7 @@ def sucursales_accesibles(user):
     ).values("negocio_id")
     usuario_comercio_ids = models.UsuarioNegocio.objects.filter(
         usuario=user,
-        rol_comercio__in=ROLES_COMERCIO_SUCURSAL,
+        rol_comercio__in=ROLES_SUCURSAL,
         sucursal__isnull=False,
         sucursal__negocio_id=F("negocio_id"),
         status=True,
@@ -195,9 +195,11 @@ class EsUsuarioBenefy(BasePermission):
         return es_usuario_benefy(request.user)
 
 
-class EsConsumidor(EsUsuarioBenefy):
+class PuedeConsumir(EsUsuarioBenefy):
+    """Todos los usuarios activos pueden usar las funciones de consumidor."""
+
     def has_permission(self, request, view):
-        return es_usuario_benefy(request.user) and request.user.rol == "consumidor"
+        return es_usuario_benefy(request.user)
 
 
 class EsAdminSistema(EsUsuarioBenefy):

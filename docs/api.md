@@ -73,6 +73,18 @@ Hay 92 rutas de API en total. Las dos anteriores no sustituyen los CRUD.
 El login, registro de identidad, refresh y logout ocurren en Supabase Auth,
 no bajo `/api/v1`. `usuario/crear/` crea el perfil Benefy después del login.
 
+## Roles
+
+| Nivel | Valores |
+|---|---|
+| Rol global | `consumidor`, `admin_sistema` |
+| Membresía de negocio | `dueno`, `supervisor`, `empleado` |
+
+Todos los usuarios activos pueden usar los endpoints de consumidor. El acceso
+a un negocio se obtiene exclusivamente por una membresía activa. `admin_sistema`
+es un privilegio global independiente. El alias `admin` se acepta temporalmente
+en membresías y se guarda como `supervisor`.
+
 ## Motor de lealtad
 
 | Método | Ruta | Acceso | Uso |
@@ -86,7 +98,7 @@ no bajo `/api/v1`. `usuario/crear/` crea el perfil Benefy después del login.
 | POST | `/api/v1/admin/puntos/ajustar/` | `admin_sistema` | Ajuste auditado de puntos |
 | POST | `/api/v1/admin/visitas/{id}/anular/` | `admin_sistema` | Anular visita con motivo |
 | POST | `/api/v1/admin/cupones/{uuid}/anular/` | `admin_sistema` | Anular cupón con motivo |
-| GET | `/api/v1/negocios/{id}/metricas/` | Dueño o admin | Métricas básicas por rango de fechas |
+| GET | `/api/v1/negocios/{id}/metricas/` | Dueño, supervisor o admin | Métricas básicas por rango de fechas |
 
 ### Registrar visita
 
@@ -161,9 +173,9 @@ Authorization: Bearer <access_token>
 Accept: application/json
 ```
 
-Un dueño ve sus sucursales; un empleado/admin de sucursal, las que le permite
-su membresía. Un consumidor sin membresías recibe una lista vacía en esta ruta:
-todavía no hay un catálogo público de comercios para la aplicación móvil.
+Un dueño ve sus sucursales; un supervisor o empleado de sucursal, las que le
+permite su membresía. Un usuario sin membresías recibe una lista vacía en esta
+ruta: todavía no hay un catálogo público de comercios para la aplicación móvil.
 
 Las listas devuelven arreglos JSON y no tienen paginación, filtros por periodo,
 ordenamiento configurable ni búsqueda implementados. No supongas que parámetros

@@ -105,6 +105,12 @@ automáticamente las opciones de la plataforma ni los grants de producción.
 - Añade `supabase_uid`, UUID único, opcional mientras se vinculan usuarios antiguos.
 - Añade `is_active`, verdadero por defecto.
 
+Las migraciones `0008`–`0010` refactorizan los permisos: `negocio` deja de ser
+un rol global, `admin` de sucursal pasa a `supervisor`, las membresías se
+normalizan con restricciones de sucursal y unicidad, y las altas/cambios/bajas
+quedan en `AuditoriaMembresia`. Los usuarios existentes conservan sus
+membresías; solo cambia su representación de rol.
+
 Un perfil anterior sin `supabase_uid` no puede iniciar sesión en Benefy hasta
 que un administrador lo vincule con una identidad verificada de Supabase.
 La coincidencia de correo devuelve 409 al intentar crear otro perfil; nunca
@@ -196,8 +202,12 @@ PATCH /api/v1/usuario/rol/12/
 Authorization: Bearer <access_token>
 Content-Type: application/json
 
-{"rol":"negocio","is_active":true}
+{"rol":"admin_sistema","is_active":true}
 ```
+
+Los roles globales válidos son `consumidor` y `admin_sistema`. El alias
+`negocio` se acepta temporalmente y se convierte en `consumidor`; ya no concede
+acceso a ningún negocio por sí solo.
 
 `GET /api/v1/usuarios/listar/` devuelve solo el usuario propio, salvo para
 `admin_sistema`. Recursos ajenos quedan fuera de los querysets y responden 404
@@ -208,34 +218,37 @@ No se exponen los identificadores Firebase heredados.
 
 | Ruta | Rol requerido | Alcance |
 | --- | --- | --- |
-| `POST /visitas/registrar/` | `consumidor` | Registra la visita del usuario autenticado |
-| `GET /mi/billetera/` | `consumidor` | Solo saldos, tarjetas y cupones propios |
-| `GET /mi/historial/` | `consumidor` | Solo visitas, movimientos y canjes propios |
+| `POST /visitas/registrar/` | Cualquier usuario activo | Registra la visita del usuario autenticado |
+| `GET /mi/billetera/` | Cualquier usuario activo | Solo saldos, tarjetas y cupones propios |
+| `GET /mi/historial/` | Cualquier usuario activo | Solo visitas, movimientos y canjes propios |
 | `GET /negocios/{id}/catalogo/` | Cualquier perfil activo | Recompensas activas del negocio |
-| `POST /cupones/adquirir/` | `consumidor` | Descuenta puntos y emite el cupón propio |
+| `POST /cupones/adquirir/` | Cualquier usuario activo | Descuenta puntos y emite el cupón propio |
 | `POST /cupones/{uuid}/canjear/` | Dueño del cupón | Canje irreversible; un cupón ajeno responde 403 |
 | `POST /admin/puntos/ajustar/` | `admin_sistema` | Ajuste auditado sin saldo negativo |
 | `POST /admin/visitas/{id}/anular/` | `admin_sistema` | Anulación con motivo |
 | `POST /admin/cupones/{uuid}/anular/` | `admin_sistema` | Anulación con motivo y sin devolución automática |
-| `GET /negocios/{id}/metricas/` | Dueño del negocio o admin | Métricas del negocio solicitado |
+| `GET /negocios/{id}/metricas/` | Dueño, supervisor o admin | Métricas del negocio solicitado |
 
-Los usuarios con rol `negocio` no pueden registrar visitas ni canjear cupones
-como consumidores. El personal del negocio conserva la lectura de su alcance,
-pero no interviene en el canje del cliente.
+Todos los usuarios autenticados y activos pueden registrar visitas, consultar
+su billetera, adquirir cupones y canjearlos, aunque también administren uno o
+varios negocios. La membresía comercial no bloquea la capacidad de consumidor.
+El personal del negocio no interviene obligatoriamente en el canje del cliente.
 
 ## Matriz de permisos
 
-`Usuario.rol` distingue consumidor, usuario de negocio y administrador del
-sistema. `UsuarioNegocio.rol_comercio` determina dueño, admin o empleado para
-un negocio/sucursal concretos. Tener rol `negocio` por sí solo no concede acceso.
+`Usuario.rol` distingue `consumidor` y `admin_sistema`. El acceso comercial se
+determina exclusivamente por `UsuarioNegocio.rol_comercio`: `dueno`,
+`supervisor` o `empleado` para un negocio/sucursal concretos. Un usuario sin
+membresía no accede a datos comerciales, aunque mantiene todas las funciones
+de consumidor. `admin_sistema` es un privilegio global independiente.
 
 | Recurso | Lectura | Escritura |
 | --- | --- | --- |
 | Usuarios | Propio; admin del sistema puede consultar todos | Perfil propio; roles/bloqueo solo admin; borrado solo admin |
 | Categorías y planes | Todos los perfiles autenticados | Solo admin del sistema |
 | Negocios | Miembros del negocio | Cualquier perfil puede crear su propio negocio; dueño modifica; borrado solo admin |
-| Sucursales | Dueño: todas las propias; admin/empleado: su sucursal | Dueño del negocio |
-| Membresías | Propia; dueño: su negocio; admin: su sucursal | Dueño asigna admin/empleado; admin de sucursal asigna empleados; solo admin del sistema asigna dueños |
+| Sucursales | Dueño: todas las propias; supervisor/empleado: su sucursal | Dueño del negocio |
+| Membresías | Propia; dueño: su negocio; supervisor: su sucursal | Dueño asigna supervisor/empleado; supervisor asigna empleados; solo admin del sistema asigna dueños |
 | Dinámicas | Miembros del negocio | Dueño del negocio |
 | Recompensas | Miembros de los negocios asociados | Dueño de la dinámica; si es de alianza, dueño de ambos negocios |
 | Alianzas | Miembros de los negocios involucrados | Solo admin hasta implementar aprobación bilateral |
@@ -253,9 +266,11 @@ el origen de una recompensa, trasladar una dinámica/sucursal a otro negocio,
 ni transferir una membresía a otro usuario/negocio mediante actualización.
 `stripe_id` solo puede establecerlo el administrador.
 
-Al crear negocio se actualiza el rol consumidor a negocio y se crea la membresía
-de dueño en una transacción. Al asignar la primera membresía a un consumidor,
-se actualiza su rol a negocio.
+Al crear un negocio se conserva el rol global `consumidor` y se crea la
+membresía `dueno` en una transacción. Asignar una membresía tampoco cambia el
+rol global: el usuario sigue siendo consumidor y obtiene acceso comercial por
+esa membresía. La creación, modificación y baja lógica de membresías queda
+auditada en `AuditoriaMembresia`.
 
 El canje del MVP lo inicia el cliente autenticado desde
 `POST /cupones/{uuid}/canjear/`. El backend valida la propiedad del cupón, su
