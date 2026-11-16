@@ -20,7 +20,8 @@ un servidor concreto ni una certificación de aceptación del producto.
 - Los roles globales son `consumidor` y `admin_sistema`; el acceso comercial
   se determina con `UsuarioNegocio.rol_comercio` (`dueno`, `supervisor`,
   `empleado`). Todos los usuarios activos pueden consumir. Las altas, cambios y
-  bajas de membresías se auditan en `AuditoriaMembresia`.
+  bajas de membresías se auditan en `AuditoriaMembresia`. Las migraciones
+  `0008`–`0010` quedaron aplicadas en Supabase el 15 de noviembre de 2026.
 - Desarrollo usa PostgreSQL 17 dentro de Docker, la misma versión mayor que
   Supabase. El montaje de demostración apunta a PostgreSQL Supabase con SSL
   mediante un Compose independiente y el mismo ORM.

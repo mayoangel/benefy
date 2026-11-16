@@ -1,13 +1,15 @@
 """Pruebas del refactor de membresías, roles y auditoría."""
 
+from datetime import timedelta
 from uuid import uuid4
 
 from django.db import IntegrityError, connection, transaction
 from django.db.migrations.executor import MigrationExecutor
 from django.test import TestCase, TransactionTestCase
+from django.utils import timezone
 from rest_framework.test import APIClient
 
-from core import models
+from core import models, permissions
 from core.services import membresias
 from core.tests.helpers import crear_negocio, crear_sucursal, crear_usuario
 
@@ -321,24 +323,131 @@ class MembresiaMigracionTests(TransactionTestCase):
                 sucursal=sucursal,
                 rol_comercio='admin',
             )
+            dueno = Usuario.objects.create(
+                supabase_uid=uuid4(),
+                nombre='Dueño migración',
+                apellido='Prueba',
+                correo=f'dueno.{uuid4().hex}@example.com',
+                rol='negocio',
+            )
+            UsuarioNegocio.objects.create(
+                usuario=dueno,
+                negocio=negocio,
+                sucursal=None,
+                rol_comercio='dueno',
+            )
+
+            Dinamica = old_apps.get_model('core', 'Dinamica')
+            Recompensa = old_apps.get_model('core', 'Recompensa')
+            RegistroActividad = old_apps.get_model('core', 'RegistroActividad')
+            SaldoPuntos = old_apps.get_model('core', 'SaldoPuntos')
+            LotePuntos = old_apps.get_model('core', 'LotePuntos')
+            CicloTarjeta = old_apps.get_model('core', 'CicloTarjeta')
+            CuponUsuario = old_apps.get_model('core', 'CuponUsuario')
+
+            programa = Dinamica.objects.create(
+                nombre=f'Programa {uuid4().hex[:6]}',
+                tipo='sellos',
+                meta=3,
+                fecha_inicio=timezone.now(),
+                fecha_fin=None,
+                negocio=negocio,
+            )
+            recompensa = Recompensa.objects.create(
+                titulo='Premio migración',
+                descripcion='Premio de prueba',
+                terminos_condiciones='Válido',
+                negocio=negocio,
+                dinamica=programa,
+                es_meta=True,
+                vigencia_dias=30,
+            )
+            visita = RegistroActividad.objects.create(
+                usuario=usuario,
+                negocio=negocio,
+                sucursal=sucursal,
+                tipo='visita',
+                fecha_negocio=timezone.localdate(),
+                es_valida=True,
+            )
+            saldo = SaldoPuntos.objects.create(
+                usuario=usuario, negocio=negocio, saldo_actual=25,
+            )
+            lote = LotePuntos.objects.create(
+                usuario=usuario,
+                negocio=negocio,
+                origen='visita',
+                cantidad_otorgada=25,
+                cantidad_disponible=25,
+                fecha_otorgamiento=timezone.now(),
+                referencia='visita:migracion',
+            )
+            ciclo = CicloTarjeta.objects.create(
+                usuario=usuario,
+                dinamica=programa,
+                negocio=negocio,
+                numero_ciclo=1,
+                sellos_actuales=1,
+                meta=3,
+                recompensa=recompensa,
+                estado='en_curso',
+                fecha_inicio=timezone.now(),
+            )
+            cupon = CuponUsuario.objects.create(
+                usuario=usuario,
+                recompensa=recompensa,
+                negocio=negocio,
+                fecha_expiracion=timezone.now() + timedelta(days=30),
+                status='disponible',
+            )
 
             executor = MigrationExecutor(connection)
             executor.migrate(latest)
-            new_apps = executor.loader.project_state(latest).apps
-            NuevoUsuario = new_apps.get_model('core', 'Usuario')
-            NuevaMembresia = new_apps.get_model('core', 'UsuarioNegocio')
-            Auditoria = new_apps.get_model('core', 'AuditoriaMembresia')
-
+            current_user = models.Usuario.objects.get(pk=usuario.pk)
+            current_business = models.Negocio.objects.get(pk=negocio.pk)
+            current_branch = models.Sucursal.objects.get(pk=sucursal.pk)
+            self.assertEqual(current_user.rol, 'consumidor')
             self.assertEqual(
-                NuevoUsuario.objects.get(pk=usuario.pk).rol,
-                'consumidor',
-            )
-            self.assertEqual(
-                NuevaMembresia.objects.get(pk=membresia.pk).rol_comercio,
+                models.UsuarioNegocio.objects.get(pk=membresia.pk).rol_comercio,
                 'supervisor',
             )
-            self.assertTrue(Auditoria.objects.filter(
+            self.assertTrue(models.AuditoriaMembresia.objects.filter(
                 membresia_id=membresia.pk, accion='migracion',
             ).exists())
+
+            # El antiguo administrador de sucursal conserva sus permisos.
+            self.assertTrue(permissions.puede_acceder_negocio(
+                current_user, current_business,
+            ))
+            self.assertTrue(permissions.puede_administrar_operaciones_sucursal(
+                current_user, current_branch,
+            ))
+            self.assertFalse(permissions.puede_administrar_negocio(
+                current_user, current_business,
+            ))
+
+            # El dueño conserva el control total del negocio.
+            current_owner = models.Usuario.objects.get(pk=dueno.pk)
+            self.assertEqual(current_owner.rol, 'consumidor')
+            self.assertTrue(permissions.puede_administrar_negocio(
+                current_owner, current_business,
+            ))
+
+            # Las tablas de lealtad no se alteran con el refactor.
+            self.assertEqual(
+                models.SaldoPuntos.objects.get(pk=saldo.pk).saldo_actual, 25,
+            )
+            self.assertEqual(
+                models.LotePuntos.objects.get(pk=lote.pk).cantidad_disponible, 25,
+            )
+            self.assertEqual(
+                models.RegistroActividad.objects.get(pk=visita.pk).es_valida, True,
+            )
+            self.assertEqual(
+                models.CicloTarjeta.objects.get(pk=ciclo.pk).sellos_actuales, 1,
+            )
+            self.assertEqual(
+                models.CuponUsuario.objects.get(pk=cupon.pk).status, 'disponible',
+            )
         finally:
             MigrationExecutor(connection).migrate(latest)

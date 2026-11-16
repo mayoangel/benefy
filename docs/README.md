@@ -10,6 +10,8 @@ Esta carpeta contiene la documentación funcional y técnica de Benefy.
 - [Reglas de lealtad](./reglas-lealtad.md): visitas, puntos, tarjetas, cupones y canje del MVP.
 - [Validación del MVP](./validacion-mvp-lealtad.md): pruebas funcionales, E2E de
   autenticación real, estado de servicios y brechas de integración.
+- [Validación del refactor de membresías](./validacion-refactor-membresias.md):
+  migración a Supabase, conservación de lealtad y E2E de los tres roles.
 - [Comandos del proyecto](./run_project.md): referencia rápida de desarrollo,
   verificación del montaje demo y presentación.
 - [Estado de implementación](./estado-implementacion.md): correspondencia con
