@@ -187,6 +187,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return currentContext;
   }, []);
 
+  // Revocación: al volver a la pestaña o recibir un 403 se recarga el contexto.
+  // Si la membresía ya no es efectiva, el guard redirige al acceso restringido.
+  useEffect(() => {
+    if (!session) return;
+
+    function actualizarSilenciosamente() {
+      void refreshContext().catch(() => {
+        // Un 401 lo gestiona el cliente HTTP; no se fuerza otro ciclo aquí.
+      });
+    }
+
+    window.addEventListener('focus', actualizarSilenciosamente);
+    window.addEventListener('benefy:contexto-invalidado', actualizarSilenciosamente);
+    return () => {
+      window.removeEventListener('focus', actualizarSilenciosamente);
+      window.removeEventListener('benefy:contexto-invalidado', actualizarSilenciosamente);
+    };
+  }, [session, refreshContext]);
+
   const value: AuthContextValue = {
     session,
     profile,

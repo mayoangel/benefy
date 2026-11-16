@@ -108,6 +108,9 @@ async function request<T>(
 
   if (!response.ok) {
     const { mensaje, codigo } = extraerMensaje(body);
+    if (response.status === 403 && !path.startsWith('/mi/contexto/')) {
+      window.dispatchEvent(new Event('benefy:contexto-invalidado'));
+    }
     throw new ApiError(response.status, mensaje, codigo);
   }
 

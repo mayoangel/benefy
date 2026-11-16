@@ -96,11 +96,12 @@ Google, Magic Link ni «Recordarme» simulados.
 
 ### Revocación
 
-El contexto se consulta en cada carga y el backend vuelve a comprobar las
-membresías en cada petición. Si una membresía, negocio o sucursal se desactiva,
-el contexto deja de incluirla y las rutas de datos responden `403` o listas
-vacías. La interfaz muestra el error o vuelve al acceso restringido; no se
-confía en ningún estado guardado en el navegador.
+El contexto se consulta en cada carga, al volver a la pestaña y cuando una
+petición devuelve `403`. El backend vuelve a comprobar las membresías en cada
+petición. Si una membresía, negocio o sucursal se desactiva, el contexto deja de
+incluirla y las rutas de datos responden `403` o listas vacías. La interfaz
+muestra el error o vuelve al acceso restringido; no se confía en ningún estado
+guardado en el navegador.
 
 ## Configuración
 
