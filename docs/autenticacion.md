@@ -79,14 +79,29 @@ guards solo controlan la navegación; Django vuelve a validar cada petición.
 
 ### Onboarding y accesos
 
-1. Un usuario nuevo inicia sesión y, si Django responde que no existe perfil,
-   pasa a `/completar-perfil` y crea el perfil con `POST /usuario/crear/`.
-2. Desde `/registrar-negocio` puede crear su negocio con `POST /negocio/crear/`.
-   Esa operación crea la membresía `dueno` en la misma transacción.
-3. Un consumidor con perfil pero sin membresías queda en `/acceso-restringido`,
-   con el CTA para registrar un negocio. También conserva su uso de la app móvil.
-4. `admin_sistema` entra a `/portal/admin`; dueño, supervisor y empleado entran
+1. `/registro` envía nombre del negocio y nombre completo en metadatos de
+   Supabase. Son datos iniciales, nunca permisos.
+2. Tras confirmar el correo e iniciar sesión, `AuthProvider` detecta que no hay
+   perfil o que no hay membresías y llama a
+   `POST /api/v1/onboarding/comercial/`.
+3. Django crea o recupera el perfil, el negocio, la membresía `dueno` y el plan
+   Free en una transacción idempotente asociada al UUID de Auth. Repetir la
+   llamada devuelve el mismo negocio.
+4. El usuario entra directamente a `/portal/negocio/{id}`. Si la operación
+   falla, `/completar-registro` permite reintentar sin otro formulario.
+5. Un consumidor sin registro comercial ni membresías queda en
+   `/acceso-restringido`. Para registrar un negocio adicional usa
+   `/registrar-negocio`, que crea otro negocio y su propio Free.
+6. Un usuario invitado puede crear una cuenta desde
+   `/registro?invitacion={token}`. No se le crea un negocio; al confirmar el
+   correo completa su perfil y acepta la invitación en `/invitacion/{token}`.
+7. `admin_sistema` entra a `/portal/admin`; dueño, supervisor y empleado entran
    a `/portal/negocio/{id}` con navegación filtrada por rol.
+
+`RegistroComercial` y `InvitacionMembresia` no conceden permisos por sí solos.
+La membresía de dueño nace del negocio creado por la identidad; la invitación
+solo se convierte en membresía cuando la identidad autenticada coincide con el
+correo y acepta.
 
 Una sesión persistida se restaura al recargar. El logout llama a
 `supabase.auth.signOut()` y limpia perfil, contexto y la caché de sesión. La
@@ -391,14 +406,16 @@ relaciones, ni copies valores antiguos de Firebase como si fueran UUID Supabase.
   claves secretas y sesiones son privadas. Conserva las variables reales fuera de Git.
 - Las pruebas simulan Supabase Auth y se ejecutan sobre PostgreSQL local aislado.
   Cubren 401/403/404/503, perfiles, escalamiento, aislamiento de negocios y
-  sucursales, contexto del portal, revocación de membresías, planes y límites,
-  autoría de canjes, roles, bloqueo y conservación de usuarios al migrar
-  (153 pruebas de Django).
+  sucursales, contexto del portal, onboarding idempotente, revocación de
+  membresías, planes, límites, invitaciones, operaciones, autoría de canjes,
+  roles, bloqueo y conservación de usuarios al migrar (195 pruebas de Django).
 - La web se valida con `npm run typecheck` y `npm run build`. El E2E de navegador
-  con Playwright/Edge cubrió 12/12, incluido el panel de plan, uso y límites.
-- El E2E de API con JWT reales de Supabase cubrió 24/24 contexto, planes,
-  límites, métricas y permisos para `admin@benefy.com`, `business@benefy.com` y
-  `user@benefy.com`.
+  con Playwright/Edge cubrió 16/16 para registro, CRUD y operaciones; el E2E de
+  planes cubrió 12/12.
+- El E2E de API con JWT reales de Supabase cubrió 27/27 de onboarding,
+  invitaciones, límites y operaciones, más 5/5 de cupón/canje y 24/24 de planes.
+  Se usaron `admin@benefy.com`, `business@benefy.com`, `user@benefy.com` y una
+  cuenta E2E de onboarding.
 - No se añadieron dependencias al backend: se usa el cliente HTTP de Python y
   DRF existente. La web añade `@supabase/supabase-js`.
 - El health check no implica que Auth esté configurado. La prueba real requiere

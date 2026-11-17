@@ -7,12 +7,16 @@ un servidor concreto ni una certificación de aceptación del producto.
 
 ## Arquitectura implementada
 
-- Django 5.2 y DRF concentran persistencia, perfiles y autorización. Hay 23
-  modelos de dominio y trece migraciones de `core`, además de las de Django.
+- Django 5.2 y DRF concentran persistencia, perfiles y autorización. Hay 25
+  modelos de dominio y quince migraciones de `core`, además de las de Django.
 - El motor de lealtad registra visitas por QR, aplica el límite diario con la
   zona horaria del negocio, otorga puntos por lotes con consumo FIFO, avanza
   tarjetas repetibles o de una sola vez y permite adquirir y canjear cupones
   de forma transaccional e idempotente.
+- El registro comercial es idempotente: el alta crea perfil, negocio, membresía
+  de dueño y Free desde una sola captura, sin formularios duplicados. El portal
+  incluye CRUD de negocio, sucursales, puntos, tarjetas, recompensas, equipo,
+  invitaciones y consultas operativas paginadas.
 - Free/Premium está implementado: catálogo de planes, límites configurables,
   suscripción vigente única por negocio, asignación automática de Free,
   cambios manuales auditados y bloqueo de altas por encima del cupo. Stripe y
@@ -20,10 +24,11 @@ un servidor concreto ni una certificación de aceptación del producto.
 - La validación funcional contra Supabase pasó 17/17 comprobaciones; el E2E de
   autenticación real con JWT pasó 12/12 el 14 de noviembre de 2026. El 15 de
   noviembre el E2E del portal pasó 13/13 en API y 9/9 en navegador; el 16 de
-  noviembre el E2E de planes pasó 24/24 en API y 12/12 en navegador. La web ya
-  consume estos endpoints; el detalle está en
-  [validación del MVP](./validacion-mvp-lealtad.md),
-  [validación de planes](./validacion-planes-free-premium.md) y
+  noviembre el E2E de planes pasó 24/24 en API y 12/12 en navegador. El E2E de
+  registro y CRUD pasó 16/16 en navegador, 27/27 en API y 5/5 de cupón/canje.
+  El detalle está en [validación del MVP](./validacion-mvp-lealtad.md),
+  [validación de planes](./validacion-planes-free-premium.md),
+  [validación de registro y CRUD](./validacion-registro-crud.md) y
   [autenticación](./autenticacion.md).
 - El portal web separa la administración global de los dashboards comerciales.
   Resuelve el acceso con `GET /mi/contexto/`, filtra navegación por rol y ofrece
@@ -34,8 +39,9 @@ un servidor concreto ni una certificación de aceptación del producto.
   se determina con `UsuarioNegocio.rol_comercio` (`dueno`, `supervisor`,
   `empleado`). Todos los usuarios activos pueden consumir. Las altas, cambios y
   bajas de membresías se auditan en `AuditoriaMembresia`. Las migraciones
-  `0008`–`0010` quedaron aplicadas en Supabase el 15 de noviembre de 2026 y las
-  `0011`–`0013` (planes) el 16 de noviembre de 2026.
+  `0008`–`0010` quedaron aplicadas en Supabase el 15 de noviembre de 2026, las
+  `0011`–`0013` (planes) y `0014`–`0015` (registro/invitaciones) el 16 de
+  noviembre de 2026.
 - Desarrollo usa PostgreSQL 17 dentro de Docker, la misma versión mayor que
   Supabase. El montaje de demostración apunta a PostgreSQL Supabase con SSL
   mediante un Compose independiente y el mismo ORM.
@@ -74,19 +80,19 @@ pero no el flujo completo ni la interfaz exigidos por el SRS.
 | ID | Requisito de la revisión 1.0 | Estado en el código |
 | --- | --- | --- |
 | RF-01 | Acceso y cierre de sesión | Login, sesión persistente, refresh, logout y recuperación en la web con Supabase Auth; Google y Auth móvil pendientes |
-| RF-02 | Registro y edición del comercio | Alta web de perfil y negocio con membresía de dueño; edición completa pendiente |
-| RF-03 | Dashboard y filtros de métricas | Portal con métricas reales por negocio o sucursal y rango de fechas; filtros avanzados y exportación pendientes |
-| RF-04 | Configurar dinámicas | Serializers y motor de puntos/tarjetas; faltan UI y pantalla de administración |
+| RF-02 | Registro y edición del comercio | Registro único con onboarding idempotente y edición del negocio en el portal; faltan campos comerciales avanzados |
+| RF-03 | Dashboard y filtros de métricas | Portal con métricas reales por negocio o sucursal y rango de fechas; exportación avanzada pendiente |
+| RF-04 | Configurar dinámicas | CRUD web de programa de puntos, tarjetas de sellos y recompensas con límites y conservación histórica |
 | RF-05 | Gestionar alianzas | Entidad/CRUD; escritura restringida al admin, falta aprobación bilateral e interfaz |
 | RF-06 | Consultar programas y progreso | Billetera, tarjetas en curso, catálogo y cupones propios; falta pantalla móvil |
 | RF-07 | Registro mediante QR | Endpoint de visita con QR de negocio/sucursal y límite diario; falta escáner móvil |
 | RF-08 | Registro mediante NFC | Identificador de sucursal; lectura y flujo pendientes |
-| RF-09 | Consultar/canjear recompensas | Adquisición atómica con puntos y canje irreversible de cliente; falta UI |
-| RF-10 | Historial de movimientos | Ledger de puntos, visitas, cupones y canjes consultables; faltan filtros avanzados y pantalla |
+| RF-09 | Consultar/canjear recompensas | Adquisición atómica con puntos y canje irreversible; portal de cupones/canjes; falta UI móvil |
+| RF-10 | Historial de movimientos | Ledger de puntos, visitas, cupones, canjes y clientes con filtros y paginación web; faltan exportaciones |
 | RF-11 | Permisos y preferencias de notificaciones | Pendiente en móvil; no hay permisos cámara/push ni preferencias |
 | RF-12 | Interfaz de suscripciones | Plan actual, límites, uso, excedentes y funciones Premium en el portal; cambio manual auditado por admin. Checkout y cobros pendientes |
-| RF-13 | Validaciones visuales | Validaciones de formularios de acceso y onboarding en la web; faltan las de los CRUD comerciales |
-| RF-14 | Navegación y recuperación ante errores | Portal con guards, estados de carga/error, logout y acceso restringido; faltan flujos móviles y de conexión |
+| RF-13 | Validaciones visuales | Validaciones en acceso, onboarding y CRUD comercial; faltan validaciones avanzadas de accesibilidad |
+| RF-14 | Navegación y recuperación ante errores | Portal con guards, onboarding, reintento, estados de carga/error, logout y acceso restringido; faltan flujos móviles y de conexión |
 | RF-15 | Cobros y webhooks Stripe | Pendiente; IDs Stripe en modelos no constituyen una integración |
 | RF-16 | Push automático con FCM | Pospuesto; modelo de notificaciones sin entrega ni cola de reintentos |
 
@@ -103,7 +109,7 @@ pero no el flujo completo ni la interfaz exigidos por el SRS.
 | HTTPS | SSL de PostgreSQL y HTTPS local con Caddy en el montaje demo; el TLS público sigue pendiente de despliegue |
 | Portabilidad | Imágenes Python 3.11 y Compose; la web se compila en el montaje demo y el móvil se ejecuta fuera de Docker. No hay builds móviles de publicación configurados |
 | Privacidad y exposición de datos | Permisos Python no protegen accesos directos por Data API; revisar exposición, privilegios y alcance de alianzas |
-| Pruebas | Django cubre salud, configuración, Auth, permisos, membresías, portal, aislamiento por sucursal, planes, límites, concurrencia, migración, motor de lealtad y PostgreSQL (153 pruebas). El E2E con Supabase pasó 24/24 en API y 12/12 en navegador. No hay suite móvil/IA ni E2E automatizada en CI |
+| Pruebas | Django cubre salud, configuración, Auth, permisos, membresías, onboarding, invitaciones, portal, aislamiento, planes, límites, concurrencia, operaciones, migración, motor de lealtad y PostgreSQL (195 pruebas). E2E: 16/16 navegador, 27/27 API de onboarding y 5/5 cupón/canje. No hay suite móvil/IA ni E2E automatizada en CI |
 
 Los porcentajes, ventanas de mantenimiento, retención de respaldos y objetivos
 de fiabilidad del PDF son requisitos pendientes de implementación/medición,
@@ -115,9 +121,9 @@ no garantías actuales. Tampoco se declara cumplimiento legal a partir del códi
    tarjetas es `CicloTarjeta`.
 2. El CRUD genérico de visitas, progreso, cupones y canjes es solo lectura; las
    operaciones reales pasan por los servicios transaccionales.
-3. El portal tiene layout, navegación, selectores y resúmenes; el CRUD de
-   dinámicas, recompensas y equipo sigue pendiente. Tampoco hay paginación,
-   filtros avanzados ni esquema OpenAPI.
+3. El portal tiene layout, navegación, CRUD comercial y consultas operativas.
+   Faltan paginación en todos los CRUD genéricos, exportaciones y algunas
+   validaciones avanzadas.
 4. El catálogo y la billetera tienen contrato backend; faltan pantallas conectadas
    en la aplicación móvil.
 5. Las alianzas con puntos compartidos, NFC y QR dinámicos quedan fuera del MVP.
@@ -126,12 +132,15 @@ no garantías actuales. Tampoco se declara cumplimiento legal a partir del códi
 7. Free/Premium está implementado en capacidades y límites. Faltan precios,
    Stripe, renovaciones, checkout, downgrade programado y la pantalla para
    regularizar tarjetas, sucursales o equipo excedentes.
+8. Las invitaciones se comparten por enlace; falta el envío automático de correo
+   y una pantalla de selección de ciclos tras downgrade.
 
-La secuencia de trabajo sugerida es completar los CRUD del portal, integrar
-Stripe y la facturación, resolver la regularización de excedentes, conectar la
-aplicación móvil con Auth y los contratos de visita, billetera, catálogo y canje,
-y programar la expiración periódica de puntos. Las integraciones externas y el
-hardware deben tener entregables propios y pruebas de flujo completo.
+La secuencia de trabajo sugerida es completar los CRUD restantes del portal,
+integrar Stripe y la facturación, resolver la regularización de excedentes,
+conectar la aplicación móvil con Auth y los contratos de visita, billetera,
+catálogo y canje, y programar la expiración periódica de puntos. Las
+integraciones externas y el hardware deben tener entregables propios y pruebas
+de flujo completo.
 
 ## Aspectos editoriales del SRS original
 

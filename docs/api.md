@@ -70,7 +70,7 @@ solo se crean o modifican mediante los endpoints transaccionales de lealtad.
 | GET | `/api/v1/mi/contexto/` | Perfil, membresías, negocios y sucursales accesibles y `puede_portal` |
 | PATCH | `/api/v1/usuario/rol/{id}/` | Cambiar `rol` o `is_active`; solo `admin_sistema` |
 
-Hay 96 rutas de API en total. Las tres anteriores no sustituyen los CRUD.
+Hay 106 rutas de API en total. Las tres anteriores no sustituyen los CRUD.
 El login, registro de identidad, refresh y logout ocurren en Supabase Auth,
 no bajo `/api/v1`. `usuario/crear/` crea el perfil Benefy después del login.
 
@@ -115,6 +115,49 @@ Al crear o reactivar recursos por encima del plan, el backend responde `403`:
 Los límites se aplican en sucursales, tarjetas de sellos (`Dinamica` tipo
 `sellos`), recompensas, supervisores y empleados. Los recursos inactivos no
 consumen cupo. El programa de puntos conserva su regla de uno activo por negocio.
+
+## Registro comercial
+
+```http
+POST /api/v1/onboarding/comercial/
+Authorization: Bearer <access_token>
+```
+
+Completa de forma idempotente el perfil, negocio, membresía `dueno` y plan Free
+usando los datos de registro de la identidad verificada. Solo se permite una vez
+por UUID de Supabase; los reintentos devuelven el mismo negocio con
+`ya_existia: true`. Los metadatos aportan datos, nunca roles ni permisos.
+
+Códigos: `sin_registro_comercial`, `registro_incompleto`, `registro_invalido`,
+`perfil_requiere_vinculacion`, `correo_negocio_en_uso`.
+
+## Operaciones del portal
+
+| Método | Ruta | Acceso | Uso |
+| --- | --- | --- | --- |
+| GET | `/api/v1/negocios/{id}/visitas/` | Miembros | Visitas paginadas; supervisor/empleado solo su sucursal |
+| GET | `/api/v1/negocios/{id}/cupones/` | Propietario/admin | Cupones emitidos paginados |
+| GET | `/api/v1/negocios/{id}/canjes/` | Miembros | Canjes paginados por alcance |
+| GET | `/api/v1/negocios/{id}/clientes/` | Propietario/admin | Clientes con visitas, puntos y cupones agregados |
+| POST | `/api/v1/negocios/{id}/tarjetas/` | Propietario/admin | Crea tarjeta de sellos y recompensa meta en una transacción |
+
+Las consultas aceptan `desde`, `hasta`, `sucursal`, `estado`, `buscar`, `page` y
+`page_size` cuando aplica. La respuesta paginada usa
+`{count, next, previous, results}`; clientes usa `{count, page, page_size, results}`.
+
+## Invitaciones
+
+| Método | Ruta | Acceso | Uso |
+| --- | --- | --- | --- |
+| GET | `/api/v1/negocios/{id}/invitaciones/` | Propietario, supervisor o admin | Lista invitaciones del alcance |
+| POST | `/api/v1/negocios/{id}/invitaciones/` | Propietario, supervisor o admin | Invita por correo; no crea membresía |
+| GET | `/api/v1/invitaciones/{token}/` | Invitado o admin | Consulta la invitación |
+| POST | `/api/v1/invitaciones/{token}/aceptar/` | Invitado autenticado | Crea la membresía tras validar el correo |
+| POST | `/api/v1/invitaciones/{token}/revocar/` | Propietario, supervisor o admin | Revoca una invitación pendiente |
+
+La membresía no se concede antes de la aceptación. Solo un administrador puede
+invitar a otro propietario. El sistema impide dejar un negocio sin propietario
+activo.
 
 ## Roles
 

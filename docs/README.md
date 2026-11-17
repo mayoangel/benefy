@@ -16,6 +16,8 @@ Esta carpeta contiene la documentación funcional y técnica de Benefy.
   asignación de Free, endpoints, downgrade y migraciones aplicadas.
 - [Validación de planes](./validacion-planes-free-premium.md): respaldo,
   migraciones, pruebas y E2E de Free/Premium.
+- [Validación del registro y CRUD](./validacion-registro-crud.md): causa raíz
+  del onboarding duplicado, flujo corregido, CRUD, invitaciones y E2E.
 - [Comandos del proyecto](./run_project.md): referencia rápida de desarrollo,
   verificación del montaje demo y presentación.
 - [Estado de implementación](./estado-implementacion.md): correspondencia con

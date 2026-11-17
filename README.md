@@ -9,9 +9,9 @@ independientes; no existe un gestor de paquetes ni un comando de ejecución
 
 | Componente | Implementado | Pendiente |
 | --- | --- | --- |
-| Backend | Django 5.2 + DRF, 23 modelos, trece migraciones de `core`, 96 rutas API, motor de visitas/puntos/tarjetas/cupones, membresías auditadas, aislamiento por sucursal, contexto del portal, planes Free/Premium con límites y Django Admin | CRUD del portal, analítica avanzada, Stripe y webhooks |
-| Identidad | Supabase Auth con login web real, sesión persistente, refresh, recuperación y onboarding; perfiles/roles en Django | Integración de Auth en la app móvil |
-| Web | Landing React 18 + Vite y portal conectado: dashboards por rol, selectores de negocio/sucursal, métricas reales, panel global y plan con uso/límites | CRUD de dinámicas, recompensas y equipo; checkout; E2E en CI |
+| Backend | Django 5.2 + DRF, 25 modelos, quince migraciones de `core`, 106 rutas API, motor de visitas/puntos/tarjetas/cupones, membresías auditadas, onboarding idempotente, invitaciones, aislamiento por sucursal, planes Free/Premium y Django Admin | Analítica avanzada, Stripe y webhooks |
+| Identidad | Supabase Auth con login web real, sesión persistente, refresh, recuperación, onboarding automático e invitaciones; perfiles/roles en Django | Integración de Auth en la app móvil |
+| Web | Landing React 18 + Vite y portal conectado: dashboards por rol, configuración, sucursales, puntos, tarjetas, recompensas, equipo, visitas, cupones, canjes, clientes y plan con uso/límites | Checkout, exportaciones y E2E en CI |
 | Móvil | Dashboard Benefy en Expo SDK 58 con resumen de puntos, retos, cupones y pestañas de demostración | Datos reales, Auth, cámara QR/NFC y cliente API |
 | Benef AI | FastAPI y endpoint de estado | Agente, proveedor LLM, herramientas y comunicación autenticada con Django |
 | Hardware | Carpeta de documentación | Firmware ESP32-S3 e integración física |
@@ -21,11 +21,13 @@ límite diario, puntos por lotes con FIFO, tarjetas de visitas, adquisición
 idempotente y canje irreversible. El CRUD genérico de esas entidades es solo
 lectura; las operaciones pasan por endpoints y servicios dedicados. La web ya
 consume la API con JWT de Supabase. Free/Premium aplica límites reales desde
-Django; faltan la app móvil, los CRUD completos del portal y Stripe. Consulta
+Django y el portal permite configurar el negocio y operar el programa. Faltan la
+app móvil, Stripe y las funciones Premium avanzadas. Consulta
 [estado y correspondencia con el SRS](./docs/estado-implementacion.md),
 [reglas de lealtad](./docs/reglas-lealtad.md), la
-[documentación de planes](./docs/planes-free-premium.md) y su
-[validación](./docs/validacion-planes-free-premium.md).
+[documentación de planes](./docs/planes-free-premium.md), su
+[validación](./docs/validacion-planes-free-premium.md) y la
+[validación de registro y CRUD](./docs/validacion-registro-crud.md).
 
 ## Estructura
 
