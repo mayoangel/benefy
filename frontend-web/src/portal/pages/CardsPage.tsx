@@ -167,8 +167,7 @@ export default function CardsPage() {
         setOk('Tarjeta creada con su recompensa meta.');
       }
       setEditando(null);
-      await cargar();
-      await recargarPlan();
+      await Promise.all([cargar(), recargarPlan()]);
     } catch (err) {
       if (err instanceof ApiError && err.codigo === 'limite_plan') {
         setError(`${err.message} Revisa tu plan o desactiva un recurso.`);
@@ -196,8 +195,7 @@ export default function CardsPage() {
         await api.updateReward(premio.id, { status: !tarjeta.status });
       }
       setOk(tarjeta.status ? 'Tarjeta desactivada.' : 'Tarjeta activada.');
-      await cargar();
-      await recargarPlan();
+      await Promise.all([cargar(), recargarPlan()]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo cambiar el estado.');
     } finally {

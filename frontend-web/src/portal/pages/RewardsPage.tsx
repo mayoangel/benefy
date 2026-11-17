@@ -112,8 +112,7 @@ export default function RewardsPage() {
         setOk('Recompensa creada.');
       }
       setEditando(null);
-      await cargar();
-      await recargarPlan();
+      await Promise.all([cargar(), recargarPlan()]);
     } catch (err) {
       if (err instanceof ApiError && err.codigo === 'limite_plan') {
         setError(`${err.message} Revisa tu plan o desactiva una recompensa.`);
@@ -137,8 +136,7 @@ export default function RewardsPage() {
     try {
       await api.updateReward(recompensa.id, { status: !recompensa.status });
       setOk(recompensa.status ? 'Recompensa desactivada.' : 'Recompensa activada.');
-      await cargar();
-      await recargarPlan();
+      await Promise.all([cargar(), recargarPlan()]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo cambiar el estado.');
     } finally {

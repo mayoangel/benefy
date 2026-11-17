@@ -1,5 +1,6 @@
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { useRequestGuard } from '../hooks/useRequestGuard';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
 import { api } from '../../lib/api.ts';
@@ -26,14 +27,15 @@ export default function CouponsPage() {
     page_size: 20,
   });
 
+  const search = useDebouncedValue(filtros.buscar);
+  const query = useMemo(() => ({...filtros, buscar: search}), [search, filtros.desde, filtros.hasta, filtros.page, filtros.page_size, filtros.estado]);
   const requestGuard = useRequestGuard(Number(negocioId));
   const cargar = useCallback(async () => {
     const vigente = requestGuard();
     setLoading(true);
     setError(null);
     try {
-      const respuesta = await api.getBusinessCoupons(id, filtros);
-      if (!vigente()) return;
+      const respuesta = await api.getBusinessCoupons(id, query);
       if (!vigente()) return;
       setDatos(respuesta);
     } catch (err) {
@@ -42,7 +44,7 @@ export default function CouponsPage() {
     } finally {
       if (vigente()) setLoading(false);
     }
-  }, [requestGuard, filtros, id]);
+  }, [requestGuard, query, id]);
 
   useEffect(() => {
     void cargar();

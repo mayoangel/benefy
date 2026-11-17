@@ -1,3 +1,4 @@
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { useRequestGuard } from '../hooks/useRequestGuard';
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
@@ -18,6 +19,7 @@ export default function ClientsPage() {
   const [buscar, setBuscar] = useState('');
   const [page, setPage] = useState(1);
 
+  const search = useDebouncedValue(buscar);
   const requestGuard = useRequestGuard(Number(negocioId));
   const cargar = useCallback(async () => {
     const vigente = requestGuard();
@@ -25,9 +27,8 @@ export default function ClientsPage() {
     setError(null);
     try {
       const respuesta = await api.getBusinessClients(id, {
-        buscar, page, page_size: 20,
+        buscar: search, page, page_size: 20,
       });
-      if (!vigente()) return;
       if (!vigente()) return;
       setDatos(respuesta);
     } catch (err) {
@@ -36,7 +37,7 @@ export default function ClientsPage() {
     } finally {
       if (vigente()) setLoading(false);
     }
-  }, [requestGuard, buscar, id, page]);
+  }, [requestGuard, search, id, page]);
 
   useEffect(() => {
     void cargar();

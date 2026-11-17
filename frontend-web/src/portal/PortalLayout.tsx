@@ -18,7 +18,7 @@ function navItems(rol: RolComercio | null) {
   if (rol === 'dueno') {
     return [
       { label: 'Resumen', path: '' },
-      { label: 'ConfiguraciÃ³n', path: 'configuracion' },
+      { label: 'Configuración', path: 'configuracion' },
       { label: 'Sucursales', path: 'sucursales' },
       { label: 'Puntos', path: 'puntos' },
       { label: 'Tarjetas', path: 'tarjetas' },
@@ -132,7 +132,7 @@ export default function PortalLayout() {
           <span className="portal-brand-mark">B</span>
           <div>
             <strong>Benefy</strong>
-            <small>{esAdmin ? 'AdministraciÃ³n global' : 'Portal de negocios'}</small>
+            <small>{esAdmin ? 'Administración global' : 'Portal de negocios'}</small>
           </div>
         </div>
 
@@ -163,10 +163,10 @@ export default function PortalLayout() {
           </label>
         ) : null}
 
-        <nav className="portal-nav" aria-label="NavegaciÃ³n del portal">
+        <nav className="portal-nav" aria-label="Navegación del portal">
           {esAdmin ? (
             <NavLink end to="/portal/admin" className={({ isActive }) => isActive ? 'is-active' : ''}>
-              AdministraciÃ³n global
+              Administración global
             </NavLink>
           ) : null}
           {!esAdmin && items.map((item) => (
@@ -187,7 +187,7 @@ export default function PortalLayout() {
             <Link to="/registrar-negocio">Registrar otro negocio</Link>
           ) : null}
           <Link to="/">Volver al sitio</Link>
-          <button type="button" onClick={() => void signOut()}>Cerrar sesiÃ³n</button>
+          <button type="button" onClick={() => void signOut()}>Cerrar sesión</button>
         </div>
       </aside>
 
@@ -201,9 +201,9 @@ export default function PortalLayout() {
             aria-controls="portal-navigation"
             className="portal-menu-button"
             onClick={() => setMenuOpen((value) => !value)}
-            aria-label="Abrir menÃº"
+            aria-label="Abrir menú"
           >
-            â˜°
+            ☰
           </button>
           <div>
             <strong>{esAdmin ? 'Panel de plataforma' : membresia?.negocio.nombre}</strong>

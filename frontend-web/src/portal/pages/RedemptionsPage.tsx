@@ -1,5 +1,6 @@
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { useRequestGuard } from '../hooks/useRequestGuard';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 
 import { useAuth } from '../../auth/AuthProvider.tsx';
@@ -31,14 +32,15 @@ export default function RedemptionsPage() {
     page_size: 20,
   });
 
+  const search = useDebouncedValue(filtros.buscar);
+  const query = useMemo(() => ({...filtros, buscar: search}), [search, filtros.desde, filtros.hasta, filtros.page, filtros.page_size, filtros.anulado, filtros.sucursal]);
   const requestGuard = useRequestGuard(Number(negocioId));
   const cargar = useCallback(async () => {
     const vigente = requestGuard();
     setLoading(true);
     setError(null);
     try {
-      const respuesta = await api.getBusinessRedemptions(id, {...filtros, sucursal: selectedBranch});
-      if (!vigente()) return;
+      const respuesta = await api.getBusinessRedemptions(id, {...query, sucursal: selectedBranch});
       if (!vigente()) return;
       setDatos(respuesta);
     } catch (err) {
@@ -47,7 +49,7 @@ export default function RedemptionsPage() {
     } finally {
       if (vigente()) setLoading(false);
     }
-  }, [requestGuard, filtros, id, selectedBranch]);
+  }, [requestGuard, query, id, selectedBranch]);
 
   useEffect(() => {
     void cargar();
@@ -70,7 +72,7 @@ export default function RedemptionsPage() {
     <section className="portal-page">
       <header className="portal-page-head">
         <div>
-          <span className="portal-eyebrow">OperaciÃ³n</span>
+          <span className="portal-eyebrow">Operación</span>
           <h1>Canjes</h1>
           <p>Cupones utilizados en el negocio o en tu sucursal.</p>
         </div>
@@ -128,15 +130,15 @@ export default function RedemptionsPage() {
               <thead>
                 <tr>
                   <th>Fecha</th><th>Beneficio</th><th>Cliente</th>
-                  <th>Sucursal</th><th>MÃ©todo</th><th>Estado</th>
+                  <th>Sucursal</th><th>Método</th><th>Estado</th>
                 </tr>
               </thead>
               <tbody>
                 {datos.results.map((canje) => (
                   <tr key={canje.id}>
                     <td>{new Date(canje.fecha).toLocaleDateString('es-MX')}</td>
-                    <td>{canje.titulo_beneficio || `CupÃ³n #${canje.cupon}`}</td>
-                    <td>{canje.usuario_correo ?? 'â€”'}</td>
+                    <td>{canje.titulo_beneficio || `Cupón #${canje.cupon}`}</td>
+                    <td>{canje.usuario_correo ?? '—'}</td>
                     <td>{canje.sucursal_nombre ?? 'Todo el negocio'}</td>
                     <td>{canje.metodo}</td>
                     <td>

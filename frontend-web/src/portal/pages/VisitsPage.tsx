@@ -1,5 +1,6 @@
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { useRequestGuard } from '../hooks/useRequestGuard';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 
 import { useAuth } from '../../auth/AuthProvider.tsx';
@@ -31,14 +32,15 @@ export default function VisitsPage() {
     page_size: 20,
   });
 
+  const search = useDebouncedValue(filtros.buscar);
+  const query = useMemo(() => ({...filtros, buscar: search}), [search, filtros.desde, filtros.hasta, filtros.page, filtros.page_size, filtros.estado, filtros.sucursal]);
   const requestGuard = useRequestGuard(Number(negocioId));
   const cargar = useCallback(async () => {
     const vigente = requestGuard();
     setLoading(true);
     setError(null);
     try {
-      const respuesta = await api.getBusinessVisits(id, {...filtros, sucursal: selectedBranch});
-      if (!vigente()) return;
+      const respuesta = await api.getBusinessVisits(id, {...query, sucursal: selectedBranch});
       if (!vigente()) return;
       setDatos(respuesta);
     } catch (err) {
@@ -47,7 +49,7 @@ export default function VisitsPage() {
     } finally {
       if (vigente()) setLoading(false);
     }
-  }, [requestGuard, filtros, id, selectedBranch]);
+  }, [requestGuard, query, id, selectedBranch]);
 
   useEffect(() => {
     void cargar();
@@ -70,9 +72,9 @@ export default function VisitsPage() {
     <section className="portal-page">
       <header className="portal-page-head">
         <div>
-          <span className="portal-eyebrow">OperaciÃ³n</span>
+          <span className="portal-eyebrow">Operación</span>
           <h1>Visitas</h1>
-          <p>Historial de visitas vÃ¡lidas y anuladas dentro de tu alcance.</p>
+          <p>Historial de visitas válidas y anuladas dentro de tu alcance.</p>
         </div>
         <button className="portal-button-secondary" type="button" onClick={() => void cargar()}>
           Actualizar
@@ -101,7 +103,7 @@ export default function VisitsPage() {
           <span>Estado</span>
           <select value={filtros.estado} onChange={(e) => cambiar('estado', e.target.value)}>
             <option value="">Todas</option>
-            <option value="validas">VÃ¡lidas</option>
+            <option value="validas">Válidas</option>
             <option value="anuladas">Anuladas</option>
           </select>
         </label>
@@ -128,7 +130,7 @@ export default function VisitsPage() {
               <thead>
                 <tr>
                   <th>Fecha</th><th>Cliente</th><th>Sucursal</th>
-                  <th>MÃ©todo</th><th>Estado</th>
+                  <th>Método</th><th>Estado</th>
                 </tr>
               </thead>
               <tbody>
@@ -140,7 +142,7 @@ export default function VisitsPage() {
                     <td>{visita.metodo_validacion}</td>
                     <td>
                       <span className={visita.es_valida ? 'portal-badge is-on' : 'portal-badge'}>
-                        {visita.es_valida ? 'VÃ¡lida' : 'Anulada'}
+                        {visita.es_valida ? 'Válida' : 'Anulada'}
                       </span>
                     </td>
                   </tr>

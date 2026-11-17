@@ -28,12 +28,12 @@ const inicial: Formulario = {
 };
 
 export default function BranchesPage() {
-  const { context } = useAuth();
+  const { context, refreshContext } = useAuth();
   const { negocioId } = useParams();
   const id = Number(negocioId);
   const membresia = membresiaDelNegocio(context, id);
   const puedeEditar = membresia?.rol_comercio === 'dueno';
-  const { plan } = usePlan(id);
+  const { plan, reload: recargarPlan } = usePlan(id);
   const [sucursales, setSucursales] = useState<SucursalResumen[]>([]);
   const [form, setForm] = useState<Formulario>(inicial);
   const [editando, setEditando] = useState<number | null>(null);
@@ -117,7 +117,7 @@ export default function BranchesPage() {
       setMostrarForm(false);
       setForm(inicial);
       setEditando(null);
-      await cargar();
+      await Promise.all([cargar(), recargarPlan(), refreshContext()]);
     } catch (err) {
       if (err instanceof ApiError && err.codigo === 'limite_plan') {
         setError(`${err.message} Puedes revisar el plan Premium para ampliar el cupo.`);
@@ -136,7 +136,7 @@ export default function BranchesPage() {
     try {
       await api.updateBranch(sucursal.id, { status: !sucursal.status });
       setOk(sucursal.status ? 'Sucursal desactivada.' : 'Sucursal reactivada.');
-      await cargar();
+      await Promise.all([cargar(), recargarPlan(), refreshContext()]);
     } catch (err) {
       setError(
         err instanceof ApiError && err.codigo === 'limite_plan'

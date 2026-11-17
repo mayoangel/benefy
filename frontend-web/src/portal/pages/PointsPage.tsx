@@ -118,8 +118,7 @@ export default function PointsPage() {
         setOk('Programa de puntos creado.');
       }
       setEditando(null);
-      await cargar();
-      await recargarPlan();
+      await Promise.all([cargar(), recargarPlan()]);
     } catch (err) {
       setError(
         err instanceof ApiError && err.codigo === 'limite_plan'
@@ -138,8 +137,7 @@ export default function PointsPage() {
     try {
       await api.updateDynamic(programa.id, { status: !programa.status });
       setOk(programa.status ? 'Programa desactivado.' : 'Programa activado.');
-      await cargar();
-      await recargarPlan();
+      await Promise.all([cargar(), recargarPlan()]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo cambiar el estado.');
     } finally {

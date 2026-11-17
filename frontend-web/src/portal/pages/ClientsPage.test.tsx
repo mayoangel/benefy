@@ -22,3 +22,13 @@ test('a late search cannot replace the current result',async()=>{
  expect(screen.getByText('latest')).toBeTruthy();
  cleanup();
 });
+
+test('typing does not issue a request before the debounce delay',async()=>{
+ vi.mocked(api.getBusinessClients).mockClear().mockResolvedValue({count:0,page:1,page_size:20,results:[]});
+ render(<MemoryRouter initialEntries={['/1']}><Routes><Route path="/:negocioId" element={<ClientsPage/>}/></Routes></MemoryRouter>);
+ await screen.findByText('No hay clientes con esos criterios.');
+ const baseline=vi.mocked(api.getBusinessClients).mock.calls.length;
+ fireEvent.change(screen.getByPlaceholderText('Cliente o correo'),{target:{value:'abc'}});
+ expect(vi.mocked(api.getBusinessClients).mock.calls.length).toBe(baseline);
+ cleanup();
+});

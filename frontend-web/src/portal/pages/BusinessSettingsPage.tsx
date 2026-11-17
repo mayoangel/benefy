@@ -11,7 +11,7 @@ import PlanPanel from '../components/PlanPanel.tsx';
 import { usePlan } from '../hooks/usePlan.ts';
 
 export default function BusinessSettingsPage() {
-  const { context } = useAuth();
+  const { context, refreshContext } = useAuth();
   const { negocioId } = useParams();
   const id = Number(negocioId);
   const membresia = membresiaDelNegocio(context, id);
@@ -68,7 +68,7 @@ export default function BusinessSettingsPage() {
       });
       setNegocio(actualizado);
       setOk('Los datos del negocio se guardaron.');
-      await recargarPlan();
+      await refreshContext();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo guardar.');
     } finally {

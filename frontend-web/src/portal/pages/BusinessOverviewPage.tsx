@@ -1,3 +1,4 @@
+import { usePlan } from '../hooks/usePlan';
 import { useRequestGuard } from '../hooks/useRequestGuard';
 import { useCallback, useEffect, useState } from 'react';
 import { Navigate, useParams, useSearchParams } from 'react-router-dom';
@@ -22,7 +23,8 @@ export default function BusinessOverviewPage() {
   const sucursalParam = searchParams.get('sucursal');
   const sucursalId = sucursalParam ? Number(sucursalParam) : undefined;
   const [metricas, setMetricas] = useState<MetricasPortal | null>(null);
-  const [plan, setPlan] = useState<PlanNegocio | null>(null);
+  const {plan, reload: reloadPlan} = usePlan(id);
+  const allowed = Boolean(membresia);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [desde, setDesde] = useState('');
@@ -31,28 +33,23 @@ export default function BusinessOverviewPage() {
   const requestGuard = useRequestGuard(Number(negocioId));
   const cargar = useCallback(async () => {
     const vigente = requestGuard();
-    if (!membresia) return;
+    if (!allowed) return;
     setLoading(true);
     setError(null);
     try {
-      const [metricasData, planData] = await Promise.all([
-        api.getMetrics(id, {
-          sucursal: sucursalId,
-          desde: desde || undefined,
-          hasta: hasta || undefined,
-        }),
-        api.getBusinessPlan(id),
-      ]);
+      const metricasData = await api.getMetrics(id, {
+        sucursal: sucursalId, desde: desde || undefined, hasta: hasta || undefined,
+      });
       if (!vigente()) return;
       setMetricas(metricasData);
-      setPlan(planData);
+
     } catch (err) {
       if (!vigente()) return;
       setError(err instanceof Error ? err.message : 'No se pudieron cargar las métricas.');
     } finally {
       if (vigente()) setLoading(false);
     }
-  }, [requestGuard, desde, hasta, id, membresia, sucursalId]);
+  }, [requestGuard, desde, hasta, id, allowed, sucursalId]);
 
   useEffect(() => {
     void cargar();
@@ -76,7 +73,7 @@ export default function BusinessOverviewPage() {
               : 'Datos consolidados del negocio y todas sus sucursales.'}
           </p>
         </div>
-        <button type="button" className="portal-button-secondary" onClick={() => void cargar()}>
+        <button type="button" className="portal-button-secondary" onClick={() => { void cargar(); void reloadPlan(); }}>
           Actualizar
         </button>
       </header>

@@ -44,24 +44,14 @@ export default function TeamPage() {
     setLoading(true);
     setError(null);
     try {
-      const [membresias, ramas] = await Promise.all([
-        api.getMemberships(),
-        api.getBranches(),
+      const [membresias, ramas, invitacionesData] = await Promise.all([
+        api.getMemberships(), api.getBranches(),
+        esDueno || esSupervisor ? api.getInvitations(id) : Promise.resolve([]),
       ]);
       if (!vigente()) return;
       setFilas(membresias.filter((fila) => fila.negocio === id));
-      const propias = ramas.filter((ramasItem) => ramasItem.negocio === id);
-      if (!vigente()) return;
-      setSucursales(propias);
-      if (esDueno || esSupervisor) {
-        try {
-          const respuesta = await api.getInvitations(id);
-      if (!vigente()) return;
-      setInvitaciones(respuesta);
-        } catch {
-          setInvitaciones([]);
-        }
-      }
+      setSucursales(ramas.filter((rama) => rama.negocio === id));
+      setInvitaciones(invitacionesData);
     } catch (err) {
       if (!vigente()) return;
       setError(err instanceof Error ? err.message : 'No se pudo cargar el equipo.');
@@ -170,8 +160,7 @@ export default function TeamPage() {
       });
       setEditando(null);
       setOk('Membresía actualizada y auditada.');
-      await cargar();
-      await recargarPlan();
+      await Promise.all([cargar(), recargarPlan()]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo actualizar la membresía.');
     } finally {
