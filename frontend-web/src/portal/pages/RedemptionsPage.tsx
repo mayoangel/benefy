@@ -1,6 +1,6 @@
 import { useRequestGuard } from '../hooks/useRequestGuard';
 import { useCallback, useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 
 import { useAuth } from '../../auth/AuthProvider.tsx';
 import { api } from '../../lib/api.ts';
@@ -16,6 +16,8 @@ export default function RedemptionsPage() {
   const { context } = useAuth();
   const { negocioId } = useParams();
   const id = Number(negocioId);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedBranch = searchParams.get('sucursal') ?? '';
   const [datos, setDatos] = useState(vacio);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +37,7 @@ export default function RedemptionsPage() {
     setLoading(true);
     setError(null);
     try {
-      const respuesta = await api.getBusinessRedemptions(id, filtros);
+      const respuesta = await api.getBusinessRedemptions(id, {...filtros, sucursal: selectedBranch});
       if (!vigente()) return;
       if (!vigente()) return;
       setDatos(respuesta);
@@ -45,7 +47,7 @@ export default function RedemptionsPage() {
     } finally {
       if (vigente()) setLoading(false);
     }
-  }, [requestGuard, filtros, id]);
+  }, [requestGuard, filtros, id, selectedBranch]);
 
   useEffect(() => {
     void cargar();
@@ -56,6 +58,11 @@ export default function RedemptionsPage() {
   ) ?? [];
 
   function cambiar(campo: string, valor: string) {
+    if (campo === 'sucursal') {
+      const next = new URLSearchParams(searchParams);
+      if (valor) next.set('sucursal', valor); else next.delete('sucursal');
+      setSearchParams(next);
+    }
     setFiltros((actual) => ({ ...actual, [campo]: valor, page: 1 }));
   }
 
@@ -63,7 +70,7 @@ export default function RedemptionsPage() {
     <section className="portal-page">
       <header className="portal-page-head">
         <div>
-          <span className="portal-eyebrow">Operación</span>
+          <span className="portal-eyebrow">OperaciÃ³n</span>
           <h1>Canjes</h1>
           <p>Cupones utilizados en el negocio o en tu sucursal.</p>
         </div>
@@ -83,7 +90,7 @@ export default function RedemptionsPage() {
         </label>
         <label>
           <span>Sucursal</span>
-          <select value={filtros.sucursal} onChange={(e) => cambiar('sucursal', e.target.value)}>
+          <select value={selectedBranch} onChange={(e) => cambiar('sucursal', e.target.value)}>
             <option value="">Todas</option>
             {sucursales.map((sucursal) => (
               <option key={sucursal.id} value={sucursal.id}>{sucursal.nombre}</option>
@@ -121,15 +128,15 @@ export default function RedemptionsPage() {
               <thead>
                 <tr>
                   <th>Fecha</th><th>Beneficio</th><th>Cliente</th>
-                  <th>Sucursal</th><th>Método</th><th>Estado</th>
+                  <th>Sucursal</th><th>MÃ©todo</th><th>Estado</th>
                 </tr>
               </thead>
               <tbody>
                 {datos.results.map((canje) => (
                   <tr key={canje.id}>
                     <td>{new Date(canje.fecha).toLocaleDateString('es-MX')}</td>
-                    <td>{canje.titulo_beneficio || `Cupón #${canje.cupon}`}</td>
-                    <td>{canje.usuario_correo ?? '—'}</td>
+                    <td>{canje.titulo_beneficio || `CupÃ³n #${canje.cupon}`}</td>
+                    <td>{canje.usuario_correo ?? 'â€”'}</td>
                     <td>{canje.sucursal_nombre ?? 'Todo el negocio'}</td>
                     <td>{canje.metodo}</td>
                     <td>

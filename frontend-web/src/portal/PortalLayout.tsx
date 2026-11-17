@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Link,
   NavLink,
   Navigate,
   Outlet,
   useNavigate,
+  useLocation,
   useParams,
   useSearchParams,
 } from 'react-router-dom';
@@ -17,7 +18,7 @@ function navItems(rol: RolComercio | null) {
   if (rol === 'dueno') {
     return [
       { label: 'Resumen', path: '' },
-      { label: 'Configuración', path: 'configuracion' },
+      { label: 'ConfiguraciÃ³n', path: 'configuracion' },
       { label: 'Sucursales', path: 'sucursales' },
       { label: 'Puntos', path: 'puntos' },
       { label: 'Tarjetas', path: 'tarjetas' },
@@ -53,6 +54,38 @@ export default function PortalLayout() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [mobile, setMobile] = useState(() => window.matchMedia('(max-width: 860px)').matches);
+  const sidebar = useRef<HTMLElement>(null);
+  const main = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const location = useLocation();
+  useEffect(() => {
+    const query = window.matchMedia('(max-width: 860px)');
+    const change = () => { setMobile(query.matches); setMenuOpen(false); };
+    query.addEventListener('change', change);
+    return () => query.removeEventListener('change', change);
+  }, []);
+  useEffect(() => { setMenuOpen(false); }, [location.pathname]);
+  useEffect(() => {
+    if (sidebar.current) sidebar.current.inert = mobile && !menuOpen;
+    if (main.current) main.current.inert = mobile && menuOpen;
+    if (!mobile || !menuOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    sidebar.current?.querySelector<HTMLButtonElement>('button')?.focus();
+    return () => { document.body.style.overflow = previousOverflow; trigger.current?.focus(); };
+  }, [mobile, menuOpen]);
+  function drawerKey(event: React.KeyboardEvent) {
+    if (!mobile || !menuOpen) return;
+    if (event.key === 'Escape') { event.preventDefault(); setMenuOpen(false); }
+    if (event.key === 'Tab') {
+      const nodes = sidebar.current?.querySelectorAll<HTMLElement>('a[href],button,select');
+      if (!nodes?.length) return;
+      const first = nodes[0], last = nodes[nodes.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    }
+  }
 
   const id = negocioId ? Number(negocioId) : null;
   const esAdmin = Boolean(context?.es_admin_sistema);
@@ -92,12 +125,14 @@ export default function PortalLayout() {
 
   return (
     <div className="portal-shell">
-      <aside className={`portal-sidebar${menuOpen ? ' is-open' : ''}`}>
+      <aside ref={sidebar} id="portal-navigation" role={mobile && menuOpen ? 'dialog' : undefined}
+        aria-modal={mobile && menuOpen ? true : undefined} aria-label="Portal de negocios" onKeyDown={drawerKey} className={`portal-sidebar${menuOpen ? ' is-open' : ''}`}>
+        {mobile ? <button className="portal-drawer-close" type="button" onClick={() => setMenuOpen(false)}>Cerrar menú</button> : null}
         <div className="portal-brand">
           <span className="portal-brand-mark">B</span>
           <div>
             <strong>Benefy</strong>
-            <small>{esAdmin ? 'Administración global' : 'Portal de negocios'}</small>
+            <small>{esAdmin ? 'AdministraciÃ³n global' : 'Portal de negocios'}</small>
           </div>
         </div>
 
@@ -128,17 +163,17 @@ export default function PortalLayout() {
           </label>
         ) : null}
 
-        <nav className="portal-nav" aria-label="Navegación del portal">
+        <nav className="portal-nav" aria-label="NavegaciÃ³n del portal">
           {esAdmin ? (
             <NavLink end to="/portal/admin" className={({ isActive }) => isActive ? 'is-active' : ''}>
-              Administración global
+              AdministraciÃ³n global
             </NavLink>
           ) : null}
           {!esAdmin && items.map((item) => (
             <NavLink
               end={item.path === ''}
               key={item.path}
-              to={`${base}${item.path ? `/${item.path}` : ''}`}
+              to={{pathname: base + (item.path ? '/' + item.path : ''), search: selectedSucursal ? '?sucursal=' + encodeURIComponent(selectedSucursal) : ''}}
               className={({ isActive }) => isActive ? 'is-active' : ''}
               onClick={() => setMenuOpen(false)}
             >
@@ -152,19 +187,23 @@ export default function PortalLayout() {
             <Link to="/registrar-negocio">Registrar otro negocio</Link>
           ) : null}
           <Link to="/">Volver al sitio</Link>
-          <button type="button" onClick={() => void signOut()}>Cerrar sesión</button>
+          <button type="button" onClick={() => void signOut()}>Cerrar sesiÃ³n</button>
         </div>
       </aside>
 
-      <div className="portal-main">
+      {mobile && menuOpen ? <div className="portal-backdrop" onClick={() => setMenuOpen(false)} aria-hidden="true" /> : null}
+      <div ref={main} className="portal-main">
         <header className="portal-topbar">
           <button
             type="button"
+            ref={trigger}
+            aria-expanded={menuOpen}
+            aria-controls="portal-navigation"
             className="portal-menu-button"
             onClick={() => setMenuOpen((value) => !value)}
-            aria-label="Abrir menú"
+            aria-label="Abrir menÃº"
           >
-            ☰
+            â˜°
           </button>
           <div>
             <strong>{esAdmin ? 'Panel de plataforma' : membresia?.negocio.nombre}</strong>

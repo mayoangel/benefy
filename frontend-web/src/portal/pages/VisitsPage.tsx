@@ -1,6 +1,6 @@
 import { useRequestGuard } from '../hooks/useRequestGuard';
 import { useCallback, useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 
 import { useAuth } from '../../auth/AuthProvider.tsx';
 import { api } from '../../lib/api.ts';
@@ -16,6 +16,8 @@ export default function VisitsPage() {
   const { context } = useAuth();
   const { negocioId } = useParams();
   const id = Number(negocioId);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedBranch = searchParams.get('sucursal') ?? '';
   const [datos, setDatos] = useState(vacio);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +37,7 @@ export default function VisitsPage() {
     setLoading(true);
     setError(null);
     try {
-      const respuesta = await api.getBusinessVisits(id, filtros);
+      const respuesta = await api.getBusinessVisits(id, {...filtros, sucursal: selectedBranch});
       if (!vigente()) return;
       if (!vigente()) return;
       setDatos(respuesta);
@@ -45,7 +47,7 @@ export default function VisitsPage() {
     } finally {
       if (vigente()) setLoading(false);
     }
-  }, [requestGuard, filtros, id]);
+  }, [requestGuard, filtros, id, selectedBranch]);
 
   useEffect(() => {
     void cargar();
@@ -56,6 +58,11 @@ export default function VisitsPage() {
   ) ?? [];
 
   function cambiar(campo: string, valor: string) {
+    if (campo === 'sucursal') {
+      const next = new URLSearchParams(searchParams);
+      if (valor) next.set('sucursal', valor); else next.delete('sucursal');
+      setSearchParams(next);
+    }
     setFiltros((actual) => ({ ...actual, [campo]: valor, page: 1 }));
   }
 
@@ -63,9 +70,9 @@ export default function VisitsPage() {
     <section className="portal-page">
       <header className="portal-page-head">
         <div>
-          <span className="portal-eyebrow">Operación</span>
+          <span className="portal-eyebrow">OperaciÃ³n</span>
           <h1>Visitas</h1>
-          <p>Historial de visitas válidas y anuladas dentro de tu alcance.</p>
+          <p>Historial de visitas vÃ¡lidas y anuladas dentro de tu alcance.</p>
         </div>
         <button className="portal-button-secondary" type="button" onClick={() => void cargar()}>
           Actualizar
@@ -83,7 +90,7 @@ export default function VisitsPage() {
         </label>
         <label>
           <span>Sucursal</span>
-          <select value={filtros.sucursal} onChange={(e) => cambiar('sucursal', e.target.value)}>
+          <select value={selectedBranch} onChange={(e) => cambiar('sucursal', e.target.value)}>
             <option value="">Todas</option>
             {sucursales.map((sucursal) => (
               <option key={sucursal.id} value={sucursal.id}>{sucursal.nombre}</option>
@@ -94,7 +101,7 @@ export default function VisitsPage() {
           <span>Estado</span>
           <select value={filtros.estado} onChange={(e) => cambiar('estado', e.target.value)}>
             <option value="">Todas</option>
-            <option value="validas">Válidas</option>
+            <option value="validas">VÃ¡lidas</option>
             <option value="anuladas">Anuladas</option>
           </select>
         </label>
@@ -121,7 +128,7 @@ export default function VisitsPage() {
               <thead>
                 <tr>
                   <th>Fecha</th><th>Cliente</th><th>Sucursal</th>
-                  <th>Método</th><th>Estado</th>
+                  <th>MÃ©todo</th><th>Estado</th>
                 </tr>
               </thead>
               <tbody>
@@ -133,7 +140,7 @@ export default function VisitsPage() {
                     <td>{visita.metodo_validacion}</td>
                     <td>
                       <span className={visita.es_valida ? 'portal-badge is-on' : 'portal-badge'}>
-                        {visita.es_valida ? 'Válida' : 'Anulada'}
+                        {visita.es_valida ? 'VÃ¡lida' : 'Anulada'}
                       </span>
                     </td>
                   </tr>

@@ -731,3 +731,18 @@ body {
     flex-direction: column;
   }
 }
+
+.portal-sidebar { overflow-y: auto; }
+.portal-drawer-close { color: white; background: transparent; border: 1px solid #a9c3d4; border-radius: 8px; padding: 10px; }
+.portal-backdrop { position: fixed; inset: 0; background: rgb(0 38 71 / 45%); z-index: 19; }
+@media (max-width: 860px) {
+  .portal-sidebar { visibility: hidden; height: 100dvh; }
+  .portal-sidebar.is-open { visibility: visible; }
+  .portal-topbar { height: auto; min-height: 72px; flex-wrap: wrap; padding: 12px 20px; gap: 10px; }
+  .portal-topbar > div { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .portal-role { margin-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .portal-sidebar { transition: none; }
+  .portal-spinner { animation: none; }
+}
