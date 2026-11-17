@@ -1,241 +1,199 @@
-# Propuesta técnica: planes Free y Premium
+# Planes Free y Premium
 
-**Estado:** análisis y diseño; no implementado.
-**Objetivo:** preparar la arquitectura de suscripciones sin definir todavía límites numéricos ni integrar Stripe.
+**Estado:** implementado en backend, portal web y Supabase (16 de noviembre de 2026).
+**Alcance:** capacidades, límites, cambios de plan y migraciones. Stripe, cobros y
+facturación siguen fuera de esta entrega.
 
----
+El plan pertenece al **negocio**, no al usuario. Una cuenta puede administrar
+varios negocios con planes distintos. Los roles `dueno`, `supervisor`,
+`empleado` y el privilegio global `admin_sistema` son independientes del plan.
 
-## 1. Modelo actual
+## Límites iniciales
+
+| Recurso | Free | Premium |
+|---|---:|---:|
+| Sucursales activas | 1 | 5 |
+| Programas de puntos activos | 1 | 1 |
+| Tarjetas de sellos activas | 2 | 10 |
+| Recompensas activas | 5 | 30 |
+| Supervisores activos | 1 | 5 |
+| Empleados activos | 3 | 20 |
+| Clientes, visitas y cupones | Ilimitados | Ilimitados |
+
+Los límites se guardan en `PlanSuscripcion.limites` y pueden ajustarse desde
+Django Admin o por el CRUD administrativo sin crear una migración:
+
+```json
+{
+  "sucursales": 1,
+  "programas_puntos": 1,
+  "tarjetas_sellos": 2,
+  "recompensas": 5,
+  "supervisores": 1,
+  "empleados": 3
+}
+```
+
+Reglas de representación:
+
+- `null` significa ilimitado explícito.
+- `0` significa recurso no permitido.
+- Un entero positivo es el máximo de recursos activos.
+- Una clave ausente, desconocida o un valor inválido es un error de
+  configuración; nunca se interpreta como ilimitado.
+
+Solo los recursos **activos** consumen cupo. La reactivación vuelve a validar el
+límite. La regla existente de un único programa de puntos activo por negocio se
+mantiene con su restricción de base de datos.
+
+## Modelos
 
 ### `PlanSuscripcion`
 
-| Campo | Uso actual |
-|---|---|
-| `nombre` | Nombre del plan |
-| `descripcion` | Descripción comercial |
-| `intervalo` | `mensual` o `anual` |
-| `stripe_price_id` | Precio de Stripe, único y obligatorio |
-| `limite_sucursales` | Límite numérico |
-| `limite_dinamicas` | Límite numérico |
-| `status` | Activo/inactivo |
+Nivel comercial (`free`, `premium`) con `nombre`, `descripcion`, `orden`,
+`limites`, `caracteristicas` y `status`. No se agregó `es_gratuito` porque el
+código estable `free` ya lo identifica; evitamos información duplicada.
+
+### `PlanPrecio`
+
+Modalidad de cobro separada del nivel comercial: `plan`, `intervalo`
+(`mensual`/`anual`), `stripe_price_id` opcional, `monto`, `divisa` y `status`.
+Premium tiene una fila mensual y otra anual con los mismos límites. Free no
+requiere precio. Las referencias Stripe pueden quedar vacías.
 
 ### `Suscripcion`
 
-| Campo | Uso actual |
-|---|---|
-| `stripe_subscription_id` | Identificador de Stripe, único y obligatorio |
-| `status` | `activa`, `pendiente`, `prueba`, `incompleta`, `cancelada` |
-| `periodo_actual_inicio/fin` | Periodo de facturación |
-| `en_cancelacion` | Bandera de cancelación |
-| `negocio` | Negocio suscrito |
-| `plan` | Plan contratado |
+Relación negocio-plan con `status`, `origen` (`manual`, `stripe`, `migracion`,
+`automatico`), `fecha_inicio`, `fecha_fin`, periodos opcionales, cancelación y
+referencias Stripe opcionales. Solo `activa` y `prueba` conceden capacidades.
+Una cancelación programada puede conservar `activa` con `en_cancelacion=true`
+hasta el final del periodo.
 
-## 2. Diagnóstico
+Restricción de Postgres: una sola suscripción vigente por negocio
+(`una_suscripcion_vigente_por_negocio`). Los cambios cierran la anterior como
+`cancelada` y crean la nueva en una transacción.
 
-El modelo **puede reutilizarse**, pero hoy está acoplado a Stripe y no representa un plan gratuito:
+### `PlanCambioAuditoria`
 
-- `PlanSuscripcion.stripe_price_id` es obligatorio y único; Free no tiene precio Stripe.
-- `Suscripcion.stripe_subscription_id` es obligatorio y único; Free no tiene suscripción Stripe.
-- `periodo_actual_inicio/fin` son obligatorios; Free no necesariamente tiene periodo de cobro.
-- No existe un código estable de plan (`free`, `premium`).
-- No hay restricción de una suscripción activa por negocio.
-- Solo existen límites para sucursales y dinámicas.
-- No hay servicio central de capacidades; las restricciones se implementarían de forma dispersa.
-- Las membresías comerciales no dependen de la suscripción, lo cual es correcto y debe conservarse.
+Registra negocio, plan anterior, plan nuevo, origen, motivo, actor, correo del
+actor y fecha. Se crea al asignar Free a un negocio nuevo, al migrar negocios
+existentes y en cada cambio manual.
 
-## 3. Arquitectura propuesta
+## Asignación de Free
 
-### 3.1 Catálogo de planes
+Al crear un negocio por API, dentro de la misma transacción se crea el negocio,
+la membresía de dueño y una suscripción Free activa con origen `automatico`.
+Si el plan Free no existe, la operación falla: no se asume acceso ilimitado.
 
-Reutilizar `PlanSuscripcion` y añadir:
+La migración `0012` asignó Free a los negocios existentes sin suscripción
+vigente, sin modificar saldos, cupones, visitas, ciclos ni canjes.
 
-| Campo nuevo | Tipo | Uso |
-|---|---|---|
-| `codigo` | `CharField` único | `free`, `premium` |
-| `es_gratuito` | `BooleanField` | Distingue Free |
-| `orden` | `PositiveIntegerField` | Orden comercial |
-| `stripe_price_id` | Pasa a `null=True` | Free no lo usa |
-| `limites` | `JSONField(default=dict)` | Capacidades por recurso |
-| `caracteristicas` | `JSONField(default=dict)` | Flags Premium |
+## Servicio centralizado
 
-Los límites numéricos definitivos **no se definen todavía**. Pueden quedar `null` o vacíos hasta la decisión comercial.
-
-Ejemplo de `limites`:
-
-```json
-{
-  "sucursales": null,
-  "dinamicas": null,
-  "tarjetas": null,
-  "recompensas": null,
-  "empleados": null
-}
-```
-
-Ejemplo de `caracteristicas`:
-
-```json
-{
-  "analiticas_avanzadas": false,
-  "exportacion": false,
-  "soporte_prioritario": false
-}
-```
-
-### 3.2 Suscripción del negocio
-
-Reutilizar `Suscripcion` y añadir:
-
-| Campo nuevo | Tipo | Uso |
-|---|---|---|
-| `stripe_subscription_id` | Pasa a `null=True` | Free no tiene Stripe |
-| `origen` | `manual`, `stripe`, `migracion` | Procedencia |
-| `fecha_inicio` | `DateTimeField(null=True)` | Inicio lógico |
-| `fecha_fin` | `DateTimeField(null=True)` | Fin o downgrade programado |
-
-Restricción:
-
-```text
-UniqueConstraint(negocio, condition=Q(status='activa'))
-```
-
-Esto garantiza una sola suscripción activa por negocio.
-
-### 3.3 Free por defecto
-
-Al crear un negocio:
-
-1. Se crea la membresía de dueño.
-2. Se asigna el plan Free como suscripción activa.
-3. El negocio no necesita Stripe ni pago.
-
-Los negocios existentes se migrarían a Free si no tienen suscripción activa.
-
-## 4. Servicio de capacidades
-
-Crear `core/services/planes.py`:
+`core/services/planes.py` concentra las reglas:
 
 ```python
 plan_actual(negocio)
 limite(negocio, recurso)
-puede_crear(negocio, recurso, cantidad_actual)
+uso_actual(negocio, recurso)
+puede_crear(negocio, recurso, cantidad=1)
+verificar_capacidad(negocio, recurso, cantidad=1, ...)
 tiene_caracteristica(negocio, clave)
+resumen_plan(negocio)
 ```
 
-Reglas:
+La comprobación de capacidad bloquea la fila del negocio con
+`select_for_update()` dentro de una transacción. Dos altas simultáneas no pueden
+consumir el mismo último cupo.
 
-- Si no hay suscripción activa, se usa Free como respaldo.
-- Si un límite es `None`, se interpreta como “sin límite definido” o “pendiente de decisión”; no se debe inventar un número.
-- La ausencia del plan Free en la base se considera un error de configuración, no acceso ilimitado.
-- La consulta debe ser eficiente: una suscripción activa por negocio.
+## Aplicación de límites
 
-## 5. Endpoints y enforcement
+`ResourceAccessMixin` valida antes de crear o reactivar:
 
-### Consulta
-
-| Endpoint | Uso |
+| Operación | Recurso |
 |---|---|
-| `GET /negocios/{id}/plan/` | Plan actual y capacidades |
-| `GET /planes/` | Catálogo Free/Premium |
-| `GET /mi/contexto/` | Incluir resumen de plan por negocio |
+| Crear o reactivar sucursal | `sucursales` |
+| Crear o reactivar tarjeta (`Dinamica.tipo='sellos'`) | `tarjetas_sellos` |
+| Crear o reactivar recompensa | `recompensas` |
+| Crear o reactivar membresía de supervisor | `supervisores` |
+| Crear o reactivar membresía de empleado | `empleados` |
 
-### Mutaciones donde aplicar límites
+La comprobación también se aplica a quien tenga `admin_sistema`: el plan es del
+negocio. Editar un recurso que sigue activo en la misma categoría no consume un
+cupo nuevo.
 
-| Operación | Punto de control |
-|---|---|
-| Crear sucursal | `SucursalCreate` / servicio |
-| Crear dinámica o tarjeta | `DinamicaCreate` |
-| Crear recompensa | `RecompensaCreate` |
-| Crear empleado/supervisor | `UsuarioNegocioCreate` |
-| Funciones Premium | Endpoints de analíticas/exportación |
-
-El backend debe devolver un error estable, por ejemplo:
+Error estable, HTTP `403`:
 
 ```json
 {
   "codigo": "limite_plan",
-  "detalle": "El plan actual no permite crear más sucursales."
+  "detalle": "El plan actual no permite crear más recompensas."
 }
 ```
 
-HTTP propuesto: `403` o `409`. Preferible `403` con `codigo`.
+## Endpoints
 
-No se aplicarán límites hasta que se aprueben los números.
+| Método | Ruta | Acceso | Uso |
+|---|---|---|---|
+| GET | `/api/v1/planes/` | Usuario activo | Catálogo Free/Premium, límites, características y precios |
+| GET | `/api/v1/negocios/{id}/plan/` | Miembros del negocio o admin | Plan, suscripción, uso, cupos, características y excedentes |
+| POST | `/api/v1/negocios/{id}/plan/` | Solo `admin_sistema` | Cambio manual con `plan_codigo` y `motivo` |
+| GET | `/api/v1/negocios/{id}/plan/cambios/` | Miembros del negocio o admin | Historial auditado de cambios |
 
-## 6. Cambios de plan
+`GET /api/v1/mi/contexto/` incluye un resumen compacto del plan en cada negocio
+accesible. No expone negocios ni planes de terceros.
 
-### Free → Premium
+## Cambios de plan
 
-- Activar Premium de inmediato.
-- Habilitar capacidades Premium.
-- Conservar todos los datos existentes.
-- En el futuro, el cobro lo gestionará Stripe.
+- **Free → Premium:** se cierra la suscripción Free y se crea Premium activa en
+  la misma transacción. Los límites nuevos aplican de inmediato. No se borra ni
+  transforma ningún dato.
+- **Premium → Free:** se conservan visitas, saldos, lotes, movimientos, cupones,
+  canjes, ciclos, recompensas y auditorías. Los recursos por encima del límite
+  quedan como **excedentes**: se consultan y operan, pero no se permiten nuevas
+  altas que aumenten el exceso. No hay desactivaciones automáticas.
+- Los ciclos de tarjeta ya iniciados conservan sus condiciones y pueden
+  terminar. La selección manual de qué tarjetas quedan habilitadas para iniciar
+  nuevos ciclos requiere una pantalla administrativa y queda como flujo
+  pendiente; por ahora se bloquean nuevas altas de tarjetas si el negocio supera
+  el límite.
+- El cambio manual exige `admin_sistema`, un motivo y queda auditado. Un dueño
+  no puede activar Premium manipulando una solicitud HTTP.
 
-### Premium → Free
+## Interfaz web
 
-- No eliminar ningún dato.
-- No invalidar cupones, recompensas, tarjetas, visitas ni puntos.
-- Los cupones ya adquiridos conservan su vigencia.
-- Los recursos que excedan el nuevo límite quedan en modo lectura, sin permitir crear más.
-- Las funciones Premium quedan ocultas o bloqueadas.
-- El downgrade puede ser inmediato en modo manual; con Stripe se ejecutará al final del periodo.
+El portal muestra:
 
-### Política explícita para excedentes
+- plan actual y etiqueta Free/Premium;
+- uso y límite de cada recurso con barra de progreso;
+- “Límite alcanzado” y advertencia de excedentes;
+- funciones Premium con estados “Disponible”, “Incluida · próximamente” o
+  “Premium · próximamente”;
+- CTA informativo “Conocer Premium” para Free.
 
-Recomendación:
+No existe checkout ni botón que simule un pago. Las funciones avanzadas sin
+implementación no se presentan como operativas (`caracteristicas_implementadas`
+está vacío en esta fase). La única diferencia funcional actual es la capacidad.
 
-1. Nunca borrar recursos automáticamente.
-2. Bloquear nuevas altas por encima del límite.
-3. Mantener lectura y operación de lo existente.
-4. Marcar visualmente el excedente en el panel.
-5. Permitir regularizar o volver a Premium.
+## Migraciones aplicadas
 
-## 7. Frontend
+| Migración | Contenido |
+|---|---|
+| `0011_planes_esquema` | Modelos `PlanPrecio` y `PlanCambioAuditoria`, campos de plan/suscripción y restricciones |
+| `0012_planes_datos` | Free y Premium, límites, precios vacíos, Free para negocios existentes y auditoría inicial |
+| `0013_planes_restricciones` | `codigo` obligatorio/único y retiro de campos legacy (`intervalo`, `stripe_price_id`, límites antiguos) |
 
-- Mostrar `Free` o `Premium` en el portal.
-- Mostrar CTA “Mejorar a Premium”.
-- Marcar funciones Premium bloqueadas.
-- No ocultar datos históricos.
-- En Free, mostrar el límite y el estado de uso.
-- En una fase posterior, integrar checkout de Stripe.
+Se aplicaron primero en PostgreSQL local y después en Supabase, con respaldo
+verificado. No se eliminaron tablas, filas ni datos de lealtad.
 
-## 8. Migraciones propuestas
+## Pendiente para Stripe y siguientes fases
 
-No implementadas:
-
-```text
-0011_planes_esquema
-  - PlanSuscripcion.codigo/es_gratuito/orden/limites/caracteristicas
-  - stripe_price_id nullable
-
-0012_planes_datos
-  - crear Free y Premium
-  - asignar Free a negocios sin suscripción activa
-  - migrar suscripciones existentes
-
-0013_planes_restricciones
-  - una suscripción activa por negocio
-```
-
-## 9. Decisiones pendientes
-
-1. Límites exactos de sucursales, tarjetas, recompensas, empleados y dinámicas.
-2. Funciones exclusivas de Premium.
-3. Política de downgrade: inmediata o al final del periodo.
-4. Precio y periodicidad de Premium.
-5. Integración con Stripe y webhooks.
-6. Si Free tendrá límites de cupones activos o de clientes.
-7. Si las alianzas serán una capacidad Premium.
-
-## 10. Recomendación
-
-Para el MVP:
-
-- Implementar Free/Premium **después** de estabilizar el portal y los dashboards.
-- Reutilizar `PlanSuscripcion` y `Suscripcion`.
-- No implementar Stripe todavía.
-- No fijar límites numéricos hasta la decisión comercial.
-- Centralizar las capacidades en un servicio y no repartir condicionales por los serializers.
-- Proteger siempre los datos históricos y los cupones adquiridos.
-
-Este documento no modifica el esquema ni las reglas actuales.
+1. Precios reales, moneda y periodicidad de Premium.
+2. Stripe Checkout, webhooks y sincronización de `stripe_price_id` /
+   `stripe_subscription_id`.
+3. Renovaciones, pruebas, cancelación al final del periodo y downgrade
+   programado.
+4. Pantalla administrativa para elegir tarjetas habilitadas tras un downgrade y
+   regularizar sucursales o equipo excedentes.
+5. Analíticas avanzadas, exportación, personalización y alianzas: están
+   configuradas como capacidades Premium, pero todavía no implementadas.

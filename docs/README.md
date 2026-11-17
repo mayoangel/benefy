@@ -12,8 +12,10 @@ Esta carpeta contiene la documentación funcional y técnica de Benefy.
   autenticación real, estado de servicios y brechas de integración.
 - [Validación del refactor de membresías](./validacion-refactor-membresias.md):
   migración a Supabase, conservación de lealtad y E2E de los tres roles.
-- [Propuesta Free/Premium](./planes-free-premium.md): análisis de `Suscripcion`,
-  capacidades, enforcement y cambios pendientes de decisión.
+- [Planes Free y Premium](./planes-free-premium.md): límites, modelos,
+  asignación de Free, endpoints, downgrade y migraciones aplicadas.
+- [Validación de planes](./validacion-planes-free-premium.md): respaldo,
+  migraciones, pruebas y E2E de Free/Premium.
 - [Comandos del proyecto](./run_project.md): referencia rápida de desarrollo,
   verificación del montaje demo y presentación.
 - [Estado de implementación](./estado-implementacion.md): correspondencia con

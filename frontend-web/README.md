@@ -47,11 +47,14 @@ comercial: no implican pagos ni analítica implementados.
   Solo controlan navegación; Django valida cada petición.
 - `src/portal/PortalLayout.tsx`: shell compartido, selector de negocio y
   sucursal, navegación por rol y adaptación móvil.
+- `src/portal/components/PlanPanel.tsx`: plan actual, uso y límites, excedentes
+  y funciones Premium con su estado de disponibilidad.
 
 Un consumidor sin membresías no entra al portal: se le redirige a
-`/acceso-restringido` con el CTA para registrar su negocio. El detalle del
-contrato está en [autenticación](../docs/autenticacion.md) y las rutas en
-[API](../docs/api.md).
+`/acceso-restringido` con el CTA para registrar su negocio. El portal consulta
+`/planes/` y `/negocios/{id}/plan/`; Django conserva la autoridad sobre los
+límites. El detalle del contrato está en [autenticación](../docs/autenticacion.md),
+[API](../docs/api.md) y [planes](../docs/planes-free-premium.md).
 
 ## Ejecución y verificación
 

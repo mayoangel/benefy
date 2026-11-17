@@ -1,14 +1,15 @@
 # Backend
 
 API Django 5.2 + Django REST Framework. La configuración está en `config/`;
-`core/` contiene 21 modelos, serializers, vistas, permisos y diez migraciones
+`core/` contiene 23 modelos, serializers, vistas, permisos y trece migraciones
 de dominio. La entrada de URLs es `config/urls.py`.
 
 ## Funcionalidad disponible
 
-- 80 rutas CRUD, con acciones en español, tres rutas de perfil/contexto/roles y diez rutas del motor de lealtad.
+- 80 rutas CRUD, con acciones en español, tres rutas de perfil/contexto/roles y trece rutas del motor de lealtad y planes.
 - Verificación de sesiones Supabase Auth y permisos según usuario, negocio y sucursal.
 - Aislamiento por sucursal en visitas, registros de actividad, canjes y métricas; los cupones globales solo los ve el dueño.
+- Planes Free/Premium con límites configurables, Free automático, cambio manual auditado y bloqueo transaccional de altas por encima del cupo.
 - Registro de visitas por QR de negocio o sucursal con límite diario por zona horaria.
 - Puntos por lotes con consumo FIFO, expiración configurable y ajustes auditados.
 - Tarjetas de visitas repetibles o de una sola vez, con snapshots por ciclo.
@@ -16,13 +17,13 @@ de dominio. La entrada de URLs es `config/urls.py`.
 - Django Admin con los modelos registrados y cuentas staff separadas de los perfiles Benefy.
 - PostgreSQL local para desarrollo o PostgreSQL Supabase con SSL para producción.
 - Comandos `db_info`, `expirar_puntos` y `verificar_puntos`.
-- 126 pruebas de salud, configuración, autenticación, permisos, membresías, portal, aislamiento, migración, lealtad y concurrencia.
+- 153 pruebas de salud, configuración, autenticación, permisos, membresías, portal, planes, límites, concurrencia, aislamiento, migración, lealtad y PostgreSQL.
 
 Consulta [API](../docs/api.md) para las rutas y
 [autenticación](../docs/autenticacion.md) para los payloads y la matriz de acceso.
 Los modelos de Stripe y notificaciones no implican que esas integraciones estén
-implementadas. El portal web tiene layout, navegación y resúmenes; los CRUD
-comerciales, Free/Premium, las alianzas con puntos compartidos y el cliente
+implementadas. El portal web tiene layout, navegación, resúmenes y panel de plan;
+los CRUD comerciales, Stripe, las alianzas con puntos compartidos y el cliente
 móvil siguen pendientes.
 
 ## Entornos y variables

@@ -97,11 +97,12 @@ Google, Magic Link ni «Recordarme» simulados.
 ### Revocación
 
 El contexto se consulta en cada carga, al volver a la pestaña y cuando una
-petición devuelve `403`. El backend vuelve a comprobar las membresías en cada
-petición. Si una membresía, negocio o sucursal se desactiva, el contexto deja de
-incluirla y las rutas de datos responden `403` o listas vacías. La interfaz
-muestra el error o vuelve al acceso restringido; no se confía en ningún estado
-guardado en el navegador.
+petición devuelve `403`. Incluye el plan de cada negocio accesible, sin revelar
+negocios ajenos. El backend vuelve a comprobar las membresías en cada petición.
+Si una membresía, negocio o sucursal se desactiva, el contexto deja de incluirla
+y las rutas de datos responden `403` o listas vacías. La interfaz muestra el
+error o vuelve al acceso restringido; no se confía en ningún estado guardado en
+el navegador.
 
 ## Configuración
 
@@ -319,7 +320,7 @@ de consumidor. `admin_sistema` es un privilegio global independiente.
 | Progreso y cupones | Consumidor: propios; dueño: negocio completo; supervisor/empleado: sin listado global de cupones | Solo lectura por CRUD; adquisición y emisión desde servicios de lealtad |
 | Canjes | Consumidor: propios; dueño: negocio completo; supervisor/empleado: su sucursal | Solo lectura por CRUD; canje exclusivo del dueño del cupón desde `POST /cupones/{uuid}/canjear/` |
 | Saldos y lotes de puntos | Consumidor: propios; personal: su negocio | Solo servicios; ajustes exclusivos de `admin_sistema` |
-| Pagos y suscripciones | Dueño del negocio y admin del sistema | Solo admin hasta implementar webhooks verificados |
+| Pagos y suscripciones | Plan del negocio: miembros y admin; pagos: dueño y admin | Cambio de plan solo `admin_sistema` con auditoría; pagos solo admin hasta implementar webhooks |
 | Notificaciones | Propias y admin del sistema | Usuario solo marca `leida`; crear/borrar solo admin |
 
 El admin del sistema tiene alcance global, sujeto a las validaciones de cada
@@ -390,14 +391,14 @@ relaciones, ni copies valores antiguos de Firebase como si fueran UUID Supabase.
   claves secretas y sesiones son privadas. Conserva las variables reales fuera de Git.
 - Las pruebas simulan Supabase Auth y se ejecutan sobre PostgreSQL local aislado.
   Cubren 401/403/404/503, perfiles, escalamiento, aislamiento de negocios y
-  sucursales, contexto del portal, revocación de membresías, autoría de canjes,
-  roles, bloqueo y conservación de usuarios al migrar (126 pruebas de Django).
+  sucursales, contexto del portal, revocación de membresías, planes y límites,
+  autoría de canjes, roles, bloqueo y conservación de usuarios al migrar
+  (153 pruebas de Django).
 - La web se valida con `npm run typecheck` y `npm run build`. El E2E de navegador
-  con Playwright/Edge cubrió 9/9: redirección sin sesión, dashboard de dueño con
-  métricas reales, navegación, persistencia tras recarga, logout, panel global,
-  acceso restringido del consumidor, credenciales incorrectas y recuperación.
-- El E2E de API con JWT reales de Supabase cubrió 13/13 contexto, métricas y
-  permisos para `admin@benefy.com`, `business@benefy.com` y `user@benefy.com`.
+  con Playwright/Edge cubrió 12/12, incluido el panel de plan, uso y límites.
+- El E2E de API con JWT reales de Supabase cubrió 24/24 contexto, planes,
+  límites, métricas y permisos para `admin@benefy.com`, `business@benefy.com` y
+  `user@benefy.com`.
 - No se añadieron dependencias al backend: se usa el cliente HTTP de Python y
   DRF existente. La web añade `@supabase/supabase-js`.
 - El health check no implica que Auth esté configurado. La prueba real requiere

@@ -70,7 +70,7 @@ solo se crean o modifican mediante los endpoints transaccionales de lealtad.
 | GET | `/api/v1/mi/contexto/` | Perfil, membresías, negocios y sucursales accesibles y `puede_portal` |
 | PATCH | `/api/v1/usuario/rol/{id}/` | Cambiar `rol` o `is_active`; solo `admin_sistema` |
 
-Hay 93 rutas de API en total. Las tres anteriores no sustituyen los CRUD.
+Hay 96 rutas de API en total. Las tres anteriores no sustituyen los CRUD.
 El login, registro de identidad, refresh y logout ocurren en Supabase Auth,
 no bajo `/api/v1`. `usuario/crear/` crea el perfil Benefy después del login.
 
@@ -83,11 +83,38 @@ Authorization: Bearer <access_token>
 
 Devuelve `usuario`, `es_admin_sistema`, `puede_portal`, `membresias`,
 `negocios` y `sucursales`. Las membresías incluyen el rol comercial y la
-sucursal asignada. Solo aparecen membresías activas cuyo negocio y sucursal
-(esta última si aplica) estén habilitados. Un consumidor sin membresías recibe
-`puede_portal: false` y listas vacías. `admin_sistema` recibe los negocios y
-sucursales activos de la plataforma. Es la fuente de verdad para decidir qué
+sucursal asignada. Cada negocio incluye un resumen compacto de su plan
+(`codigo`, `nombre`, `orden`). Solo aparecen membresías activas cuyo negocio y
+sucursal (esta última si aplica) estén habilitados. Un consumidor sin membresías
+recibe `puede_portal: false` y listas vacías. `admin_sistema` recibe los negocios
+y sucursales activos de la plataforma. Es la fuente de verdad para decidir qué
 dashboard mostrar; los guards de React no sustituyen los permisos de Django.
+
+## Planes y límites
+
+| Método | Ruta | Acceso | Uso |
+| --- | --- | --- | --- |
+| GET | `/api/v1/planes/` | Usuario activo | Catálogo Free/Premium con límites, características y precios |
+| GET | `/api/v1/negocios/{id}/plan/` | Miembros del negocio o admin | Plan vigente, uso, cupos y excedentes |
+| POST | `/api/v1/negocios/{id}/plan/` | Solo `admin_sistema` | Cambio manual; requiere `plan_codigo` y `motivo` |
+| GET | `/api/v1/negocios/{id}/plan/cambios/` | Miembros del negocio o admin | Historial auditado de cambios |
+
+Los negocios nuevos reciben Free en la misma transacción que el negocio y la
+membresía de dueño. Los límites iniciales y la política de downgrade están en
+[planes Free y Premium](./planes-free-premium.md).
+
+Al crear o reactivar recursos por encima del plan, el backend responde `403`:
+
+```json
+{
+  "codigo": "limite_plan",
+  "detalle": "El plan actual no permite crear más recompensas."
+}
+```
+
+Los límites se aplican en sucursales, tarjetas de sellos (`Dinamica` tipo
+`sellos`), recompensas, supervisores y empleados. Los recursos inactivos no
+consumen cupo. El programa de puntos conserva su regla de uno activo por negocio.
 
 ## Roles
 

@@ -1,23 +1,29 @@
 # Estado de implementación y relación con el SRS
 
-Revisión documental: 15 de noviembre de 2026. Este documento contrasta los
+Revisión documental: 16 de noviembre de 2026. Este documento contrasta los
 archivos versionados con [Benefy SRS.pdf, revisión 1.0](./Benefy%20SRS.pdf).
 Describe capacidades del código, no el estado de migraciones/configuración de
 un servidor concreto ni una certificación de aceptación del producto.
 
 ## Arquitectura implementada
 
-- Django 5.2 y DRF concentran persistencia, perfiles y autorización. Hay 21
-  modelos de dominio y diez migraciones de `core`, además de las de Django.
+- Django 5.2 y DRF concentran persistencia, perfiles y autorización. Hay 23
+  modelos de dominio y trece migraciones de `core`, además de las de Django.
 - El motor de lealtad registra visitas por QR, aplica el límite diario con la
   zona horaria del negocio, otorga puntos por lotes con consumo FIFO, avanza
   tarjetas repetibles o de una sola vez y permite adquirir y canjear cupones
   de forma transaccional e idempotente.
+- Free/Premium está implementado: catálogo de planes, límites configurables,
+  suscripción vigente única por negocio, asignación automática de Free,
+  cambios manuales auditados y bloqueo de altas por encima del cupo. Stripe y
+  los cobros siguen pendientes.
 - La validación funcional contra Supabase pasó 17/17 comprobaciones; el E2E de
   autenticación real con JWT pasó 12/12 el 14 de noviembre de 2026. El 15 de
-  noviembre el E2E del portal pasó 13/13 en API y 9/9 en navegador. La web ya
+  noviembre el E2E del portal pasó 13/13 en API y 9/9 en navegador; el 16 de
+  noviembre el E2E de planes pasó 24/24 en API y 12/12 en navegador. La web ya
   consume estos endpoints; el detalle está en
-  [validación del MVP](./validacion-mvp-lealtad.md) y
+  [validación del MVP](./validacion-mvp-lealtad.md),
+  [validación de planes](./validacion-planes-free-premium.md) y
   [autenticación](./autenticacion.md).
 - El portal web separa la administración global de los dashboards comerciales.
   Resuelve el acceso con `GET /mi/contexto/`, filtra navegación por rol y ofrece
@@ -28,7 +34,8 @@ un servidor concreto ni una certificación de aceptación del producto.
   se determina con `UsuarioNegocio.rol_comercio` (`dueno`, `supervisor`,
   `empleado`). Todos los usuarios activos pueden consumir. Las altas, cambios y
   bajas de membresías se auditan en `AuditoriaMembresia`. Las migraciones
-  `0008`–`0010` quedaron aplicadas en Supabase el 15 de noviembre de 2026.
+  `0008`–`0010` quedaron aplicadas en Supabase el 15 de noviembre de 2026 y las
+  `0011`–`0013` (planes) el 16 de noviembre de 2026.
 - Desarrollo usa PostgreSQL 17 dentro de Docker, la misma versión mayor que
   Supabase. El montaje de demostración apunta a PostgreSQL Supabase con SSL
   mediante un Compose independiente y el mismo ORM.
@@ -77,7 +84,7 @@ pero no el flujo completo ni la interfaz exigidos por el SRS.
 | RF-09 | Consultar/canjear recompensas | Adquisición atómica con puntos y canje irreversible de cliente; falta UI |
 | RF-10 | Historial de movimientos | Ledger de puntos, visitas, cupones y canjes consultables; faltan filtros avanzados y pantalla |
 | RF-11 | Permisos y preferencias de notificaciones | Pendiente en móvil; no hay permisos cámara/push ni preferencias |
-| RF-12 | Interfaz de suscripciones | Pendiente; el portal muestra el rol, no el plan. Solo modelos, lectura y propuesta Free/Premium |
+| RF-12 | Interfaz de suscripciones | Plan actual, límites, uso, excedentes y funciones Premium en el portal; cambio manual auditado por admin. Checkout y cobros pendientes |
 | RF-13 | Validaciones visuales | Validaciones de formularios de acceso y onboarding en la web; faltan las de los CRUD comerciales |
 | RF-14 | Navegación y recuperación ante errores | Portal con guards, estados de carga/error, logout y acceso restringido; faltan flujos móviles y de conexión |
 | RF-15 | Cobros y webhooks Stripe | Pendiente; IDs Stripe en modelos no constituyen una integración |
@@ -96,7 +103,7 @@ pero no el flujo completo ni la interfaz exigidos por el SRS.
 | HTTPS | SSL de PostgreSQL y HTTPS local con Caddy en el montaje demo; el TLS público sigue pendiente de despliegue |
 | Portabilidad | Imágenes Python 3.11 y Compose; la web se compila en el montaje demo y el móvil se ejecuta fuera de Docker. No hay builds móviles de publicación configurados |
 | Privacidad y exposición de datos | Permisos Python no protegen accesos directos por Data API; revisar exposición, privilegios y alcance de alianzas |
-| Pruebas | Django cubre salud, configuración, Auth, permisos, membresías, portal, aislamiento por sucursal, migración, motor de lealtad y concurrencia PostgreSQL (126 pruebas). El E2E de Auth se ejecutó contra Supabase: 13/13 en API y 9/9 en navegador. No hay suite móvil/IA ni E2E automatizada en CI |
+| Pruebas | Django cubre salud, configuración, Auth, permisos, membresías, portal, aislamiento por sucursal, planes, límites, concurrencia, migración, motor de lealtad y PostgreSQL (153 pruebas). El E2E con Supabase pasó 24/24 en API y 12/12 en navegador. No hay suite móvil/IA ni E2E automatizada en CI |
 
 Los porcentajes, ventanas de mantenimiento, retención de respaldos y objetivos
 de fiabilidad del PDF son requisitos pendientes de implementación/medición,
@@ -116,15 +123,15 @@ no garantías actuales. Tampoco se declara cumplimiento legal a partir del códi
 5. Las alianzas con puntos compartidos, NFC y QR dinámicos quedan fuera del MVP.
 6. Benef AI todavía no tiene un contrato autenticado con el backend. Su token
    interno placeholder no permite omitir Supabase Auth.
-7. Free/Premium está documentado en [planes-free-premium.md](./planes-free-premium.md),
-   pero no implementado: faltan límites, funciones Premium, política de downgrade
-   y Stripe.
+7. Free/Premium está implementado en capacidades y límites. Faltan precios,
+   Stripe, renovaciones, checkout, downgrade programado y la pantalla para
+   regularizar tarjetas, sucursales o equipo excedentes.
 
-La secuencia de trabajo sugerida es completar los CRUD del portal, decidir e
-implementar Free/Premium, conectar la aplicación móvil con Auth y los contratos
-de visita, billetera, catálogo y canje, y programar la expiración periódica de
-puntos. Las integraciones externas y el hardware deben tener entregables propios
-y pruebas de flujo completo.
+La secuencia de trabajo sugerida es completar los CRUD del portal, integrar
+Stripe y la facturación, resolver la regularización de excedentes, conectar la
+aplicación móvil con Auth y los contratos de visita, billetera, catálogo y canje,
+y programar la expiración periódica de puntos. Las integraciones externas y el
+hardware deben tener entregables propios y pruebas de flujo completo.
 
 ## Aspectos editoriales del SRS original
 
