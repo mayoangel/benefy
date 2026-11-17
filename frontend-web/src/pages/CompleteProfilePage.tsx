@@ -1,3 +1,4 @@
+import { safeReturnPath } from '../lib/navigation';
 import { FormEvent, useState } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -11,7 +12,7 @@ export default function CompleteProfilePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const nextParam = searchParams.get('next');
-  const next = nextParam && nextParam.startsWith('/') ? nextParam : null;
+  const next = safeReturnPath(nextParam);
   const [nombre, setNombre] = useState('');
   const [apellido, setApellido] = useState('');
   const [error, setError] = useState<string | null>(null);

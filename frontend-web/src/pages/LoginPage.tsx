@@ -1,3 +1,4 @@
+import { safeReturnPath } from '../lib/navigation';
 import { FormEvent, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -37,8 +38,8 @@ export default function LoginPage() {
       return;
     }
     const params = new URLSearchParams(location.search);
-    const next = params.get('next');
-    navigate(next && next.startsWith('/') ? next : '/portal', { replace: true });
+    const next = safeReturnPath(params.get('next'));
+    navigate(next ?? '/portal', { replace: true });
   }, [busy, loading, location.search, navigate, onboardingError, session]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -60,7 +61,7 @@ export default function LoginPage() {
     try {
       const result = await signIn(emailVal, password);
       const params = new URLSearchParams(location.search);
-      const next = params.get('next');
+      const next = safeReturnPath(params.get('next'));
       if (result.needsProfile) {
         navigate(
           `/completar-perfil${next ? `?next=${encodeURIComponent(next)}` : ''}`,
@@ -72,7 +73,7 @@ export default function LoginPage() {
         navigate('/completar-registro', { replace: true });
         return;
       }
-      navigate(next && next.startsWith('/') ? next : portalDestination(result.context), {
+      navigate(next ?? portalDestination(result.context), {
         replace: true,
       });
     } catch (err) {

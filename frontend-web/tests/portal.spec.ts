@@ -90,3 +90,15 @@ test('an invitation failure does not hide the independently loaded team',async({
  await page.goto('/portal/negocio/1/equipo');
  await expect(page.getByText(/No hay membres/)).toBeVisible();
 });
+
+
+for(const next of ['//attacker.example.invalid','/\\attacker.example.invalid']){
+ test('login rejects unsafe return path '+JSON.stringify(next),async({page})=>{
+ let external=false;page.on('request',request=>{if(new URL(request.url()).hostname==='attacker.example.invalid')external=true;});
+ await page.goto('/login?next='+encodeURIComponent(next));
+ await page.waitForTimeout(350);
+ expect(external).toBe(false);
+ expect(new URL(page.url()).hostname).toBe('127.0.0.1');
+ await expect(page.locator('.portal-kpi strong').first()).toHaveText('100');
+ });
+}
