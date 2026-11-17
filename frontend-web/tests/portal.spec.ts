@@ -102,3 +102,24 @@ for(const next of ['//attacker.example.invalid','/\\attacker.example.invalid']){
  await expect(page.locator('.portal-kpi strong').first()).toHaveText('100');
  });
 }
+
+test('portal fits mobile tablet and desktop with long identity text and both brand fonts',async({page})=>{
+ await page.route('**/perfil/',route=>route.fulfill({json:{id:1,correo:'owner-with-a-long-business-email-address@example.invalid'}}));
+ const scoped=structuredClone(ctx);scoped.negocios[0].nombre='Negocio con un nombre comercial extenso para verificar el encabezado';
+ scoped.membresias[0].negocio.nombre=scoped.negocios[0].nombre;
+ await page.route('**/contexto/',route=>route.fulfill({json:scoped}));
+ await page.goto('/portal/negocio/1/clientes');await expect(page.locator('table')).toBeVisible();
+ await page.evaluate(()=>document.fonts.ready);
+ const cdp=await page.context().newCDPSession(page);await cdp.send('DOM.enable');await cdp.send('CSS.enable');
+ const doc=await cdp.send('DOM.getDocument');
+ for(const [selector,family] of [['h1','Jakarta'],['.portal-page-head p','Inter']]){
+  const node=await cdp.send('DOM.querySelector',{nodeId:doc.root.nodeId,selector});
+  const fonts=await cdp.send('CSS.getPlatformFontsForNode',{nodeId:node.nodeId});
+  expect(fonts.fonts.some((font:any)=>font.familyName.includes(family))).toBe(true);
+ }
+ for(const width of [320,390,768,860,861,1440]){
+  await page.setViewportSize({width,height:768});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  expect(await page.locator('.portal-topbar').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
+ }
+});
