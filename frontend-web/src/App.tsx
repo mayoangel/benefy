@@ -1,50 +1,39 @@
+import { lazy, Suspense } from 'react';
+import { RouteErrorBoundary } from './components/RouteErrorBoundary';
 import { Outlet, Route, Routes } from 'react-router-dom';
 
-import Header from './components/Header.tsx';
-import Footer from './components/Footer.tsx';
-import ScrollToHash from './components/ScrollToHash.tsx';
-import HomePage from './pages/HomePage.tsx';
-import AboutPage from './pages/AboutPage.tsx';
-import PricingPage from './pages/PricingPage.tsx';
-import LoginPage from './pages/LoginPage.tsx';
-import RegisterPage from './pages/RegisterPage.tsx';
-import RecoverPage from './pages/RecoverPage.tsx';
-import CompleteProfilePage from './pages/CompleteProfilePage.tsx';
-import AccessDeniedPage from './pages/AccessDeniedPage.tsx';
-import NewBusinessPage from './pages/NewBusinessPage.tsx';
-import NewPasswordPage from './pages/NewPasswordPage.tsx';
-import FinishRegistrationPage from './pages/FinishRegistrationPage.tsx';
-import PortalLayout from './portal/PortalLayout.tsx';
-import PortalIndexRedirect from './portal/pages/PortalIndexRedirect.tsx';
-import BusinessOverviewPage from './portal/pages/BusinessOverviewPage.tsx';
-import BranchesPage from './portal/pages/BranchesPage.tsx';
-import TeamPage from './portal/pages/TeamPage.tsx';
-import VisitsPage from './portal/pages/VisitsPage.tsx';
-import CouponsPage from './portal/pages/CouponsPage.tsx';
-import AdminOverviewPage from './portal/pages/AdminOverviewPage.tsx';
-import BusinessSettingsPage from './portal/pages/BusinessSettingsPage.tsx';
-import PointsPage from './portal/pages/PointsPage.tsx';
-import CardsPage from './portal/pages/CardsPage.tsx';
-import RewardsPage from './portal/pages/RewardsPage.tsx';
-import RedemptionsPage from './portal/pages/RedemptionsPage.tsx';
-import ClientsPage from './portal/pages/ClientsPage.tsx';
-import InvitationPage from './pages/InvitationPage.tsx';
+const HomePage = lazy(() => import('./pages/HomePage.tsx'));
+const AboutPage = lazy(() => import('./pages/AboutPage.tsx'));
+const PricingPage = lazy(() => import('./pages/PricingPage.tsx'));
+const LoginPage = lazy(() => import('./pages/LoginPage.tsx'));
+const RegisterPage = lazy(() => import('./pages/RegisterPage.tsx'));
+const RecoverPage = lazy(() => import('./pages/RecoverPage.tsx'));
+const CompleteProfilePage = lazy(() => import('./pages/CompleteProfilePage.tsx'));
+const AccessDeniedPage = lazy(() => import('./pages/AccessDeniedPage.tsx'));
+const NewBusinessPage = lazy(() => import('./pages/NewBusinessPage.tsx'));
+const NewPasswordPage = lazy(() => import('./pages/NewPasswordPage.tsx'));
+const FinishRegistrationPage = lazy(() => import('./pages/FinishRegistrationPage.tsx'));
+const PortalLayout = lazy(() => import('./portal/PortalLayout.tsx'));
+const PortalIndexRedirect = lazy(() => import('./portal/pages/PortalIndexRedirect.tsx'));
+const BusinessOverviewPage = lazy(() => import('./portal/pages/BusinessOverviewPage.tsx'));
+const BranchesPage = lazy(() => import('./portal/pages/BranchesPage.tsx'));
+const TeamPage = lazy(() => import('./portal/pages/TeamPage.tsx'));
+const VisitsPage = lazy(() => import('./portal/pages/VisitsPage.tsx'));
+const CouponsPage = lazy(() => import('./portal/pages/CouponsPage.tsx'));
+const AdminOverviewPage = lazy(() => import('./portal/pages/AdminOverviewPage.tsx'));
+const BusinessSettingsPage = lazy(() => import('./portal/pages/BusinessSettingsPage.tsx'));
+const PointsPage = lazy(() => import('./portal/pages/PointsPage.tsx'));
+const CardsPage = lazy(() => import('./portal/pages/CardsPage.tsx'));
+const RewardsPage = lazy(() => import('./portal/pages/RewardsPage.tsx'));
+const RedemptionsPage = lazy(() => import('./portal/pages/RedemptionsPage.tsx'));
+const ClientsPage = lazy(() => import('./portal/pages/ClientsPage.tsx'));
+const InvitationPage = lazy(() => import('./pages/InvitationPage.tsx'));
+const PublicLayout = lazy(() => import('./components/PublicLayout'));
 import { RequireAdmin, RequirePortalAccess, RequireSession } from './auth/guards.tsx';
-
-function PublicLayout() {
-  return (
-    <>
-      <Header />
-      <ScrollToHash />
-      <Outlet />
-      <Footer />
-    </>
-  );
-}
 
 export default function App() {
   return (
-    <Routes>
+    <RouteErrorBoundary><Suspense fallback={<div className="portal-loading" role="status">Cargando...</div>}><Routes>
       <Route element={<PublicLayout />}>
         <Route path="/" element={<HomePage />} />
         <Route path="/about" element={<AboutPage />} />
@@ -87,6 +76,6 @@ export default function App() {
       </Route>
 
       <Route path="*" element={<HomePage />} />
-    </Routes>
+    </Routes></Suspense></RouteErrorBoundary>
   );
 }
