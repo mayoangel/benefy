@@ -1,3 +1,4 @@
+import { clearPlanCache } from '../portal/hooks/planCache';
 import {
   createContext,
   useCallback,
@@ -34,6 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const pending = useRef<Promise<LoginOutcome> | null>(null);
   const acceptSession = useCallback((next: Session | null) => {
     if (identity.current !== (next?.user.id ?? null)) {
+      clearPlanCache();
       identity.current = next?.user.id ?? null;
       epoch.current++;
       contextSequence.current++;
@@ -43,10 +45,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setSession(next);
   }, []);
-  const estadoRef = useRef({ needsProfile, context });
-  estadoRef.current = { needsProfile, context };
 
   const clear = useCallback(() => {
+    clearPlanCache();
     epoch.current++; contextSequence.current++; pending.current = null; identity.current = null;
     loadedUser.current = null;
     setProfile(null);
@@ -76,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loadSessionData = useCallback((): Promise<LoginOutcome> => {
     if (pending.current) return pending.current;
     const version = epoch.current;
+    const contextVersion = ++contextSequence.current;
     const valid = () => version === epoch.current && identity.current !== null;
     const assertCurrent = () => { if (!valid()) throw new Error('obsolete-session'); };
     const task = (async (): Promise<LoginOutcome> => {
@@ -115,6 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
+      if (contextVersion !== contextSequence.current) return {needsProfile:false,context:null};
       setProfile(currentProfile);
       setContext(currentContext);
       setNeedsProfile(false);
@@ -160,9 +163,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let active = true;
+    let receivedAuthEvent = false;
 
     supabase.auth.getSession().then(({ data }) => {
-      if (!active) return;
+      if (!active || receivedAuthEvent) return;
       acceptSession(data.session);
       if (data.session) {
         void hydrate(data.session);
@@ -174,6 +178,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: subscription } = supabase.auth.onAuthStateChange(
       (_event, currentSession) => {
         if (!active) return;
+        receivedAuthEvent = true;
         acceptSession(currentSession);
         if (currentSession) {
           queueMicrotask(() => { if (active) void hydrate(currentSession); });
@@ -259,7 +264,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!session) return;
 
-    function actualizarSilenciosamente() {
+    function actualizarSilenciosamente(event: Event) {
+      if (event.type === "benefy:contexto-invalidado") { setContext(null); clearPlanCache(); }
       void refreshContext().catch(() => {
         // Un 401 lo gestiona el cliente HTTP; no se fuerza otro ciclo aquí.
       });

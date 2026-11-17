@@ -49,7 +49,7 @@ function navItems(rol: RolComercio | null) {
 }
 
 export default function PortalLayout() {
-  const { context, profile, signOut } = useAuth();
+  const { context, profile, signOut, session } = useAuth();
   const { negocioId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -219,7 +219,7 @@ export default function PortalLayout() {
           ) : null}
         </header>
         <main className="portal-content">
-          <Outlet />
+          <Outlet key={JSON.stringify([session?.user.id, id, context.membresias, context.es_admin_sistema])} />
         </main>
       </div>
     </div>

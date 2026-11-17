@@ -92,10 +92,11 @@ export default function BusinessOverviewPage() {
         </span>
       </div>
 
-      {loading ? <PortalLoading /> : null}
+      {loading && !metricas ? <PortalLoading /> : null}
+      {loading && metricas ? <p role="status">Actualizando resumen...</p> : null}
       {error ? <PortalError message={error} onRetry={() => void cargar()} /> : null}
 
-      {metricas && !loading ? (
+      {metricas ? (
         <>
           <div className="portal-kpi-grid">
             <article className="portal-kpi">

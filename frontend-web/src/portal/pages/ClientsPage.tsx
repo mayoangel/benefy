@@ -70,15 +70,16 @@ export default function ClientsPage() {
         </label>
       </div>
 
-      {loading ? <PortalLoading /> : null}
+      {loading && datos.results.length === 0 ? <PortalLoading /> : null}
+      {loading && datos.results.length > 0 ? <p role="status" className="portal-muted">Actualizando resultados...</p> : null}
       {error ? <PortalError message={error} onRetry={() => void cargar()} /> : null}
       {!loading && !error && datos.results.length === 0 ? (
         <PortalEmpty message="No hay clientes con esos criterios." />
       ) : null}
 
-      {!loading && !error && datos.results.length > 0 ? (
+      {datos.results.length > 0 ? (
         <div className="portal-panel">
-          <div className="portal-table-wrap">
+          <div className="portal-table-wrap" aria-busy={loading}>
             <table className="portal-table">
               <thead>
                 <tr>
