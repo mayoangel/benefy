@@ -1,3 +1,4 @@
+import { useRequestGuard } from '../hooks/useRequestGuard';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
@@ -42,18 +43,22 @@ export default function BranchesPage() {
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
 
+  const requestGuard = useRequestGuard(Number(negocioId));
   const cargar = useCallback(async () => {
+    const vigente = requestGuard();
     setLoading(true);
     setError(null);
     try {
       const datos = await api.getBranches();
+      if (!vigente()) return;
       setSucursales(datos.filter((sucursal) => sucursal.negocio === id));
     } catch (err) {
+      if (!vigente()) return;
       setError(err instanceof Error ? err.message : 'No se pudieron cargar las sucursales.');
     } finally {
-      setLoading(false);
+      if (vigente()) setLoading(false);
     }
-  }, [id]);
+  }, [requestGuard, id]);
 
   useEffect(() => {
     void cargar();

@@ -1,3 +1,4 @@
+import { useRequestGuard } from '../hooks/useRequestGuard';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
@@ -21,17 +22,22 @@ export default function BusinessSettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
 
+  const requestGuard = useRequestGuard(Number(negocioId));
   const cargar = useCallback(async () => {
+    const vigente = requestGuard();
     setLoading(true);
     setError(null);
     try {
-      setNegocio(await api.getBusinessDetail(id));
+      const respuesta = await api.getBusinessDetail(id);
+      if (!vigente()) return;
+      setNegocio(respuesta);
     } catch (err) {
+      if (!vigente()) return;
       setError(err instanceof Error ? err.message : 'No se pudo cargar el negocio.');
     } finally {
-      setLoading(false);
+      if (vigente()) setLoading(false);
     }
-  }, [id]);
+  }, [requestGuard, id]);
 
   useEffect(() => {
     void cargar();

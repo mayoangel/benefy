@@ -1,3 +1,4 @@
+import { useRequestGuard } from '../hooks/useRequestGuard';
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
@@ -28,17 +29,23 @@ export default function VisitsPage() {
     page_size: 20,
   });
 
+  const requestGuard = useRequestGuard(Number(negocioId));
   const cargar = useCallback(async () => {
+    const vigente = requestGuard();
     setLoading(true);
     setError(null);
     try {
-      setDatos(await api.getBusinessVisits(id, filtros));
+      const respuesta = await api.getBusinessVisits(id, filtros);
+      if (!vigente()) return;
+      if (!vigente()) return;
+      setDatos(respuesta);
     } catch (err) {
+      if (!vigente()) return;
       setError(err instanceof Error ? err.message : 'No se pudieron cargar las visitas.');
     } finally {
-      setLoading(false);
+      if (vigente()) setLoading(false);
     }
-  }, [filtros, id]);
+  }, [requestGuard, filtros, id]);
 
   useEffect(() => {
     void cargar();

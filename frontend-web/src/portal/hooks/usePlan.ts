@@ -1,3 +1,4 @@
+import { useRequestGuard } from './useRequestGuard';
 import { useCallback, useEffect, useState } from 'react';
 
 import { api } from '../../lib/api.ts';
@@ -8,17 +9,21 @@ export function usePlan(negocioId: number) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const requestGuard = useRequestGuard(negocioId);
   const cargar = useCallback(async () => {
+    const vigente = requestGuard();
     setLoading(true);
     setError(null);
     try {
-      setPlan(await api.getBusinessPlan(negocioId));
+      const data = await api.getBusinessPlan(negocioId);
+      if (vigente()) setPlan(data);
     } catch (err) {
+      if (!vigente()) return;
       setError(err instanceof Error ? err.message : 'No se pudo cargar el plan.');
     } finally {
-      setLoading(false);
+      if (vigente()) setLoading(false);
     }
-  }, [negocioId]);
+  }, [negocioId, requestGuard]);
 
   useEffect(() => {
     void cargar();

@@ -19,29 +19,35 @@ const CACHE_KEY = 'benefy.portal.context';
 
 const CODIGOS_SIN_REGISTRO = ['sin_registro_comercial', 'registro_incompleto'];
 
-function leerContextoCache(): ContextoPortal | null {
-  try {
-    const raw = window.sessionStorage.getItem(CACHE_KEY);
-    return raw ? JSON.parse(raw) as ContextoPortal : null;
-  } catch {
-    return null;
-  }
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<UsuarioPortal | null>(null);
-  const [context, setContext] = useState<ContextoPortal | null>(() => leerContextoCache());
+  const [context, setContext] = useState<ContextoPortal | null>(null);
   const [loading, setLoading] = useState(true);
   const [needsProfile, setNeedsProfile] = useState(false);
   const [onboardingError, setOnboardingError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const loadedUser = useRef<string | null>(null);
-  const loadingRef = useRef(false);
+  const identity = useRef<string | null>(null);
+  const epoch = useRef(0);
+  const contextSequence = useRef(0);
+  const pending = useRef<Promise<LoginOutcome> | null>(null);
+  const acceptSession = useCallback((next: Session | null) => {
+    if (identity.current !== (next?.user.id ?? null)) {
+      identity.current = next?.user.id ?? null;
+      epoch.current++;
+      contextSequence.current++;
+      pending.current = null;
+      loadedUser.current = null;
+      setProfile(null); setContext(null); setNeedsProfile(false); setOnboardingError(null);
+    }
+    setSession(next);
+  }, []);
   const estadoRef = useRef({ needsProfile, context });
   estadoRef.current = { needsProfile, context };
 
   const clear = useCallback(() => {
+    epoch.current++; contextSequence.current++; pending.current = null; identity.current = null;
     loadedUser.current = null;
     setProfile(null);
     setContext(null);
@@ -67,14 +73,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const loadSessionData = useCallback(async (): Promise<LoginOutcome> => {
-    if (loadingRef.current) {
-      return {
-        needsProfile: estadoRef.current.needsProfile,
-        context: estadoRef.current.context,
-      };
-    }
-    loadingRef.current = true;
+  const loadSessionData = useCallback((): Promise<LoginOutcome> => {
+    if (pending.current) return pending.current;
+    const version = epoch.current;
+    const valid = () => version === epoch.current && identity.current !== null;
+    const assertCurrent = () => { if (!valid()) throw new Error('obsolete-session'); };
+    const task = (async (): Promise<LoginOutcome> => {
     setLoading(true);
     setError(null);
     setOnboardingError(null);
@@ -82,9 +86,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       let currentProfile: UsuarioPortal;
       try {
         currentProfile = await api.getProfile();
+        assertCurrent();
       } catch (err) {
         if (err instanceof ApiError && (err.status === 403 || err.status === 404)) {
           const contextoCompletado = await completarOnboarding();
+          assertCurrent();
           if (!contextoCompletado) {
             setProfile(null);
             setContext(null);
@@ -93,14 +99,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return { needsProfile: true, context: null };
           }
           currentProfile = await api.getProfile();
+        assertCurrent();
         } else {
           throw err;
         }
       }
 
       let currentContext = await api.getContext();
+      assertCurrent();
       if (!currentContext.es_admin_sistema && currentContext.membresias.length === 0) {
         const contextoCompletado = await completarOnboarding();
+          assertCurrent();
         if (contextoCompletado) {
           currentContext = contextoCompletado;
         }
@@ -110,9 +119,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setContext(currentContext);
       setNeedsProfile(false);
       setOnboardingError(null);
-      window.sessionStorage.setItem(CACHE_KEY, JSON.stringify(currentContext));
+
       return { needsProfile: false, context: currentContext };
     } catch (err) {
+      if (!valid()) return {needsProfile: false, context: null};
       if (err instanceof ApiError && err.status === 401) {
         await supabase.auth.signOut();
       }
@@ -125,9 +135,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.sessionStorage.removeItem(CACHE_KEY);
       return { needsProfile: false, context: null };
     } finally {
-      loadingRef.current = false;
-      setLoading(false);
+      if (valid()) setLoading(false);
     }
+    })();
+    pending.current = task;
+    void task.finally(() => { if (pending.current === task) pending.current = null; });
+    return task;
   }, [completarOnboarding]);
 
   const hydrate = useCallback(async (currentSession: Session | null) => {
@@ -140,7 +153,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     const outcome = await loadSessionData();
-    if (!outcome.needsProfile) {
+    if (!outcome.needsProfile && identity.current === currentSession.user.id) {
       loadedUser.current = currentSession.user.id;
     }
   }, [clear, loadSessionData]);
@@ -150,7 +163,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     supabase.auth.getSession().then(({ data }) => {
       if (!active) return;
-      setSession(data.session);
+      acceptSession(data.session);
       if (data.session) {
         void hydrate(data.session);
       } else {
@@ -161,17 +174,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: subscription } = supabase.auth.onAuthStateChange(
       (_event, currentSession) => {
         if (!active) return;
-        setSession(currentSession);
+        acceptSession(currentSession);
         if (currentSession) {
-          void hydrate(currentSession);
+          queueMicrotask(() => { if (active) void hydrate(currentSession); });
         } else {
-          loadedUser.current = null;
-          setProfile(null);
-          setContext(null);
-          setNeedsProfile(false);
-          setOnboardingError(null);
+          clear();
           setLoading(false);
-          window.sessionStorage.removeItem(CACHE_KEY);
         }
       },
     );
@@ -180,7 +188,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       active = false;
       subscription.subscription.unsubscribe();
     };
-  }, [hydrate]);
+  }, [hydrate, acceptSession, clear]);
 
   const signIn = useCallback(async (email: string, password: string) => {
     setError(null);
@@ -193,9 +201,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (authError) {
         throw new Error(authError.message);
       }
-      setSession(data.session);
+      acceptSession(data.session);
       const outcome = await loadSessionData();
-      loadedUser.current = data.session?.user.id ?? null;
+      if (identity.current === data.session?.user.id) loadedUser.current = data.session?.user.id ?? null;
       return outcome;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo iniciar sesión.');
@@ -203,12 +211,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [loadSessionData]);
+  }, [loadSessionData, acceptSession]);
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
-    setSession(null);
     clear();
+    setSession(null);
+    await supabase.auth.signOut();
   }, [clear]);
 
   const createProfile = useCallback(async (nombre: string, apellido: string) => {
@@ -232,9 +240,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [loadSessionData]);
 
   const refreshContext = useCallback(async () => {
+    const version = epoch.current;
+    const sequence = ++contextSequence.current;
     const currentContext = await api.getContext();
+    if (version !== epoch.current || sequence !== contextSequence.current || !identity.current) return null;
     setContext(currentContext);
-    window.sessionStorage.setItem(CACHE_KEY, JSON.stringify(currentContext));
     return currentContext;
   }, []);
 

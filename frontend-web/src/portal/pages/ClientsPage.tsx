@@ -1,3 +1,4 @@
+import { useRequestGuard } from '../hooks/useRequestGuard';
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
@@ -17,19 +18,25 @@ export default function ClientsPage() {
   const [buscar, setBuscar] = useState('');
   const [page, setPage] = useState(1);
 
+  const requestGuard = useRequestGuard(Number(negocioId));
   const cargar = useCallback(async () => {
+    const vigente = requestGuard();
     setLoading(true);
     setError(null);
     try {
-      setDatos(await api.getBusinessClients(id, {
+      const respuesta = await api.getBusinessClients(id, {
         buscar, page, page_size: 20,
-      }));
+      });
+      if (!vigente()) return;
+      if (!vigente()) return;
+      setDatos(respuesta);
     } catch (err) {
+      if (!vigente()) return;
       setError(err instanceof Error ? err.message : 'No se pudieron cargar los clientes.');
     } finally {
-      setLoading(false);
+      if (vigente()) setLoading(false);
     }
-  }, [buscar, id, page]);
+  }, [requestGuard, buscar, id, page]);
 
   useEffect(() => {
     void cargar();

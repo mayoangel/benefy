@@ -1,3 +1,4 @@
+import { useRequestGuard } from '../hooks/useRequestGuard';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
@@ -44,7 +45,9 @@ export default function CardsPage() {
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
 
+  const requestGuard = useRequestGuard(Number(negocioId));
   const cargar = useCallback(async () => {
+    const vigente = requestGuard();
     setLoading(true);
     setError(null);
     try {
@@ -52,18 +55,21 @@ export default function CardsPage() {
         api.getDynamics(),
         api.getRewards(),
       ]);
+      if (!vigente()) return;
       setTarjetas(dinamicas.filter(
         (dinamica) => dinamica.negocio === id && dinamica.tipo === 'sellos',
       ));
+      if (!vigente()) return;
       setRecompensas(premios.filter(
         (recompensa) => recompensa.negocio === id && recompensa.es_meta,
       ));
     } catch (err) {
+      if (!vigente()) return;
       setError(err instanceof Error ? err.message : 'No se pudieron cargar las tarjetas.');
     } finally {
-      setLoading(false);
+      if (vigente()) setLoading(false);
     }
-  }, [id]);
+  }, [requestGuard, id]);
 
   useEffect(() => {
     void cargar();

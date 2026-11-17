@@ -1,3 +1,4 @@
+import { useRequestGuard } from '../hooks/useRequestGuard';
 import { useCallback, useEffect, useState } from 'react';
 
 import { api } from '../../lib/api.ts';
@@ -11,7 +12,9 @@ export default function AdminOverviewPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const requestGuard = useRequestGuard(0);
   const cargar = useCallback(async () => {
+    const vigente = requestGuard();
     setLoading(true);
     setError(null);
     try {
@@ -19,6 +22,7 @@ export default function AdminOverviewPage() {
         api.getBusinesses(),
         api.getUsers(),
       ]);
+      if (!vigente()) return;
       setNegocios(negociosData);
       setUsuarios(usuariosData);
       const planesData = await Promise.all(negociosData.map(async (negocio) => {
@@ -31,11 +35,12 @@ export default function AdminOverviewPage() {
       }));
       setPlanes(Object.fromEntries(planesData));
     } catch (err) {
+      if (!vigente()) return;
       setError(err instanceof Error ? err.message : 'No se pudo cargar la administración global.');
     } finally {
-      setLoading(false);
+      if (vigente()) setLoading(false);
     }
-  }, []);
+  }, [requestGuard, ]);
 
   useEffect(() => {
     void cargar();

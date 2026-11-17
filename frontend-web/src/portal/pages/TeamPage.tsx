@@ -1,3 +1,4 @@
+import { useRequestGuard } from '../hooks/useRequestGuard';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
@@ -37,7 +38,9 @@ export default function TeamPage() {
   const [editando, setEditando] = useState<MembresiaResumen | null>(null);
   const [edicion, setEdicion] = useState({ rol_comercio: 'empleado', sucursal: '', status: true });
 
+  const requestGuard = useRequestGuard(Number(negocioId));
   const cargar = useCallback(async () => {
+    const vigente = requestGuard();
     setLoading(true);
     setError(null);
     try {
@@ -45,22 +48,27 @@ export default function TeamPage() {
         api.getMemberships(),
         api.getBranches(),
       ]);
+      if (!vigente()) return;
       setFilas(membresias.filter((fila) => fila.negocio === id));
       const propias = ramas.filter((ramasItem) => ramasItem.negocio === id);
+      if (!vigente()) return;
       setSucursales(propias);
       if (esDueno || esSupervisor) {
         try {
-          setInvitaciones(await api.getInvitations(id));
+          const respuesta = await api.getInvitations(id);
+      if (!vigente()) return;
+      setInvitaciones(respuesta);
         } catch {
           setInvitaciones([]);
         }
       }
     } catch (err) {
+      if (!vigente()) return;
       setError(err instanceof Error ? err.message : 'No se pudo cargar el equipo.');
     } finally {
-      setLoading(false);
+      if (vigente()) setLoading(false);
     }
-  }, [esDueno, esSupervisor, id]);
+  }, [requestGuard, esDueno, esSupervisor, id]);
 
   useEffect(() => {
     void cargar();

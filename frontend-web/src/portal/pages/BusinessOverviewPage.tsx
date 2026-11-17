@@ -1,3 +1,4 @@
+import { useRequestGuard } from '../hooks/useRequestGuard';
 import { useCallback, useEffect, useState } from 'react';
 import { Navigate, useParams, useSearchParams } from 'react-router-dom';
 
@@ -27,7 +28,9 @@ export default function BusinessOverviewPage() {
   const [desde, setDesde] = useState('');
   const [hasta, setHasta] = useState('');
 
+  const requestGuard = useRequestGuard(Number(negocioId));
   const cargar = useCallback(async () => {
+    const vigente = requestGuard();
     if (!membresia) return;
     setLoading(true);
     setError(null);
@@ -40,14 +43,16 @@ export default function BusinessOverviewPage() {
         }),
         api.getBusinessPlan(id),
       ]);
+      if (!vigente()) return;
       setMetricas(metricasData);
       setPlan(planData);
     } catch (err) {
+      if (!vigente()) return;
       setError(err instanceof Error ? err.message : 'No se pudieron cargar las métricas.');
     } finally {
-      setLoading(false);
+      if (vigente()) setLoading(false);
     }
-  }, [desde, hasta, id, membresia, sucursalId]);
+  }, [requestGuard, desde, hasta, id, membresia, sucursalId]);
 
   useEffect(() => {
     void cargar();

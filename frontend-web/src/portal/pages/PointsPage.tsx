@@ -1,3 +1,4 @@
+import { useRequestGuard } from '../hooks/useRequestGuard';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
@@ -36,20 +37,24 @@ export default function PointsPage() {
     status: true,
   });
 
+  const requestGuard = useRequestGuard(Number(negocioId));
   const cargar = useCallback(async () => {
+    const vigente = requestGuard();
     setLoading(true);
     setError(null);
     try {
       const datos = await api.getDynamics();
+      if (!vigente()) return;
       setProgramas(datos.filter(
         (dinamica) => dinamica.negocio === id && dinamica.tipo === 'puntos',
       ));
     } catch (err) {
+      if (!vigente()) return;
       setError(err instanceof Error ? err.message : 'No se pudo cargar el programa.');
     } finally {
-      setLoading(false);
+      if (vigente()) setLoading(false);
     }
-  }, [id]);
+  }, [requestGuard, id]);
 
   useEffect(() => {
     void cargar();
