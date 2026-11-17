@@ -250,6 +250,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshContext = useCallback(async () => {
     const version = epoch.current;
+    // Finish profile hydration before starting a newer authorization snapshot.
+    // Otherwise a focus event can invalidate the profile load permanently.
+    if (pending.current) {
+      const outcome = await pending.current;
+      if (version !== epoch.current || !identity.current || outcome.needsProfile || !outcome.context) return null;
+    }
     const sequence = ++contextSequence.current;
     const currentContext = await api.getContext();
     if (version !== epoch.current || sequence !== contextSequence.current || !identity.current) return null;
