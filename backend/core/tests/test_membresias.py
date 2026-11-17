@@ -11,7 +11,12 @@ from rest_framework.test import APIClient
 
 from core import models, permissions
 from core.services import membresias
-from core.tests.helpers import crear_negocio, crear_sucursal, crear_usuario
+from core.tests.helpers import (
+    asignar_plan,
+    crear_negocio,
+    crear_sucursal,
+    crear_usuario,
+)
 
 
 class MembresiaModeloTests(TestCase):
@@ -204,6 +209,8 @@ class MembresiaAPITests(TestCase):
             usuario=self.employee, negocio=self.business,
             sucursal=self.branch, rol_comercio='empleado',
         )
+        # Los casos de permisos crean más supervisores/empleados que Free.
+        asignar_plan(self.business, 'premium')
         self.client = APIClient()
 
     def crear(self, usuario, sucursal, rol, actor=None):

@@ -13,6 +13,8 @@ from rest_framework.test import APIClient
 
 from core import models, urls
 from core.authentication import AuthUnavailable, SupabaseIdentity, verify_token
+from core.services import planes
+from core.tests.helpers import asignar_plan, asegurar_planes
 from rest_framework.exceptions import AuthenticationFailed
 
 
@@ -100,6 +102,8 @@ class AuthAndPermissionsTests(TestCase):
             sucursal=self.branch, rol_comercio='supervisor')
         models.UsuarioNegocio.objects.create(usuario=self.employee, negocio=self.business,
             sucursal=self.branch, rol_comercio='empleado')
+        # Estos casos prueban permisos con hasta 5 supervisores y 20 empleados.
+        asignar_plan(self.business, 'premium')
         self.program = models.Dinamica.objects.create(nombre='Sellos', tipo='sellos',
             meta=5, fecha_inicio=timezone.now(), fecha_fin=timezone.now() + timedelta(days=30),
             negocio=self.business)
@@ -229,10 +233,9 @@ class AuthAndPermissionsTests(TestCase):
         self.assertEqual([row['id'] for row in owner_coupons], [self.coupon.pk])
 
     def test_facturacion_solo_es_visible_para_dueno_del_negocio(self):
-        plan = models.PlanSuscripcion.objects.create(nombre='Plan', descripcion='Plan', stripe_price_id='price_test')
-        subscription = models.Suscripcion.objects.create(stripe_subscription_id='sub_test',
-            periodo_actual_inicio=timezone.now(), periodo_actual_fin=timezone.now() + timedelta(days=30),
-            negocio=self.business, plan=plan)
+        plan = models.PlanSuscripcion.objects.get(codigo='premium')
+        subscription = planes.suscripcion_actual(self.business)
+        self.assertEqual(subscription.plan_id, plan.pk)
         payment = models.Pago.objects.create(stripe_invoice_id='in_test', monto='99.00',
             negocio=self.business, suscripcion=subscription)
         for user, visible in ((self.owner, True), (self.manager, False), (self.employee, False),
@@ -309,6 +312,7 @@ class AuthAndPermissionsTests(TestCase):
         self.assertEqual(self.client.patch(path, {'rol': 'consumidor'}).status_code, 200)
 
     def test_crear_negocio_crea_membresia_de_dueno(self):
+        asegurar_planes()
         self.auth(self.consumer)
         response = self.client.post('/api/v1/negocio/crear/', {'nombre': 'Nuevo', 'direccion': 'Centro',
             'correo': 'nuevo-negocio@example.com', 'categoria': self.category.pk})

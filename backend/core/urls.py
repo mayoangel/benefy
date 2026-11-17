@@ -1,6 +1,6 @@
 from django.urls import path
 
-from core import views, views_lealtad, views_portal
+from core import views, views_lealtad, views_planes, views_portal
 
 app_name = "core"
 
@@ -19,6 +19,9 @@ urlpatterns = [
     path("v1/admin/visitas/<int:pk>/anular/", views_lealtad.AnularVisitaAPIView.as_view(), name="admin-visita-anular"),
     path("v1/admin/cupones/<uuid:uuid>/anular/", views_lealtad.AnularCuponAPIView.as_view(), name="admin-cupon-anular"),
     path("v1/negocios/<int:pk>/metricas/", views_lealtad.MetricasAPIView.as_view(), name="negocio-metricas"),
+    path("v1/planes/", views_planes.CatalogoPlanesAPIView.as_view(), name="planes-catalogo"),
+    path("v1/negocios/<int:pk>/plan/", views_planes.PlanNegocioAPIView.as_view(), name="negocio-plan"),
+    path("v1/negocios/<int:pk>/plan/cambios/", views_planes.HistorialPlanAPIView.as_view(), name="negocio-plan-cambios"),
 
     path("v1/usuario/rol/<int:pk>/", views.UsuarioRolAPIView.as_view(), name="usuario-rol"),
     # Usuario URLs

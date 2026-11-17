@@ -10,6 +10,7 @@ from core.serializers_portal import (
     SucursalContextoSerializer,
     UsuarioContextoSerializer,
 )
+from core.services import planes
 
 
 class MiContextoAPIView(APIView):
@@ -43,6 +44,10 @@ class MiContextoAPIView(APIView):
             'es_admin_sistema': es_admin,
             'puede_portal': es_admin or bool(membresias),
             'membresias': MembresiaContextoSerializer(membresias, many=True).data,
-            'negocios': NegocioContextoSerializer(negocios, many=True).data,
+            'negocios': NegocioContextoSerializer(
+                negocios,
+                many=True,
+                context={'planes': planes.planes_por_negocio(negocios)},
+            ).data,
             'sucursales': SucursalContextoSerializer(sucursales, many=True).data,
         })

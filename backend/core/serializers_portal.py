@@ -6,9 +6,14 @@ from core import models
 
 
 class NegocioContextoSerializer(serializers.ModelSerializer):
+    plan = serializers.SerializerMethodField()
+
     class Meta:
         model = models.Negocio
-        fields = ['id', 'nombre', 'logo_url', 'status', 'zona_horaria']
+        fields = ['id', 'nombre', 'logo_url', 'status', 'zona_horaria', 'plan']
+
+    def get_plan(self, obj):
+        return (self.context.get('planes') or {}).get(obj.pk)
 
 
 class SucursalContextoSerializer(serializers.ModelSerializer):

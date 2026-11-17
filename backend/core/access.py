@@ -6,12 +6,109 @@ from django.db.models.deletion import ProtectedError
 from rest_framework.exceptions import APIException, PermissionDenied, ValidationError
 
 from core import models, permissions
-from core.services import membresias
+from core.services import membresias, planes
 
 
 class ProtectedDeleteConflict(APIException):
     status_code = 409
     default_detail = 'No se puede eliminar el registro porque conserva historial asociado.'
+
+
+RECURSOS_LIMITADOS = {
+    models.Sucursal: 'sucursales',
+    models.Recompensa: 'recompensas',
+}
+TIPOS_DINAMICA_LIMITADOS = {
+    'puntos': 'programas_puntos',
+    'sellos': 'tarjetas_sellos',
+}
+ROLES_LIMITADOS = {
+    'supervisor': 'supervisores',
+    'empleado': 'empleados',
+}
+
+
+def recurso_limitado(model, data, instance=None):
+    """Devuelve ``(negocio, recurso)`` si el estado resultante consume cupo.
+
+    Los recursos inactivos no consumen cupo. Una reactivación se evalúa con el
+    estado resultante, no con el estado anterior.
+    """
+    def valor(campo, por_defecto=None):
+        if campo in data:
+            return data[campo]
+        if instance is not None:
+            return getattr(instance, campo)
+        return por_defecto
+
+    if model is models.Sucursal:
+        negocio = valor('negocio')
+        activo = valor('status', True)
+        return (negocio, 'sucursales') if activo and negocio else (None, None)
+
+    if model is models.Dinamica:
+        negocio = valor('negocio')
+        tipo = valor('tipo', 'puntos')
+        activo = valor('status', True)
+        recurso = TIPOS_DINAMICA_LIMITADOS.get(tipo)
+        return (negocio, recurso) if activo and negocio and recurso else (None, None)
+
+    if model is models.Recompensa:
+        negocio = valor('negocio')
+        if negocio is None:
+            dinamica = valor('dinamica')
+            negocio = getattr(dinamica, 'negocio', None)
+        activo = valor('status', True)
+        return (negocio, 'recompensas') if activo and negocio else (None, None)
+
+    if model is models.UsuarioNegocio:
+        negocio = valor('negocio')
+        rol = valor('rol_comercio', 'empleado')
+        activo = valor('status', True)
+        recurso = ROLES_LIMITADOS.get(rol)
+        return (negocio, recurso) if activo and negocio and recurso else (None, None)
+
+    return (None, None)
+
+
+def verificar_limite_creacion(model, data):
+    negocio, recurso = recurso_limitado(model, data)
+    if negocio is not None and recurso is not None:
+        planes.verificar_capacidad(negocio, recurso)
+
+
+def verificar_limite_actualizacion(model, data, instance):
+    negocio_nuevo, recurso_nuevo = recurso_limitado(model, data, instance)
+    if negocio_nuevo is None or recurso_nuevo is None:
+        return
+    estado_anterior = {
+        'status': getattr(instance, 'status', True),
+        'negocio': getattr(instance, 'negocio', None),
+    }
+    negocio_anterior, recurso_anterior = recurso_limitado(
+        model,
+        {
+            'status': estado_anterior['status'],
+            'negocio': estado_anterior['negocio'],
+            'tipo': getattr(instance, 'tipo', None),
+            'rol_comercio': getattr(instance, 'rol_comercio', None),
+        },
+        instance,
+    )
+    if (
+        negocio_anterior is not None
+        and negocio_anterior.pk == negocio_nuevo.pk
+        and recurso_anterior == recurso_nuevo
+    ):
+        # Sigue activo en la misma categoría: no consume un cupo nuevo.
+        return
+    planes.verificar_capacidad(
+        negocio_nuevo,
+        recurso_nuevo,
+        excluir_ids=[instance.pk],
+        accion='reactivar',
+    )
+
 
 
 def scoped_queryset(user, queryset):
@@ -159,6 +256,7 @@ class ResourceAccessMixin:
         model = serializer.Meta.model
         authorize_write(self.request.user, model, serializer.validated_data,
                         supplied_fields=self.request.data.keys())
+        verificar_limite_creacion(model, serializer.validated_data)
 
         if model is models.UsuarioNegocio:
             datos = dict(serializer.validated_data)
@@ -187,14 +285,23 @@ class ResourceAccessMixin:
                     actor=self.request.user,
                     motivo='Alta de negocio y membresía de dueño.',
                 )
-            except membresias.ErrorMembresia as exc:
+                planes.asignar_free_inicial(
+                    instance,
+                    actor=self.request.user,
+                    motivo='Alta de negocio; plan Free predeterminado.',
+                )
+            except (membresias.ErrorMembresia, planes.ErrorConfiguracionPlan) as exc:
                 raise ValidationError({'detail': str(exc)}) from None
         return instance
 
+    @transaction.atomic
     def perform_update(self, serializer):
         model = serializer.Meta.model
         authorize_write(self.request.user, model, serializer.validated_data,
                         serializer.instance, self.request.method, self.request.data.keys())
+        verificar_limite_actualizacion(
+            model, serializer.validated_data, serializer.instance,
+        )
         if model is models.UsuarioNegocio:
             datos = dict(serializer.validated_data)
             motivo = datos.pop('motivo', '')

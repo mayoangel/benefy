@@ -651,17 +651,71 @@ INTERVALOS_FACTURACION = (
     ('anual', 'Anual')
 )
 
+CODIGOS_PLAN = (
+    ('free', 'Free'),
+    ('premium', 'Premium'),
+)
+
+ORIGENES_SUSCRIPCION = (
+    ('manual', 'Asignación manual'),
+    ('stripe', 'Stripe'),
+    ('migracion', 'Migración'),
+    ('automatico', 'Asignación automática'),
+)
+
+DIVISAS = (
+    ('MXN', 'Peso Mexicano'),
+    ('USD', 'Dolar americano')
+)
+
 class PlanSuscripcion(models.Model):
+    """Nivel comercial. Las capacidades se configuran en ``limites``."""
+
+    codigo = models.CharField(max_length=30, unique=True)
     nombre = models.CharField(max_length=150, unique=True)
     descripcion = models.TextField()
-    intervalo = models.CharField(max_length=30, choices=INTERVALOS_FACTURACION, default=INTERVALOS_FACTURACION[0][0])
-    stripe_price_id = models.CharField(max_length=100, unique=True, db_index=True)
-    limite_sucursales = models.PositiveIntegerField(default=1)
-    limite_dinamicas = models.PositiveIntegerField(default=3)
+    orden = models.PositiveIntegerField(default=0, db_index=True)
+    limites = models.JSONField(default=dict, blank=True)
+    caracteristicas = models.JSONField(default=dict, blank=True)
     status = models.BooleanField(default=True)
 
+    class Meta:
+        ordering = ['orden', 'nombre']
+
     def __str__(self):
-        return f"{self.nombre} ({self.get_intervalo_display()})"
+        return f"{self.nombre} ({self.codigo})"
+
+
+class PlanPrecio(models.Model):
+    """Modalidad de cobro de un nivel comercial (mensual o anual)."""
+
+    plan = models.ForeignKey(
+        PlanSuscripcion, on_delete=models.CASCADE, related_name='precios',
+    )
+    intervalo = models.CharField(
+        max_length=30, choices=INTERVALOS_FACTURACION,
+        default=INTERVALOS_FACTURACION[0][0],
+    )
+    stripe_price_id = models.CharField(
+        max_length=100, unique=True, null=True, blank=True, db_index=True,
+    )
+    monto = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True,
+    )
+    divisa = models.CharField(max_length=30, choices=DIVISAS, default='MXN')
+    status = models.BooleanField(default=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['plan', 'intervalo'],
+                name='precio_unico_por_intervalo',
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.plan.nombre} - {self.get_intervalo_display()}"
+
 
 ESTADOS_SUSCRIPCION = (
     ('activa', 'Activa'),
@@ -671,29 +725,97 @@ ESTADOS_SUSCRIPCION = (
     ('cancelada', 'Cancelada'),
 )
 
+# Solo estos estados conceden las capacidades del plan.
+ESTADOS_SUSCRIPCION_VIGENTES = ('activa', 'prueba')
+
+
 class Suscripcion(models.Model):
-    stripe_subscription_id = models.CharField(max_length=100, unique=True, db_index=True)
-    status = models.CharField(max_length=30, choices=ESTADOS_SUSCRIPCION, default=ESTADOS_SUSCRIPCION[3][0])
-    periodo_actual_inicio = models.DateTimeField()
-    periodo_actual_fin = models.DateTimeField()
+    stripe_subscription_id = models.CharField(
+        max_length=100, unique=True, null=True, blank=True, db_index=True,
+    )
+    status = models.CharField(
+        max_length=30, choices=ESTADOS_SUSCRIPCION,
+        default=ESTADOS_SUSCRIPCION[3][0],
+    )
+    periodo_actual_inicio = models.DateTimeField(null=True, blank=True)
+    periodo_actual_fin = models.DateTimeField(null=True, blank=True)
     en_cancelacion = models.BooleanField(default=False)
+    origen = models.CharField(
+        max_length=30, choices=ORIGENES_SUSCRIPCION, default='manual',
+    )
+    fecha_inicio = models.DateTimeField(null=True, blank=True)
+    fecha_fin = models.DateTimeField(null=True, blank=True)
     fecha_registro = models.DateTimeField(auto_now_add=True, auto_now=False)
     fecha_actualizacion = models.DateTimeField(auto_now_add=False, auto_now=True)
     negocio = models.ForeignKey(Negocio, on_delete=models.CASCADE)
     plan = models.ForeignKey(PlanSuscripcion, on_delete=models.PROTECT)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['negocio'],
+                condition=models.Q(status__in=ESTADOS_SUSCRIPCION_VIGENTES),
+                name='una_suscripcion_vigente_por_negocio',
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(periodo_actual_inicio__isnull=True)
+                    | models.Q(periodo_actual_fin__isnull=True)
+                    | models.Q(
+                        periodo_actual_fin__gt=models.F('periodo_actual_inicio'),
+                    )
+                ),
+                name='suscripcion_periodo_valido',
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(fecha_inicio__isnull=True)
+                    | models.Q(fecha_fin__isnull=True)
+                    | models.Q(fecha_fin__gte=models.F('fecha_inicio'))
+                ),
+                name='suscripcion_fechas_validas',
+            ),
+        ]
+
     def __str__(self):
         return f"{self.negocio.nombre} - {self.plan.nombre} ({self.get_status_display()})"
+
+
+class PlanCambioAuditoria(models.Model):
+    """Historial de cambios manuales o automáticos de plan."""
+
+    negocio = models.ForeignKey(
+        Negocio, on_delete=models.PROTECT, related_name='cambios_plan',
+    )
+    plan_anterior = models.ForeignKey(
+        PlanSuscripcion, on_delete=models.PROTECT, null=True, blank=True,
+        related_name='+',
+    )
+    plan_nuevo = models.ForeignKey(
+        PlanSuscripcion, on_delete=models.PROTECT,
+        related_name='+',
+    )
+    origen = models.CharField(
+        max_length=30, choices=ORIGENES_SUSCRIPCION, default='manual',
+    )
+    motivo = models.TextField(blank=True, default='')
+    actor = models.ForeignKey(
+        Usuario, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='cambios_plan_realizados',
+    )
+    actor_correo = models.CharField(max_length=255, blank=True, default='')
+    fecha = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ['-fecha', '-pk']
+
+    def __str__(self):
+        return f"{self.negocio.nombre}: {self.plan_anterior} -> {self.plan_nuevo}"
 
 ESTADOS_PAGO = (
     ('pagado', 'Pagado'),
     ('fallido', 'Fallido / Rechazado'),
     ('reembolsado', 'Reembolsado')
-)
-
-DIVISAS = (
-    ('MXN', 'Peso Mexicano'),
-    ('USD', 'Dolar americano')
 )
 
 class Pago(models.Model):

@@ -18,6 +18,71 @@ def crear_usuario(rol='consumidor'):
     )
 
 
+LIMITES_FREE = {
+    'sucursales': 1,
+    'programas_puntos': 1,
+    'tarjetas_sellos': 2,
+    'recompensas': 5,
+    'supervisores': 1,
+    'empleados': 3,
+}
+
+LIMITES_PREMIUM = {
+    'sucursales': 5,
+    'programas_puntos': 1,
+    'tarjetas_sellos': 10,
+    'recompensas': 30,
+    'supervisores': 5,
+    'empleados': 20,
+}
+
+CARACTERISTICAS_FREE = {
+    'metricas_avanzadas': False,
+    'exportacion_reportes': False,
+    'personalizacion_avanzada': False,
+    'alianzas': False,
+}
+
+CARACTERISTICAS_PREMIUM = {
+    'metricas_avanzadas': True,
+    'exportacion_reportes': True,
+    'personalizacion_avanzada': True,
+    'alianzas': True,
+}
+
+
+def asegurar_planes():
+    """Restaura el catálogo si una prueba TransactionTestCase vació la base."""
+    free, _ = models.PlanSuscripcion.objects.get_or_create(
+        codigo='free',
+        defaults={
+            'nombre': 'Free',
+            'descripcion': 'Plan gratuito.',
+            'orden': 10,
+            'limites': dict(LIMITES_FREE),
+            'caracteristicas': dict(CARACTERISTICAS_FREE),
+            'status': True,
+        },
+    )
+    premium, _ = models.PlanSuscripcion.objects.get_or_create(
+        codigo='premium',
+        defaults={
+            'nombre': 'Premium',
+            'descripcion': 'Plan de pago.',
+            'orden': 20,
+            'limites': dict(LIMITES_PREMIUM),
+            'caracteristicas': dict(CARACTERISTICAS_PREMIUM),
+            'status': True,
+        },
+    )
+    for intervalo in ('mensual', 'anual'):
+        models.PlanPrecio.objects.get_or_create(
+            plan=premium, intervalo=intervalo,
+            defaults={'monto': None, 'divisa': 'MXN', 'status': True},
+        )
+    return free, premium
+
+
 def crear_negocio(nombre='Negocio', zona_horaria='America/Tijuana', status=True):
     categoria = models.CategoriaNegocio.objects.create(
         nombre=f'Categoria {uuid4().hex[:8]}',
@@ -29,6 +94,24 @@ def crear_negocio(nombre='Negocio', zona_horaria='America/Tijuana', status=True)
         categoria=categoria,
         zona_horaria=zona_horaria,
         status=status,
+    )
+
+
+def asignar_plan(negocio, codigo='premium'):
+    """Cambia el plan del negocio para pruebas que necesitan más cupo."""
+    from core.services import planes
+
+    asegurar_planes()
+    plan = models.PlanSuscripcion.objects.get(codigo=codigo)
+    actual = planes.suscripcion_actual(negocio)
+    if actual is not None and actual.plan_id == plan.pk:
+        return actual
+    return planes.cambiar_plan(
+        negocio=negocio,
+        plan=plan,
+        actor=None,
+        motivo='Asignación de prueba.',
+        origen='manual',
     )
 
 

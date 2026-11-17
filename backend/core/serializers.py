@@ -5,6 +5,7 @@ from rest_framework import serializers
 from django.utils import timezone
 
 from core import models
+from core.services import planes
 
 
 def validar_zona_horaria(value):
@@ -1488,16 +1489,32 @@ class CanjeSerializerDelete(serializers.ModelSerializer):
 #Plan-Suscripcion Serializers
 
 #Create
+class PlanPrecioSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.PlanPrecio
+        fields = [
+            "id",
+            "intervalo",
+            "stripe_price_id",
+            "monto",
+            "divisa",
+            "status",
+        ]
+
+
 class PlanSuscripcionSerializerCreate(serializers.ModelSerializer):
+    limites = serializers.JSONField()
+    caracteristicas = serializers.JSONField(required=False, default=dict)
+
     class Meta:
         model = models.PlanSuscripcion
         fields = [
+            "codigo",
             "nombre",
             "descripcion",
-            "intervalo",
-            "stripe_price_id",
-            "limite_sucursales",
-            "limite_dinamicas",
+            "orden",
+            "limites",
+            "caracteristicas",
             "status",
         ]
 
@@ -1509,37 +1526,59 @@ class PlanSuscripcionSerializerCreate(serializers.ModelSerializer):
             raise serializers.ValidationError("Ya existe un plan con este nombre.")
         return value
 
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        try:
+            attrs["limites"] = planes.validar_limites(attrs["limites"])
+        except ValueError as exc:
+            raise serializers.ValidationError({"limites": str(exc)}) from None
+        try:
+            attrs["caracteristicas"] = planes.validar_caracteristicas(
+                attrs.get("caracteristicas", {}),
+            )
+        except ValueError as exc:
+            raise serializers.ValidationError({"caracteristicas": str(exc)}) from None
+        return attrs
+
 
 #List
 class PlanSuscripcionSerializerList(serializers.ModelSerializer):
+    precios = PlanPrecioSerializer(many=True, read_only=True)
+
     class Meta:
         model = models.PlanSuscripcion
         fields = [
             "id",
+            "codigo",
             "nombre",
-            "intervalo",
+            "descripcion",
+            "orden",
+            "limites",
+            "caracteristicas",
             "status",
+            "precios",
         ]
 
 
 #Retrieve
-class PlanSuscripcionSerializerDetail(serializers.ModelSerializer):
-    class Meta:
-        model = models.PlanSuscripcion
-        fields = "__all__"
+class PlanSuscripcionSerializerDetail(PlanSuscripcionSerializerList):
+    pass
 
 
 #Update
 class PlanSuscripcionSerializerUpdate(serializers.ModelSerializer):
+    limites = serializers.JSONField(required=False)
+    caracteristicas = serializers.JSONField(required=False)
+
     class Meta:
         model = models.PlanSuscripcion
         fields = [
+            "codigo",
             "nombre",
             "descripcion",
-            "intervalo",
-            "stripe_price_id",
-            "limite_sucursales",
-            "limite_dinamicas",
+            "orden",
+            "limites",
+            "caracteristicas",
             "status",
         ]
 
@@ -1547,12 +1586,28 @@ class PlanSuscripcionSerializerUpdate(serializers.ModelSerializer):
         value = value.strip()
         if not value:
             raise serializers.ValidationError("El nombre del plan no puede estar vacío.")
-        planes = models.PlanSuscripcion.objects.filter(nombre__iexact=value)
+        planes_qs = models.PlanSuscripcion.objects.filter(nombre__iexact=value)
         if self.instance:
-            planes = planes.exclude(pk=self.instance.pk)
-        if planes.exists():
+            planes_qs = planes_qs.exclude(pk=self.instance.pk)
+        if planes_qs.exists():
             raise serializers.ValidationError("Ya existe un plan con este nombre.")
         return value
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        try:
+            if "limites" in attrs:
+                attrs["limites"] = planes.validar_limites(attrs["limites"])
+        except ValueError as exc:
+            raise serializers.ValidationError({"limites": str(exc)}) from None
+        try:
+            if "caracteristicas" in attrs:
+                attrs["caracteristicas"] = planes.validar_caracteristicas(
+                    attrs["caracteristicas"],
+                )
+        except ValueError as exc:
+            raise serializers.ValidationError({"caracteristicas": str(exc)}) from None
+        return attrs
 
 #Delete
 class PlanSuscripcionSerializerDelete(serializers.ModelSerializer):
@@ -1572,14 +1627,39 @@ class SuscripcionSerializerCreate(serializers.ModelSerializer):
             "periodo_actual_inicio",
             "periodo_actual_fin",
             "en_cancelacion",
+            "origen",
+            "fecha_inicio",
+            "fecha_fin",
             "negocio",
             "plan",
         ]
 
     def validate(self, attrs):
-        if attrs["periodo_actual_fin"] <= attrs["periodo_actual_inicio"]:
+        attrs = super().validate(attrs)
+        estado = attrs.get("status", "incompleta")
+        if estado in models.ESTADOS_SUSCRIPCION_VIGENTES:
+            if models.Suscripcion.objects.filter(
+                negocio=attrs["negocio"],
+                status__in=models.ESTADOS_SUSCRIPCION_VIGENTES,
+            ).exists():
+                raise serializers.ValidationError({
+                    "negocio": "El negocio ya tiene una suscripción vigente."
+                })
+        inicio = attrs.get("periodo_actual_inicio")
+        fin = attrs.get("periodo_actual_fin")
+        if inicio is not None and fin is not None and fin <= inicio:
             raise serializers.ValidationError({
                 "periodo_actual_fin": "El fin del periodo debe ser posterior a su inicio."
+            })
+        inicio_logico = attrs.get("fecha_inicio")
+        fin_logico = attrs.get("fecha_fin")
+        if (
+            inicio_logico is not None
+            and fin_logico is not None
+            and fin_logico < inicio_logico
+        ):
+            raise serializers.ValidationError({
+                "fecha_fin": "El fin no puede ser anterior al inicio."
             })
         return attrs
 
@@ -1594,6 +1674,10 @@ class SuscripcionSerializerList(serializers.ModelSerializer):
             "status",
             "periodo_actual_inicio",
             "periodo_actual_fin",
+            "en_cancelacion",
+            "origen",
+            "fecha_inicio",
+            "fecha_fin",
             "negocio",
             "plan",
         ]
@@ -1616,17 +1700,42 @@ class SuscripcionSerializerUpdate(serializers.ModelSerializer):
             "periodo_actual_inicio",
             "periodo_actual_fin",
             "en_cancelacion",
+            "origen",
+            "fecha_inicio",
+            "fecha_fin",
             "negocio",
             "plan",
         ]
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         inicio = attrs.get("periodo_actual_inicio", self.instance.periodo_actual_inicio)
         fin = attrs.get("periodo_actual_fin", self.instance.periodo_actual_fin)
-        if fin <= inicio:
+        if inicio is not None and fin is not None and fin <= inicio:
             raise serializers.ValidationError({
                 "periodo_actual_fin": "El fin del periodo debe ser posterior a su inicio."
             })
+        inicio_logico = attrs.get("fecha_inicio", self.instance.fecha_inicio)
+        fin_logico = attrs.get("fecha_fin", self.instance.fecha_fin)
+        if (
+            inicio_logico is not None
+            and fin_logico is not None
+            and fin_logico < inicio_logico
+        ):
+            raise serializers.ValidationError({
+                "fecha_fin": "El fin no puede ser anterior al inicio."
+            })
+        estado = attrs.get("status", self.instance.status)
+        negocio = attrs.get("negocio", self.instance.negocio)
+        if estado in models.ESTADOS_SUSCRIPCION_VIGENTES:
+            vigentes = models.Suscripcion.objects.filter(
+                negocio=negocio,
+                status__in=models.ESTADOS_SUSCRIPCION_VIGENTES,
+            ).exclude(pk=self.instance.pk)
+            if vigentes.exists():
+                raise serializers.ValidationError({
+                    "negocio": "El negocio ya tiene una suscripción vigente."
+                })
         return attrs
 #Delete
 class SuscripcionSerializerDelete(serializers.ModelSerializer):

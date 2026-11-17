@@ -25,7 +25,9 @@ admin.site.register(
         models.MovimientoPuntos,
         models.CicloTarjeta,
         models.PlanSuscripcion,
+        models.PlanPrecio,
         models.Suscripcion,
+        models.PlanCambioAuditoria,
         models.Pago,
         models.Notificacion,
     ]
