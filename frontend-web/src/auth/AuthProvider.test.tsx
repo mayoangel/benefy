@@ -1,8 +1,8 @@
 import React from 'react';
 import {test,expect,vi,afterEach} from 'vitest';
 import {render,screen,act,cleanup,fireEvent} from '@testing-library/react';
-const mocks=vi.hoisted(()=>({listener:null as any,session:{user:{id:'one'}} as any,context:vi.fn(),profile:vi.fn()}));
-vi.mock('../lib/supabase',()=>({supabase:{auth:{getSession:async()=>({data:{session:mocks.session}}),onAuthStateChange:(cb:any)=>{mocks.listener=cb;return {data:{subscription:{unsubscribe(){}}}}},signOut:async()=>{mocks.session=null;mocks.listener('SIGNED_OUT',null);}}}}));
+const mocks=vi.hoisted(()=>({listener:null as any,session:{user:{id:'one'}} as any,context:vi.fn(),profile:vi.fn(),login:vi.fn()}));
+vi.mock('../lib/supabase',()=>({supabase:{auth:{signInWithPassword:()=>mocks.login(),getSession:async()=>({data:{session:mocks.session}}),onAuthStateChange:(cb:any)=>{mocks.listener=cb;return {data:{subscription:{unsubscribe(){}}}}},signOut:async()=>{mocks.session=null;mocks.listener('SIGNED_OUT',null);}}}}));
 vi.mock('../lib/api',()=>({ApiError:class extends Error{},api:{getProfile:()=>mocks.profile(),getContext:()=>mocks.context()}}));
 import {AuthProvider,useAuth} from './AuthProvider';
 const context=(id:number,access=true)=>({usuario:{id},puede_portal:access,es_admin_sistema:false,membresias:access?[{id}]:[],negocios:[],sucursales:[]});
@@ -23,4 +23,28 @@ test('focus during initial hydration does not lose the profile',async()=>{
  await act(async()=>resolveProfile({id:1}));
  await screen.findByText('1:true');
  expect(screen.getByRole('status').getAttribute('data-profile')).toBe('1');
+});
+
+test('the login caller awaits the hydration started by SIGNED_IN',async()=>{
+ mocks.session=null;
+ // Keep this source-level test compatible with the app's ES2020 type library.
+ let resolveProfile!: (profile: {id:number}) => void;
+ const pendingProfile=new Promise<{id:number}>(resolve=>{resolveProfile=resolve;});
+ mocks.profile.mockReturnValue(pendingProfile);
+ mocks.context.mockResolvedValue(context(1));
+ mocks.login.mockImplementation(async()=>{
+  mocks.session={user:{id:'one'}};
+  mocks.listener('SIGNED_IN',mocks.session);
+  return {data:{session:mocks.session},error:null};
+ });
+ let result:any='pending';
+ function LoginProbe(){const {signIn}=useAuth();return <button onClick={()=>void signIn('owner@example.invalid','synthetic').then(value=>{result=value;})}>Login</button>;}
+ render(<AuthProvider><LoginProbe/></AuthProvider>);
+ await act(async()=>{await Promise.resolve();});
+ await act(async()=>{fireEvent.click(screen.getByText('Login'));});
+ expect(result).toBe('pending');
+ expect(mocks.profile).toHaveBeenCalledTimes(1);
+ await act(async()=>resolveProfile({id:1}));
+ expect(result.context.usuario.id).toBe(1);
+ expect(result.needsProfile).toBe(false);
 });
