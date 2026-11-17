@@ -79,12 +79,12 @@ export default function ClientsPage() {
 
       {datos.results.length > 0 ? (
         <div className="portal-panel">
-          <div className="portal-table-wrap" aria-busy={loading}>
+          <div tabIndex={0} role="region" aria-label="Listado de clientes" className="portal-table-wrap" aria-busy={loading}>
             <table className="portal-table">
               <thead>
                 <tr>
-                  <th>Cliente</th><th>Correo</th><th>Visitas</th>
-                  <th>Puntos</th><th>Cupones</th><th>Última visita</th>
+                  <th scope="col">Cliente</th><th scope="col">Correo</th><th scope="col">Visitas</th>
+                  <th scope="col">Puntos</th><th scope="col">Cupones</th><th scope="col">Última visita</th>
                 </tr>
               </thead>
               <tbody>

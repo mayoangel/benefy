@@ -126,12 +126,12 @@ export default function RedemptionsPage() {
 
       {datos.results.length > 0 ? (
         <div className="portal-panel">
-          <div className="portal-table-wrap" aria-busy={loading}>
+          <div tabIndex={0} role="region" aria-label="Listado de canjes" className="portal-table-wrap" aria-busy={loading}>
             <table className="portal-table">
               <thead>
                 <tr>
-                  <th>Fecha</th><th>Beneficio</th><th>Cliente</th>
-                  <th>Sucursal</th><th>Método</th><th>Estado</th>
+                  <th scope="col">Fecha</th><th scope="col">Beneficio</th><th scope="col">Cliente</th>
+                  <th scope="col">Sucursal</th><th scope="col">Método</th><th scope="col">Estado</th>
                 </tr>
               </thead>
               <tbody>

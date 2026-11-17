@@ -253,12 +253,12 @@ export default function PointsPage() {
       ) : null}
       {programas.length > 0 ? (
         <div className="portal-panel">
-          <div className="portal-table-wrap">
+          <div tabIndex={0} role="region" aria-label="Listado de puntos" className="portal-table-wrap">
             <table className="portal-table">
               <thead>
                 <tr>
-                  <th>Programa</th><th>Puntos/visita</th><th>Vigencia</th>
-                  <th>Estado</th><th>Acciones</th>
+                  <th scope="col">Programa</th><th scope="col">Puntos/visita</th><th scope="col">Vigencia</th>
+                  <th scope="col">Estado</th><th scope="col">Acciones</th>
                 </tr>
               </thead>
               <tbody>

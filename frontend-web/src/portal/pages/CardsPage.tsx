@@ -373,12 +373,12 @@ export default function CardsPage() {
       ) : null}
       {tarjetas.length > 0 ? (
         <div className="portal-panel">
-          <div className="portal-table-wrap">
+          <div tabIndex={0} role="region" aria-label="Listado de tarjetas" className="portal-table-wrap">
             <table className="portal-table">
               <thead>
                 <tr>
-                  <th>Tarjeta</th><th>Sellos</th><th>Repetible</th>
-                  <th>Premio</th><th>Estado</th><th>Acciones</th>
+                  <th scope="col">Tarjeta</th><th scope="col">Sellos</th><th scope="col">Repetible</th>
+                  <th scope="col">Premio</th><th scope="col">Estado</th><th scope="col">Acciones</th>
                 </tr>
               </thead>
               <tbody>

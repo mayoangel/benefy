@@ -105,12 +105,12 @@ export default function CouponsPage() {
 
       {datos.results.length > 0 ? (
         <div className="portal-panel">
-          <div className="portal-table-wrap" aria-busy={loading}>
+          <div tabIndex={0} role="region" aria-label="Listado de cupones" className="portal-table-wrap" aria-busy={loading}>
             <table className="portal-table">
               <thead>
                 <tr>
-                  <th>Beneficio</th><th>Cliente</th><th>Origen</th>
-                  <th>Estado</th><th>Emitido</th><th>Expira</th>
+                  <th scope="col">Beneficio</th><th scope="col">Cliente</th><th scope="col">Origen</th>
+                  <th scope="col">Estado</th><th scope="col">Emitido</th><th scope="col">Expira</th>
                 </tr>
               </thead>
               <tbody>

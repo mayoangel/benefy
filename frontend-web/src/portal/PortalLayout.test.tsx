@@ -1,7 +1,7 @@
 import React from 'react';
 import {test,expect,vi,afterEach} from 'vitest';
 import {render,screen,fireEvent,cleanup} from '@testing-library/react';
-import {MemoryRouter} from 'react-router-dom';
+import {MemoryRouter,Routes,Route} from 'react-router-dom';
 vi.mock('../auth/AuthProvider',()=>({useAuth:()=>({context:{membresias:[{negocio:{id:1,nombre:'Aurora'},status:true,rol_comercio:'dueno'}],negocios:[],sucursales:[]},profile:{correo:'x'},signOut:vi.fn()})}));
 import PortalLayout from './PortalLayout';
 afterEach(cleanup);
@@ -17,3 +17,10 @@ test('mobile drawer exposes state, closes with Escape and restores focus',()=>{
  expect(document.activeElement).toBe(trigger);
 });
 
+
+test('the owner role is presented with a human readable label',()=>{
+ window.matchMedia=vi.fn().mockReturnValue({matches:false,addEventListener(){},removeEventListener(){}});
+ render(<MemoryRouter initialEntries={['/portal/negocio/1?sucursal=11']}><Routes><Route path="/portal/negocio/:negocioId" element={<PortalLayout/>}/></Routes></MemoryRouter>);
+ expect(screen.getByText('Propietario')).toBeTruthy();
+ expect(screen.getByRole('link',{name:'Visitas'}).getAttribute('href')).toBe('/portal/negocio/1/visitas?sucursal=11');
+});

@@ -5,7 +5,7 @@ import { Navigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { useAuth } from '../../auth/AuthProvider.tsx';
 import { api } from '../../lib/api.ts';
-import { membresiaDelNegocio } from '../../lib/portal.ts';
+import { membresiaDelNegocio, nombreRol } from '../../lib/portal.ts';
 import type { MetricasPortal, PlanNegocio } from '../../lib/types.ts';
 import { PortalError, PortalLoading } from '../components/PortalState.tsx';
 import PlanPanel from '../components/PlanPanel.tsx';
@@ -151,7 +151,7 @@ export default function BusinessOverviewPage() {
             <article className="portal-panel">
               <h2>Información del negocio</h2>
               <dl className="portal-details">
-                <div><dt>Rol</dt><dd>{membresia.rol_comercio}</dd></div>
+                <div><dt>Rol</dt><dd>{nombreRol(membresia.rol_comercio)}</dd></div>
                 <div><dt>Plan</dt><dd>{plan?.plan.nombre ?? '—'}</dd></div>
                 <div><dt>Zona horaria</dt><dd>{membresia.negocio.zona_horaria}</dd></div>
                 <div><dt>Estado</dt><dd>{membresia.negocio.status ? 'Activo' : 'Inactivo'}</dd></div>

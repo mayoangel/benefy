@@ -36,3 +36,7 @@ export function puedeGestionarEquipo(
   const rol = membresiaDelNegocio(context, negocioId)?.rol_comercio;
   return rol === 'dueno' || rol === 'supervisor';
 }
+
+export function nombreRol(rol: string | null | undefined) {
+  return ({dueno:'Propietario',supervisor:'Supervisor',empleado:'Empleado',admin_sistema:'Administrador'} as Record<string,string>)[rol ?? ''] ?? rol ?? '';
+}

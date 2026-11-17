@@ -1,5 +1,5 @@
 import { useRequestGuard } from '../hooks/useRequestGuard';
-import { FormEvent, useCallback, useEffect, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
 import { useAuth } from '../../auth/AuthProvider.tsx';
@@ -28,6 +28,9 @@ export default function RewardsPage() {
   const membresia = membresiaDelNegocio(context, id);
   const puedeEditar = membresia?.rol_comercio === 'dueno';
   const { plan, reload: recargarPlan } = usePlan(id);
+  const [showForm, setShowForm] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  useEffect(() => { if (showForm) formRef.current?.querySelector<HTMLInputElement>('input')?.focus(); }, [showForm]);
   const [recompensas, setRecompensas] = useState<RecompensaResumen[]>([]);
   const [form, setForm] = useState({ ...formInicial });
   const [editando, setEditando] = useState<RecompensaResumen | null>(null);
@@ -60,6 +63,7 @@ export default function RewardsPage() {
   }, [cargar]);
 
   function editar(recompensa: RecompensaResumen) {
+    setShowForm(true);
     setEditando(recompensa);
     setForm({
       titulo: recompensa.titulo,
@@ -79,6 +83,7 @@ export default function RewardsPage() {
   }
 
   function nueva() {
+    setShowForm(true);
     setEditando(null);
     setForm({ ...formInicial });
     setError(null);
@@ -112,6 +117,8 @@ export default function RewardsPage() {
         setOk('Recompensa creada.');
       }
       setEditando(null);
+      setShowForm(false);
+      setForm({...formInicial});
       await Promise.all([cargar(), recargarPlan()]);
     } catch (err) {
       if (err instanceof ApiError && err.codigo === 'limite_plan') {
@@ -171,7 +178,7 @@ export default function RewardsPage() {
       {error ? <PortalError message={error} /> : null}
       {ok ? <div className="portal-note" role="status">{ok}</div> : null}
 
-      <form className="portal-panel portal-form" onSubmit={guardar}>
+      {showForm ? <form ref={formRef} className="portal-panel portal-form" onSubmit={guardar}>
         <h2>{editando ? `Editar ${editando.titulo}` : 'Nueva recompensa'}</h2>
         <div className="portal-form-grid">
           <label>
@@ -267,11 +274,12 @@ export default function RewardsPage() {
           </label>
         </div>
         <div className="portal-form-actions">
+          <button type="button" className="portal-button-secondary" onClick={() => setShowForm(false)}>Cancelar</button>
           <button className="portal-button" type="submit" disabled={busy}>
             {busy ? 'Guardando...' : editando ? 'Guardar cambios' : 'Crear recompensa'}
           </button>
         </div>
-      </form>
+      </form> : null}
 
       {loading ? <PortalLoading /> : null}
       {!loading && recompensas.length === 0 ? (
@@ -281,12 +289,12 @@ export default function RewardsPage() {
       ) : null}
       {recompensas.length > 0 ? (
         <div className="portal-panel">
-          <div className="portal-table-wrap">
+          <div tabIndex={0} role="region" aria-label="Listado de recompensas" className="portal-table-wrap">
             <table className="portal-table">
               <thead>
                 <tr>
-                  <th>Recompensa</th><th>Tipo</th><th>Puntos</th>
-                  <th>Vigencia</th><th>Stock</th><th>Estado</th><th>Acciones</th>
+                  <th scope="col">Recompensa</th><th scope="col">Tipo</th><th scope="col">Puntos</th>
+                  <th scope="col">Vigencia</th><th scope="col">Stock</th><th scope="col">Estado</th><th scope="col">Acciones</th>
                 </tr>
               </thead>
               <tbody>

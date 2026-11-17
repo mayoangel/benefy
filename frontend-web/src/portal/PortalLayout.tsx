@@ -11,7 +11,7 @@ import {
 } from 'react-router-dom';
 
 import { useAuth } from '../auth/AuthProvider.tsx';
-import { membresiaDelNegocio } from '../lib/portal.ts';
+import { membresiaDelNegocio, nombreRol } from '../lib/portal.ts';
 import type { RolComercio } from '../lib/types.ts';
 
 function navItems(rol: RolComercio | null) {
@@ -73,7 +73,7 @@ export default function PortalLayout() {
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     sidebar.current?.querySelector<HTMLButtonElement>('button')?.focus();
-    return () => { document.body.style.overflow = previousOverflow; trigger.current?.focus(); };
+    return () => { document.body.style.overflow = previousOverflow; if (main.current) main.current.inert = false; trigger.current?.focus(); };
   }, [mobile, menuOpen]);
   function drawerKey(event: React.KeyboardEvent) {
     if (!mobile || !menuOpen) return;
@@ -125,6 +125,7 @@ export default function PortalLayout() {
 
   return (
     <div className="portal-shell">
+      <a className="portal-skip" href="#portal-title">Saltar al contenido</a>
       <aside ref={sidebar} id="portal-navigation" role={mobile && menuOpen ? 'dialog' : undefined}
         aria-modal={mobile && menuOpen ? true : undefined} aria-label="Portal de negocios" onKeyDown={drawerKey} className={`portal-sidebar${menuOpen ? ' is-open' : ''}`}>
         {mobile ? <button className="portal-drawer-close" type="button" onClick={() => setMenuOpen(false)}>Cerrar menú</button> : null}
@@ -210,7 +211,7 @@ export default function PortalLayout() {
             <span>{profile?.correo}</span>
           </div>
           <span className="portal-role">
-            {esAdmin ? 'admin_sistema' : rol}
+            {nombreRol(esAdmin ? 'admin_sistema' : rol)}
           </span>
           {!esAdmin && planNegocio ? (
             <span className={`portal-plan-tag${planNegocio.codigo === 'premium' ? ' is-premium' : ''}`}>
@@ -218,7 +219,7 @@ export default function PortalLayout() {
             </span>
           ) : null}
         </header>
-        <main className="portal-content">
+        <main className="portal-content" id="portal-title" tabIndex={-1}>
           <Outlet key={JSON.stringify([session?.user.id, id, context.membresias, context.es_admin_sistema])} />
         </main>
       </div>

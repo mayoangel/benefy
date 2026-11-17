@@ -4,7 +4,7 @@ import { useParams } from 'react-router-dom';
 
 import { useAuth } from '../../auth/AuthProvider.tsx';
 import { ApiError, api } from '../../lib/api.ts';
-import { membresiaDelNegocio } from '../../lib/portal.ts';
+import { membresiaDelNegocio, nombreRol } from '../../lib/portal.ts';
 import type {
   InvitacionResumen,
   MembresiaResumen,
@@ -26,6 +26,7 @@ export default function TeamPage() {
   const [sucursales, setSucursales] = useState<SucursalResumen[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [invitationError, setInvitationError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
   const [invitando, setInvitando] = useState(false);
@@ -46,12 +47,16 @@ export default function TeamPage() {
     try {
       const [membresias, ramas, invitacionesData] = await Promise.all([
         api.getMemberships(), api.getBranches(),
-        esDueno || esSupervisor ? api.getInvitations(id) : Promise.resolve([]),
+        esDueno || esSupervisor
+          ? api.getInvitations(id).then(data => ({data, error: null as string | null}))
+              .catch(err => ({data: [] as InvitacionResumen[], error: err instanceof Error ? err.message : 'No se pudieron cargar las invitaciones.'}))
+          : Promise.resolve({data: [] as InvitacionResumen[], error: null}),
       ]);
       if (!vigente()) return;
       setFilas(membresias.filter((fila) => fila.negocio === id));
       setSucursales(ramas.filter((rama) => rama.negocio === id));
-      setInvitaciones(invitacionesData);
+      setInvitaciones(invitacionesData.data);
+      setInvitationError(invitacionesData.error);
     } catch (err) {
       if (!vigente()) return;
       setError(err instanceof Error ? err.message : 'No se pudo cargar el equipo.');
@@ -334,6 +339,7 @@ export default function TeamPage() {
         </form>
       ) : null}
 
+      {invitationError ? <PortalError message={invitationError} onRetry={() => void cargar()} /> : null}
       {loading ? <PortalLoading /> : null}
       {!loading && !error && filas.length === 0 ? (
         <PortalEmpty message="No hay membresías visibles." />
@@ -342,12 +348,12 @@ export default function TeamPage() {
       {!loading && filas.length > 0 ? (
         <div className="portal-panel">
           <h2>Membresías</h2>
-          <div className="portal-table-wrap">
+          <div tabIndex={0} role="region" aria-label="Listado de equipo" className="portal-table-wrap">
             <table className="portal-table">
               <thead>
                 <tr>
-                  <th>Usuario</th><th>Correo</th><th>Rol</th>
-                  <th>Sucursal</th><th>Estado</th><th>Acciones</th>
+                  <th scope="col">Usuario</th><th scope="col">Correo</th><th scope="col">Rol</th>
+                  <th scope="col">Sucursal</th><th scope="col">Estado</th><th scope="col">Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -358,7 +364,7 @@ export default function TeamPage() {
                     <tr key={fila.id} className={propio ? 'is-current' : ''}>
                       <td>{fila.usuario_nombre ?? `Usuario #${fila.usuario}`}</td>
                       <td>{fila.usuario_correo ?? '—'}</td>
-                      <td>{fila.rol_comercio}</td>
+                      <td>{nombreRol(fila.rol_comercio)}</td>
                       <td>{fila.sucursal_nombre ?? 'Todo el negocio'}</td>
                       <td>
                         <span className={fila.status ? 'portal-badge is-on' : 'portal-badge'}>
@@ -388,12 +394,12 @@ export default function TeamPage() {
       {invitaciones.length > 0 ? (
         <div className="portal-panel">
           <h2>Invitaciones</h2>
-          <div className="portal-table-wrap">
+          <div tabIndex={0} role="region" aria-label="Listado de equipo" className="portal-table-wrap">
             <table className="portal-table">
               <thead>
                 <tr>
-                  <th>Correo</th><th>Rol</th><th>Sucursal</th>
-                  <th>Estado</th><th>Expira</th><th>Acciones</th>
+                  <th scope="col">Correo</th><th scope="col">Rol</th><th scope="col">Sucursal</th>
+                  <th scope="col">Estado</th><th scope="col">Expira</th><th scope="col">Acciones</th>
                 </tr>
               </thead>
               <tbody>

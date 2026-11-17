@@ -186,11 +186,11 @@ body {
 }
 
 .portal-topbar strong,
-.portal-topbar span {
+.portal-topbar > div > span {
   display: block;
 }
 
-.portal-topbar span {
+.portal-topbar > div > span {
   color: var(--portal-muted);
   font-size: 12px;
   margin-top: 2px;
@@ -284,7 +284,7 @@ body {
 }
 
 .portal-kpi small {
-  color: #8a979d;
+  color: #5b6b73;
   font-size: 11px;
 }
 
@@ -746,3 +746,41 @@ body {
   .portal-sidebar { transition: none; }
   .portal-spinner { animation: none; }
 }
+
+.portal-shell { font-size: 14px; line-height: 1.5; }
+.portal-kpi strong { font-variant-numeric: tabular-nums; }
+.portal-kpi small { font-size: 12px; }
+.portal-form-grid label, .portal-filters label { font-size: 13px; }
+.portal-form-grid input, .portal-form-grid select, .portal-form-grid textarea,
+.portal-filters input, .portal-filters select { font-size: 14px; }
+.portal-topbar .portal-role { color: var(--portal-green); font-size: 12px; white-space: nowrap; }
+.portal-topbar .portal-plan-tag { white-space: nowrap; }
+.portal-row-actions button { min-height: 32px; padding: 4px; }
+.portal-table-wrap:focus-visible, .portal-shell input:focus-visible,
+.portal-shell select:focus-visible, .portal-shell textarea:focus-visible {
+  outline: 3px solid var(--portal-green); outline-offset: 3px;
+}
+.portal-selector select:focus-visible { outline-color: var(--portal-mint); }
+.portal-skip { position: fixed; top: -100px; left: 12px; z-index: 30; background: white; color: var(--portal-navy); padding: 12px; }
+.portal-skip:focus { top: 12px; }
+.portal-panel, .portal-kpi { min-width: 0; }
+@media (max-width: 620px) {
+  .portal-pagination { flex-direction: column; align-items: flex-start; }
+  .portal-pagination > div { flex-wrap: wrap; }
+  .portal-form-actions { flex-wrap: wrap; }
+  .portal-form-grid input, .portal-form-grid select, .portal-form-grid textarea,
+  .portal-filters input, .portal-filters select { font-size: 16px; }
+  .portal-plan-features ul { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 620px) {
+ .portal-topbar { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; }
+ .portal-menu-button { grid-column: 1; grid-row: 1; min-height: 44px; }
+ .portal-topbar > div { grid-column: 2 / -1; grid-row: 1; }
+ .portal-topbar .portal-role { grid-column: 2; grid-row: 2; justify-self: start; }
+ .portal-topbar .portal-plan-tag { grid-column: 3; grid-row: 2; margin-left: 0; }
+ .portal-pagination > div { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 6px; width: 100%; }
+ .portal-pagination button { padding: 8px; min-height: 44px; font-size: 12px; }
+}
+.portal-shell button:focus-visible, .portal-shell a:focus-visible { outline: 3px solid var(--portal-green); outline-offset: 3px; }
+.portal-sidebar button:focus-visible, .portal-sidebar a:focus-visible { outline-color: var(--portal-mint); }

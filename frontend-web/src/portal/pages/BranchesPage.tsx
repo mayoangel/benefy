@@ -258,12 +258,12 @@ export default function BranchesPage() {
 
       {!loading && sucursales.length > 0 ? (
         <div className="portal-panel">
-          <div className="portal-table-wrap">
+          <div tabIndex={0} role="region" aria-label="Listado de sucursales" className="portal-table-wrap">
             <table className="portal-table">
               <thead>
                 <tr>
-                  <th>Sucursal</th><th>Dirección</th><th>Ciudad</th>
-                  <th>Estado</th><th>Acciones</th>
+                  <th scope="col">Sucursal</th><th scope="col">Dirección</th><th scope="col">Ciudad</th>
+                  <th scope="col">Estado</th><th scope="col">Acciones</th>
                 </tr>
               </thead>
               <tbody>

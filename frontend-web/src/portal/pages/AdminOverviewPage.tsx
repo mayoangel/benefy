@@ -80,9 +80,9 @@ export default function AdminOverviewPage() {
           <div className="portal-section-grid">
             <article className="portal-panel">
               <h2>Negocios</h2>
-              <div className="portal-table-wrap">
+              <div tabIndex={0} role="region" aria-label="Listado de administración" className="portal-table-wrap">
                 <table className="portal-table">
-                  <thead><tr><th>ID</th><th>Negocio</th><th>Plan</th><th>Estado</th></tr></thead>
+                  <thead><tr><th scope="col">ID</th><th scope="col">Negocio</th><th scope="col">Plan</th><th scope="col">Estado</th></tr></thead>
                   <tbody>
                     {negocios.map((negocio) => (
                       <tr key={negocio.id}>
@@ -99,9 +99,9 @@ export default function AdminOverviewPage() {
 
             <article className="portal-panel">
               <h2>Usuarios</h2>
-              <div className="portal-table-wrap">
+              <div tabIndex={0} role="region" aria-label="Listado de administración" className="portal-table-wrap">
                 <table className="portal-table">
-                  <thead><tr><th>Usuario</th><th>Correo</th><th>Rol</th></tr></thead>
+                  <thead><tr><th scope="col">Usuario</th><th scope="col">Correo</th><th scope="col">Rol</th></tr></thead>
                   <tbody>
                     {usuarios.map((usuario) => (
                       <tr key={usuario.id}>

@@ -1,5 +1,5 @@
 :root {
-  font-family: "Inter", sans-serif;
+  font-family: "Inter Variable", sans-serif;
   color: #191c1e;
   background: #f8fafc;
   font-synthesis: none;
@@ -17,6 +17,6 @@
   --line: #e4e9ec;
 
   /* Tipografía y efectos */
-  --heading: "Plus Jakarta Sans", sans-serif;
+  --heading: "Plus Jakarta Sans Variable", sans-serif;
   --shadow: 0 18px 55px rgba(20, 42, 63, 0.10);
 }

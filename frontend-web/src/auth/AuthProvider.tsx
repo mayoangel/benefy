@@ -41,6 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       contextSequence.current++;
       pending.current = null;
       loadedUser.current = null;
+      setLoading(Boolean(next));
       setProfile(null); setContext(null); setNeedsProfile(false); setOnboardingError(null);
     }
     setSession(next);
@@ -90,6 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         currentProfile = await api.getProfile();
         assertCurrent();
       } catch (err) {
+        assertCurrent();
         if (err instanceof ApiError && (err.status === 403 || err.status === 404)) {
           const contextoCompletado = await completarOnboarding();
           assertCurrent();
@@ -162,6 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [clear, loadSessionData]);
 
   useEffect(() => {
+    window.sessionStorage.removeItem(CACHE_KEY);
     let active = true;
     let receivedAuthEvent = false;
 
@@ -191,6 +194,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       active = false;
+      epoch.current++; contextSequence.current++; pending.current = null;
       subscription.subscription.unsubscribe();
     };
   }, [hydrate, acceptSession, clear]);
