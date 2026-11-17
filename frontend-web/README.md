@@ -15,18 +15,26 @@ carga `src/App.tsx`. Las rutas implementadas son:
 | `/about` | Información del proyecto |
 | `/precios` | Planes y precios de presentación |
 | `/login` | Inicio de sesión con Supabase |
-| `/registro` | Alta de cuenta de negocio |
+| `/registro` | Alta de cuenta de negocio o de invitado con `?invitacion=` |
 | `/recuperar` | Envío de enlace de recuperación |
 | `/actualizar-password` | Definición de nueva contraseña |
-| `/completar-perfil` | Onboarding del perfil Django |
-| `/registrar-negocio` | Alta de negocio y membresía de dueño |
+| `/completar-perfil` | Onboarding de perfil para cuentas heredadas o invitados |
+| `/completar-registro` | Reintento del onboarding comercial |
+| `/registrar-negocio` | Alta de un negocio adicional |
+| `/invitacion/:token` | Consulta y aceptación de una invitación |
 | `/acceso-restringido` | Consumidor sin membresía comercial |
 | `/portal` | Redirección según rol y contexto |
 | `/portal/negocio/:id` | Resumen del negocio o sucursal |
-| `/portal/negocio/:id/sucursales` | Sucursales accesibles |
-| `/portal/negocio/:id/equipo` | Membresías visibles |
-| `/portal/negocio/:id/visitas` | Visitas del alcance |
-| `/portal/negocio/:id/cupones` | Cupones del negocio (solo dueño) |
+| `/portal/negocio/:id/configuracion` | Datos públicos y de contacto |
+| `/portal/negocio/:id/sucursales` | CRUD de sucursales |
+| `/portal/negocio/:id/puntos` | Programa de puntos |
+| `/portal/negocio/:id/tarjetas` | Tarjetas de sellos y premio meta |
+| `/portal/negocio/:id/recompensas` | CRUD de recompensas |
+| `/portal/negocio/:id/equipo` | Membresías e invitaciones |
+| `/portal/negocio/:id/visitas` | Visitas con filtros y paginación |
+| `/portal/negocio/:id/canjes` | Canjes con filtros y paginación |
+| `/portal/negocio/:id/cupones` | Cupones emitidos (solo dueño) |
+| `/portal/negocio/:id/clientes` | Clientes agregados (solo dueño) |
 | `/portal/admin` | Administración global (`admin_sistema`) |
 | Cualquier otra | Muestra Inicio mediante la ruta comodín |
 
@@ -39,8 +47,9 @@ comercial: no implican pagos ni analítica implementados.
 
 - `src/lib/supabase.ts`: cliente único con `persistSession`, `autoRefreshToken`
   y `detectSessionInUrl`. Solo usa la clave publicable.
-- `src/auth/AuthProvider.tsx`: restaura la sesión, escucha cambios, carga el
-  perfil y `GET /mi/contexto/`, y expone login, logout y onboarding.
+- `src/auth/AuthProvider.tsx`: restaura la sesión, escucha cambios, completa el
+  onboarding comercial si es necesario, carga perfil y contexto, y expone login,
+  logout y reintento.
 - `src/lib/api.ts`: cliente HTTP con bearer, refresh único ante `401`, sin
   reintentos en `403`, y lectura de los errores `codigo`/`detalle` de DRF.
 - `src/auth/guards.tsx`: `RequireSession`, `RequirePortalAccess` y `RequireAdmin`.
@@ -49,12 +58,19 @@ comercial: no implican pagos ni analítica implementados.
   sucursal, navegación por rol y adaptación móvil.
 - `src/portal/components/PlanPanel.tsx`: plan actual, uso y límites, excedentes
   y funciones Premium con su estado de disponibilidad.
+- `src/portal/pages/`: configuración, sucursales, puntos, tarjetas, recompensas,
+  equipo, visitas, canjes, cupones y clientes.
+- `src/pages/InvitationPage.tsx`: aceptación de invitaciones con el correo
+  autenticado.
 
 Un consumidor sin membresías no entra al portal: se le redirige a
-`/acceso-restringido` con el CTA para registrar su negocio. El portal consulta
-`/planes/` y `/negocios/{id}/plan/`; Django conserva la autoridad sobre los
-límites. El detalle del contrato está en [autenticación](../docs/autenticacion.md),
-[API](../docs/api.md) y [planes](../docs/planes-free-premium.md).
+`/acceso-restringido` con el CTA para registrar su negocio. El onboarding
+comercial se completa automáticamente tras confirmar el correo, sin repetir el
+formulario. El portal consulta `/planes/` y `/negocios/{id}/plan/`; Django
+conserva la autoridad sobre los límites. El detalle está en
+[autenticación](../docs/autenticacion.md), [API](../docs/api.md),
+[planes](../docs/planes-free-premium.md) y
+[validación del registro y CRUD](../docs/validacion-registro-crud.md).
 
 ## Ejecución y verificación
 

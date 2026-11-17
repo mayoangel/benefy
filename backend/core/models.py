@@ -202,6 +202,112 @@ class AuditoriaMembresia(models.Model):
             f"en {self.negocio_nombre}"
         )
 
+ESTADOS_REGISTRO_COMERCIAL = (
+    ('pendiente', 'Pendiente'),
+    ('completado', 'Completado'),
+    ('error', 'Error recuperable'),
+)
+
+
+class RegistroComercial(models.Model):
+    """Onboarding comercial idempotente asociado al UUID verificado de Auth.
+
+    Los metadatos de Supabase solo aportan los datos iniciales. Los permisos y
+    la membresía de dueño se derivan exclusivamente de la identidad verificada
+    y de la creación de este negocio.
+    """
+
+    supabase_uid = models.UUIDField(unique=True, db_index=True)
+    correo = models.EmailField(max_length=255)
+    nombre_completo = models.CharField(max_length=200, blank=True, default='')
+    nombre_negocio = models.CharField(max_length=150, blank=True, default='')
+    estado = models.CharField(
+        max_length=30, choices=ESTADOS_REGISTRO_COMERCIAL, default='pendiente',
+    )
+    usuario = models.ForeignKey(
+        Usuario, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='registros_comerciales',
+    )
+    negocio = models.ForeignKey(
+        Negocio, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='registros_comerciales',
+    )
+    ultimo_error = models.TextField(blank=True, default='')
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-fecha_creacion']
+
+    def __str__(self):
+        return f'{self.correo} - {self.nombre_negocio} ({self.estado})'
+
+
+ESTADOS_INVITACION = (
+    ('pendiente', 'Pendiente'),
+    ('aceptada', 'Aceptada'),
+    ('revocada', 'Revocada'),
+    ('expirada', 'Expirada'),
+)
+
+
+class InvitacionMembresia(models.Model):
+    token = models.UUIDField(
+        default=uuid.uuid4, unique=True, editable=False, db_index=True,
+    )
+    negocio = models.ForeignKey(
+        Negocio, on_delete=models.CASCADE, related_name='invitaciones',
+    )
+    sucursal = models.ForeignKey(
+        Sucursal, on_delete=models.CASCADE, null=True, blank=True,
+        related_name='invitaciones',
+    )
+    rol_comercio = models.CharField(
+        max_length=30, choices=ROLES_COMERCIO,
+        default=ROLES_COMERCIO[0][0],
+    )
+    correo = models.EmailField(max_length=255)
+    estado = models.CharField(
+        max_length=30, choices=ESTADOS_INVITACION, default='pendiente',
+    )
+    creada_por = models.ForeignKey(
+        Usuario, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='invitaciones_creadas',
+    )
+    creada_por_correo = models.CharField(max_length=255, blank=True, default='')
+    aceptada_por = models.ForeignKey(
+        Usuario, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='invitaciones_aceptadas',
+    )
+    motivo = models.TextField(blank=True, default='')
+    fecha_creacion = models.DateTimeField(auto_now_add=True, db_index=True)
+    fecha_expiracion = models.DateTimeField()
+    fecha_respuesta = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['negocio', 'correo', 'sucursal', 'rol_comercio'],
+                condition=models.Q(estado='pendiente'),
+                name='invitacion_pendiente_unica',
+                nulls_distinct=False,
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(rol_comercio='dueno', sucursal__isnull=True)
+                    | models.Q(
+                        rol_comercio__in=['supervisor', 'empleado'],
+                        sucursal__isnull=False,
+                    )
+                ),
+                name='invitacion_sucursal_valida',
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.correo} -> {self.negocio.nombre} ({self.rol_comercio})'
+
+
 TIPOS_DINAMICAS = (
     ('puntos', 'Puntos para compras'),
     ('cupones', 'Cupones de descuento'),

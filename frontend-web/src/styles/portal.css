@@ -559,6 +559,153 @@ body {
   }
 }
 
+.portal-button {
+  border: 1px solid var(--portal-green);
+  background: var(--portal-green);
+  color: #fff;
+  padding: 9px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.portal-button:disabled,
+.portal-button-secondary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.portal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.portal-form h2 {
+  margin: 0;
+}
+
+.portal-form h3 {
+  margin: 4px 0 0;
+  color: var(--portal-navy);
+  font-family: var(--heading);
+  font-size: 15px;
+}
+
+.portal-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.portal-form-grid label,
+.portal-filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--portal-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.portal-form-grid input,
+.portal-form-grid select,
+.portal-form-grid textarea,
+.portal-filters input,
+.portal-filters select {
+  width: 100%;
+  border: 1px solid var(--portal-line);
+  border-radius: 8px;
+  padding: 9px 10px;
+  font: inherit;
+  color: #26363c;
+  background: #fff;
+}
+
+.portal-form-grid textarea {
+  resize: vertical;
+}
+
+.portal-form-wide {
+  grid-column: 1 / -1;
+}
+
+.portal-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+}
+
+.portal-form-actions .portal-badge {
+  margin-right: auto;
+}
+
+.portal-check {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px !important;
+  font-size: 13px !important;
+  color: #26363c !important;
+}
+
+.portal-check input {
+  width: auto;
+}
+
+.portal-row-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.portal-row-actions button {
+  border: 0;
+  background: none;
+  color: var(--portal-green);
+  cursor: pointer;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.portal-row-actions button:disabled {
+  color: var(--portal-muted);
+  cursor: not-allowed;
+}
+
+.portal-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.portal-filters label {
+  min-width: 150px;
+}
+
+.portal-filter-wide {
+  flex: 1 1 260px;
+}
+
+.portal-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  color: var(--portal-muted);
+  font-size: 12px;
+}
+
+.portal-pagination > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+
 @media (max-width: 860px) {
   .portal-sidebar {
     position: fixed;

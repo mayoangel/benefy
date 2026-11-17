@@ -1,3 +1,11 @@
+export type OnboardingResultado = {
+  completado: boolean;
+  ya_existia: boolean;
+  usuario: UsuarioPortal;
+  negocio_id: number;
+  contexto: ContextoPortal;
+};
+
 export type RolGlobal = 'consumidor' | 'admin_sistema';
 export type RolComercio = 'dueno' | 'supervisor' | 'empleado';
 export type CodigoPlan = 'free' | 'premium';
@@ -177,10 +185,124 @@ export type CuponResumen = {
   status: string;
   titulo_beneficio?: string;
   costo_pagado: number;
+  fecha_emision?: string;
   fecha_expiracion: string;
 };
 
 export type CategoriaResumen = {
   id: number;
   nombre: string;
+};
+
+export type PaginaResultados<T> = {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+};
+
+export type PaginaClientes = {
+  count: number;
+  page: number;
+  page_size: number;
+  results: ClienteResumen[];
+};
+
+export type NegocioDetalle = {
+  id: number;
+  nombre: string;
+  descripcion: string | null;
+  direccion: string;
+  telefono: string | null;
+  correo: string;
+  logo_url: string | null;
+  banner_url: string | null;
+  slug: string;
+  zona_horaria: string;
+  status: boolean;
+  categoria: number;
+};
+
+export type SucursalDetalle = {
+  id: number;
+  nombre: string;
+  direccion: string;
+  telefono: string | null;
+  ciudad: string;
+  codigo_postal: string | null;
+  status: boolean;
+  negocio: number;
+  qr_uuid: string;
+  nfc_uid: string | null;
+};
+
+export type DinamicaResumen = {
+  id: number;
+  nombre: string;
+  descripcion?: string | null;
+  tipo: 'puntos' | 'cupones' | 'sellos';
+  meta: number | null;
+  regla_conversion?: string;
+  es_repetible: boolean;
+  dias_expiracion_puntos?: number | null;
+  fecha_inicio: string;
+  fecha_fin: string | null;
+  status: boolean;
+  negocio: number;
+};
+
+export type RecompensaResumen = {
+  id: number;
+  titulo: string;
+  descripcion: string;
+  tipo: 'gratis' | 'descuento' | 'descuento_fijo';
+  descuento: string | null;
+  costo_desbloqueo: number;
+  terminos_condiciones: string;
+  status: boolean;
+  negocio: number | null;
+  es_meta: boolean;
+  dinamica: number | null;
+  fecha_expiracion: string | null;
+  vigencia_dias: number | null;
+  cantidad_disponible: number | null;
+};
+
+export type CanjeResumen = {
+  id: number;
+  cupon: number;
+  usuario_correo?: string;
+  titulo_beneficio?: string;
+  sucursal: number | null;
+  sucursal_nombre?: string | null;
+  negocio: number | null;
+  origen: string;
+  metodo: string;
+  fecha: string;
+  anulado: boolean;
+};
+
+export type ClienteResumen = {
+  id: number;
+  nombre: string;
+  apellido: string;
+  correo: string;
+  visitas: number;
+  ultima_visita: string | null;
+  puntos: number;
+  cupones: number;
+};
+
+export type InvitacionResumen = {
+  token: string;
+  correo: string;
+  rol_comercio: RolComercio;
+  sucursal: { id: number; nombre: string } | null;
+  negocio: { id: number; nombre: string };
+  estado: 'pendiente' | 'aceptada' | 'revocada' | 'expirada';
+  creada_por_correo: string;
+  motivo: string;
+  fecha_creacion: string;
+  fecha_expiracion: string;
+  fecha_respuesta: string | null;
 };

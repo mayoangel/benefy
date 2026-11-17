@@ -13,6 +13,8 @@ admin.site.register(
         models.Sucursal,
         models.UsuarioNegocio,
         models.AuditoriaMembresia,
+        models.RegistroComercial,
+        models.InvitacionMembresia,
         models.Dinamica,
         models.Alianza,
         models.Recompensa,

@@ -17,6 +17,8 @@ import type { AuthContextValue, LoginOutcome } from './auth-context.ts';
 const AuthContext = createContext<AuthContextValue | null>(null);
 const CACHE_KEY = 'benefy.portal.context';
 
+const CODIGOS_SIN_REGISTRO = ['sin_registro_comercial', 'registro_incompleto'];
+
 function leerContextoCache(): ContextoPortal | null {
   try {
     const raw = window.sessionStorage.getItem(CACHE_KEY);
@@ -32,51 +34,101 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [context, setContext] = useState<ContextoPortal | null>(() => leerContextoCache());
   const [loading, setLoading] = useState(true);
   const [needsProfile, setNeedsProfile] = useState(false);
+  const [onboardingError, setOnboardingError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const loadedUser = useRef<string | null>(null);
   const loadingRef = useRef(false);
+  const estadoRef = useRef({ needsProfile, context });
+  estadoRef.current = { needsProfile, context };
 
   const clear = useCallback(() => {
     loadedUser.current = null;
     setProfile(null);
     setContext(null);
     setNeedsProfile(false);
+    setOnboardingError(null);
     window.sessionStorage.removeItem(CACHE_KEY);
+  }, []);
+
+  const completarOnboarding = useCallback(async (): Promise<ContextoPortal | null> => {
+    try {
+      const resultado = await api.completeOnboarding();
+      return resultado.contexto;
+    } catch (err) {
+      if (err instanceof ApiError) {
+        if (err.status === 409 && CODIGOS_SIN_REGISTRO.includes(err.codigo ?? '')) {
+          return null;
+        }
+        if (err.status === 400 && err.codigo === 'registro_incompleto') {
+          return null;
+        }
+      }
+      throw err;
+    }
   }, []);
 
   const loadSessionData = useCallback(async (): Promise<LoginOutcome> => {
     if (loadingRef.current) {
-      return { needsProfile, context };
+      return {
+        needsProfile: estadoRef.current.needsProfile,
+        context: estadoRef.current.context,
+      };
     }
     loadingRef.current = true;
     setLoading(true);
     setError(null);
+    setOnboardingError(null);
     try {
-      const currentProfile = await api.getProfile();
-      const currentContext = await api.getContext();
+      let currentProfile: UsuarioPortal;
+      try {
+        currentProfile = await api.getProfile();
+      } catch (err) {
+        if (err instanceof ApiError && (err.status === 403 || err.status === 404)) {
+          const contextoCompletado = await completarOnboarding();
+          if (!contextoCompletado) {
+            setProfile(null);
+            setContext(null);
+            setNeedsProfile(true);
+            window.sessionStorage.removeItem(CACHE_KEY);
+            return { needsProfile: true, context: null };
+          }
+          currentProfile = await api.getProfile();
+        } else {
+          throw err;
+        }
+      }
+
+      let currentContext = await api.getContext();
+      if (!currentContext.es_admin_sistema && currentContext.membresias.length === 0) {
+        const contextoCompletado = await completarOnboarding();
+        if (contextoCompletado) {
+          currentContext = contextoCompletado;
+        }
+      }
+
       setProfile(currentProfile);
       setContext(currentContext);
       setNeedsProfile(false);
+      setOnboardingError(null);
       window.sessionStorage.setItem(CACHE_KEY, JSON.stringify(currentContext));
       return { needsProfile: false, context: currentContext };
     } catch (err) {
-      if (err instanceof ApiError && (err.status === 403 || err.status === 404)) {
-        setProfile(null);
-        setContext(null);
-        setNeedsProfile(true);
-        window.sessionStorage.removeItem(CACHE_KEY);
-        return { needsProfile: true, context: null };
-      }
       if (err instanceof ApiError && err.status === 401) {
         await supabase.auth.signOut();
       }
-      setError(err instanceof Error ? err.message : 'No se pudo cargar tu cuenta.');
-      throw err;
+      setProfile(null);
+      setContext(null);
+      setNeedsProfile(false);
+      setOnboardingError(
+        err instanceof Error ? err.message : 'No se pudo completar tu registro.',
+      );
+      window.sessionStorage.removeItem(CACHE_KEY);
+      return { needsProfile: false, context: null };
     } finally {
       loadingRef.current = false;
       setLoading(false);
     }
-  }, [context, needsProfile]);
+  }, [completarOnboarding]);
 
   const hydrate = useCallback(async (currentSession: Session | null) => {
     if (!currentSession) {
@@ -87,11 +139,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (loadedUser.current === currentSession.user.id) {
       return;
     }
-    try {
-      await loadSessionData();
+    const outcome = await loadSessionData();
+    if (!outcome.needsProfile) {
       loadedUser.current = currentSession.user.id;
-    } catch {
-      // El error ya quedó expuesto en el contexto.
     }
   }, [clear, loadSessionData]);
 
@@ -119,6 +169,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setProfile(null);
           setContext(null);
           setNeedsProfile(false);
+          setOnboardingError(null);
           setLoading(false);
           window.sessionStorage.removeItem(CACHE_KEY);
         }
@@ -187,6 +238,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return currentContext;
   }, []);
 
+  const retryOnboarding = useCallback(async () => {
+    setOnboardingError(null);
+    const outcome = await loadSessionData();
+    return outcome.context;
+  }, [loadSessionData]);
+
   // Revocación: al volver a la pestaña o recibir un 403 se recarga el contexto.
   // Si la membresía ya no es efectiva, el guard redirige al acceso restringido.
   useEffect(() => {
@@ -212,12 +269,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     context,
     loading,
     needsProfile,
+    onboardingError,
     error,
     signIn,
     signOut,
     createProfile,
     createBusiness,
     refreshContext,
+    retryOnboarding,
     clearError: () => setError(null),
   };
 

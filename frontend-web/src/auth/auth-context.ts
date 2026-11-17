@@ -12,6 +12,7 @@ export type AuthContextValue = {
   context: ContextoPortal | null;
   loading: boolean;
   needsProfile: boolean;
+  onboardingError: string | null;
   error: string | null;
   signIn: (email: string, password: string) => Promise<LoginOutcome>;
   signOut: () => Promise<void>;
@@ -24,5 +25,6 @@ export type AuthContextValue = {
     categoria: number;
   }) => Promise<ContextoPortal | null>;
   refreshContext: () => Promise<ContextoPortal | null>;
+  retryOnboarding: () => Promise<ContextoPortal | null>;
   clearError: () => void;
 };

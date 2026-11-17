@@ -17,10 +17,16 @@ function navItems(rol: RolComercio | null) {
   if (rol === 'dueno') {
     return [
       { label: 'Resumen', path: '' },
+      { label: 'Configuración', path: 'configuracion' },
       { label: 'Sucursales', path: 'sucursales' },
+      { label: 'Puntos', path: 'puntos' },
+      { label: 'Tarjetas', path: 'tarjetas' },
+      { label: 'Recompensas', path: 'recompensas' },
       { label: 'Equipo', path: 'equipo' },
       { label: 'Visitas', path: 'visitas' },
+      { label: 'Canjes', path: 'canjes' },
       { label: 'Cupones', path: 'cupones' },
+      { label: 'Clientes', path: 'clientes' },
     ];
   }
   if (rol === 'supervisor') {
@@ -28,12 +34,14 @@ function navItems(rol: RolComercio | null) {
       { label: 'Resumen', path: '' },
       { label: 'Equipo', path: 'equipo' },
       { label: 'Visitas', path: 'visitas' },
+      { label: 'Canjes', path: 'canjes' },
     ];
   }
   if (rol === 'empleado') {
     return [
       { label: 'Resumen', path: '' },
       { label: 'Visitas', path: 'visitas' },
+      { label: 'Canjes', path: 'canjes' },
     ];
   }
   return [];
@@ -140,6 +148,9 @@ export default function PortalLayout() {
         </nav>
 
         <div className="portal-sidebar-footer">
+          {rol === 'dueno' ? (
+            <Link to="/registrar-negocio">Registrar otro negocio</Link>
+          ) : null}
           <Link to="/">Volver al sitio</Link>
           <button type="button" onClick={() => void signOut()}>Cerrar sesión</button>
         </div>

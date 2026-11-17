@@ -1,0 +1,148 @@
+import { useCallback, useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+
+import { useAuth } from '../../auth/AuthProvider.tsx';
+import { api } from '../../lib/api.ts';
+import type { CanjeResumen, PaginaResultados } from '../../lib/types.ts';
+import PortalPagination from '../components/PortalPagination.tsx';
+import { PortalEmpty, PortalError, PortalLoading } from '../components/PortalState.tsx';
+
+const vacio: PaginaResultados<CanjeResumen> = {
+  count: 0, next: null, previous: null, results: [],
+};
+
+export default function RedemptionsPage() {
+  const { context } = useAuth();
+  const { negocioId } = useParams();
+  const id = Number(negocioId);
+  const [datos, setDatos] = useState(vacio);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [filtros, setFiltros] = useState({
+    desde: '',
+    hasta: '',
+    sucursal: '',
+    anulado: '',
+    buscar: '',
+    page: 1,
+    page_size: 20,
+  });
+
+  const cargar = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      setDatos(await api.getBusinessRedemptions(id, filtros));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudieron cargar los canjes.');
+    } finally {
+      setLoading(false);
+    }
+  }, [filtros, id]);
+
+  useEffect(() => {
+    void cargar();
+  }, [cargar]);
+
+  const sucursales = context?.sucursales.filter(
+    (sucursal) => sucursal.negocio === id,
+  ) ?? [];
+
+  function cambiar(campo: string, valor: string) {
+    setFiltros((actual) => ({ ...actual, [campo]: valor, page: 1 }));
+  }
+
+  return (
+    <section className="portal-page">
+      <header className="portal-page-head">
+        <div>
+          <span className="portal-eyebrow">Operación</span>
+          <h1>Canjes</h1>
+          <p>Cupones utilizados en el negocio o en tu sucursal.</p>
+        </div>
+        <button className="portal-button-secondary" type="button" onClick={() => void cargar()}>
+          Actualizar
+        </button>
+      </header>
+
+      <div className="portal-panel portal-filters">
+        <label>
+          <span>Desde</span>
+          <input type="date" value={filtros.desde} onChange={(e) => cambiar('desde', e.target.value)} />
+        </label>
+        <label>
+          <span>Hasta</span>
+          <input type="date" value={filtros.hasta} onChange={(e) => cambiar('hasta', e.target.value)} />
+        </label>
+        <label>
+          <span>Sucursal</span>
+          <select value={filtros.sucursal} onChange={(e) => cambiar('sucursal', e.target.value)}>
+            <option value="">Todas</option>
+            {sucursales.map((sucursal) => (
+              <option key={sucursal.id} value={sucursal.id}>{sucursal.nombre}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span>Estado</span>
+          <select value={filtros.anulado} onChange={(e) => cambiar('anulado', e.target.value)}>
+            <option value="">Todos</option>
+            <option value="false">Vigentes</option>
+            <option value="true">Anulados</option>
+          </select>
+        </label>
+        <label>
+          <span>Cliente</span>
+          <input
+            placeholder="correo@ejemplo.com"
+            value={filtros.buscar}
+            onChange={(e) => cambiar('buscar', e.target.value)}
+          />
+        </label>
+      </div>
+
+      {loading ? <PortalLoading /> : null}
+      {error ? <PortalError message={error} onRetry={() => void cargar()} /> : null}
+      {!loading && !error && datos.results.length === 0 ? (
+        <PortalEmpty message="No hay canjes con esos filtros." />
+      ) : null}
+
+      {!loading && !error && datos.results.length > 0 ? (
+        <div className="portal-panel">
+          <div className="portal-table-wrap">
+            <table className="portal-table">
+              <thead>
+                <tr>
+                  <th>Fecha</th><th>Beneficio</th><th>Cliente</th>
+                  <th>Sucursal</th><th>Método</th><th>Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {datos.results.map((canje) => (
+                  <tr key={canje.id}>
+                    <td>{new Date(canje.fecha).toLocaleDateString('es-MX')}</td>
+                    <td>{canje.titulo_beneficio || `Cupón #${canje.cupon}`}</td>
+                    <td>{canje.usuario_correo ?? '—'}</td>
+                    <td>{canje.sucursal_nombre ?? 'Todo el negocio'}</td>
+                    <td>{canje.metodo}</td>
+                    <td>
+                      <span className={canje.anulado ? 'portal-badge' : 'portal-badge is-on'}>
+                        {canje.anulado ? 'Anulado' : 'Vigente'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <PortalPagination
+            page={filtros.page}
+            pageSize={filtros.page_size}
+            count={datos.count}
+            onPage={(page) => setFiltros((actual) => ({ ...actual, page }))}
+          />
+        </div>
+      ) : null}
+    </section>
+  );
+}

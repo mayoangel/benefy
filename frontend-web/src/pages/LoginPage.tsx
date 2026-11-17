@@ -1,7 +1,8 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
+  faCircleCheck,
   faCircleExclamation,
   faEnvelope,
   faEye,
@@ -19,7 +20,7 @@ type AlertState = {
 };
 
 export default function LoginPage() {
-  const { signIn } = useAuth();
+  const { signIn, session, loading, onboardingError } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [email, setEmail] = useState('');
@@ -27,6 +28,18 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [alert, setAlert] = useState<AlertState | null>(null);
+  const confirmado = new URLSearchParams(location.search).get('confirmado') === '1';
+
+  useEffect(() => {
+    if (loading || busy || !session) return;
+    if (onboardingError) {
+      navigate('/completar-registro', { replace: true });
+      return;
+    }
+    const params = new URLSearchParams(location.search);
+    const next = params.get('next');
+    navigate(next && next.startsWith('/') ? next : '/portal', { replace: true });
+  }, [busy, loading, location.search, navigate, onboardingError, session]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -46,12 +59,19 @@ export default function LoginPage() {
     setBusy(true);
     try {
       const result = await signIn(emailVal, password);
-      if (result.needsProfile) {
-        navigate('/completar-perfil', { replace: true });
-        return;
-      }
       const params = new URLSearchParams(location.search);
       const next = params.get('next');
+      if (result.needsProfile) {
+        navigate(
+          `/completar-perfil${next ? `?next=${encodeURIComponent(next)}` : ''}`,
+          { replace: true },
+        );
+        return;
+      }
+      if (!result.context) {
+        navigate('/completar-registro', { replace: true });
+        return;
+      }
       navigate(next && next.startsWith('/') ? next : portalDestination(result.context), {
         replace: true,
       });
@@ -73,6 +93,17 @@ export default function LoginPage() {
           <h1>Iniciar sesión</h1>
           <p>Accede al portal de negocios de Benefy</p>
         </div>
+
+        {confirmado ? (
+          <div className="auth-note" role="status">
+            <FontAwesomeIcon icon={faCircleCheck} />
+            <p>
+              Correo confirmado. {session
+                ? 'Estamos preparando tu negocio...'
+                : 'Inicia sesión para terminar tu registro automáticamente.'}
+            </p>
+          </div>
+        ) : null}
 
         {alert ? (
           <div className="auth-alert auth-alert--error" role="alert">

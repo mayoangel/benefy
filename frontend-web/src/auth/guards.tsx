@@ -24,10 +24,12 @@ export function RequireSession() {
 }
 
 export function RequirePortalAccess() {
-  const { context, loading, needsProfile } = useAuth();
-  const location = useLocation();
+  const { context, loading, needsProfile, onboardingError } = useAuth();
 
   if (loading) return <LoadingScreen />;
+  if (onboardingError) {
+    return <Navigate to="/completar-registro" replace />;
+  }
   if (needsProfile) {
     return <Navigate to="/completar-perfil" replace />;
   }
@@ -39,9 +41,6 @@ export function RequirePortalAccess() {
   }
   if (!context.es_admin_sistema && context.membresias.length === 0) {
     return <Navigate to="/acceso-restringido" replace />;
-  }
-  if (location.pathname === '/portal') {
-    return <Outlet />;
   }
   return <Outlet />;
 }

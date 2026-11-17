@@ -121,6 +121,7 @@ class AuthAndPermissionsTests(TestCase):
         for pattern in urls.urlpatterns:
             path = '/api/' + str(pattern.pattern)
             path = path.replace('<int:pk>', '1').replace('<uuid:uuid>', str(uuid4()))
+            path = path.replace('<uuid:token>', str(uuid4()))
             with self.subTest(path=path):
                 self.assertEqual(self.client.get(path).status_code, 401)
 

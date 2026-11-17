@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCircleExclamation, faUser } from '@fortawesome/free-solid-svg-icons';
 
@@ -9,13 +9,16 @@ import AuthLayout from '../components/AuthLayout.tsx';
 export default function CompleteProfilePage() {
   const { createProfile, needsProfile, context, signOut } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const nextParam = searchParams.get('next');
+  const next = nextParam && nextParam.startsWith('/') ? nextParam : null;
   const [nombre, setNombre] = useState('');
   const [apellido, setApellido] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   if (!needsProfile && context) {
-    return <Navigate to="/portal" replace />;
+    return <Navigate to={next ?? '/portal'} replace />;
   }
 
   async function submit(event: FormEvent) {
@@ -29,11 +32,13 @@ export default function CompleteProfilePage() {
     try {
       const updated = await createProfile(nombre.trim(), apellido.trim());
       navigate(
-        updated?.es_admin_sistema
-          ? '/portal/admin'
-          : updated?.membresias[0]
-            ? `/portal/negocio/${updated.membresias[0].negocio.id}`
-            : '/acceso-restringido',
+        next ?? (
+          updated?.es_admin_sistema
+            ? '/portal/admin'
+            : updated?.membresias[0]
+              ? `/portal/negocio/${updated.membresias[0].negocio.id}`
+              : '/acceso-restringido'
+        ),
         { replace: true },
       );
     } catch (err) {

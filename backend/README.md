@@ -1,15 +1,18 @@
 # Backend
 
 API Django 5.2 + Django REST Framework. La configuración está en `config/`;
-`core/` contiene 23 modelos, serializers, vistas, permisos y trece migraciones
+`core/` contiene 25 modelos, serializers, vistas, permisos y quince migraciones
 de dominio. La entrada de URLs es `config/urls.py`.
 
 ## Funcionalidad disponible
 
-- 80 rutas CRUD, con acciones en español, tres rutas de perfil/contexto/roles y trece rutas del motor de lealtad y planes.
+- 80 rutas CRUD, cuatro rutas de identidad/contexto/onboarding y 22 rutas de lealtad, planes, operaciones e invitaciones.
 - Verificación de sesiones Supabase Auth y permisos según usuario, negocio y sucursal.
+- Onboarding comercial idempotente: perfil, negocio, membresía de dueño y plan Free desde una sola captura.
 - Aislamiento por sucursal en visitas, registros de actividad, canjes y métricas; los cupones globales solo los ve el dueño.
 - Planes Free/Premium con límites configurables, Free automático, cambio manual auditado y bloqueo transaccional de altas por encima del cupo.
+- Invitaciones con aceptación por correo verificado y protección del último propietario activo.
+- Consultas paginadas de visitas, cupones, canjes y clientes, y creación atómica de tarjetas con recompensa meta.
 - Registro de visitas por QR de negocio o sucursal con límite diario por zona horaria.
 - Puntos por lotes con consumo FIFO, expiración configurable y ajustes auditados.
 - Tarjetas de visitas repetibles o de una sola vez, con snapshots por ciclo.
@@ -17,14 +20,14 @@ de dominio. La entrada de URLs es `config/urls.py`.
 - Django Admin con los modelos registrados y cuentas staff separadas de los perfiles Benefy.
 - PostgreSQL local para desarrollo o PostgreSQL Supabase con SSL para producción.
 - Comandos `db_info`, `expirar_puntos` y `verificar_puntos`.
-- 153 pruebas de salud, configuración, autenticación, permisos, membresías, portal, planes, límites, concurrencia, aislamiento, migración, lealtad y PostgreSQL.
+- 195 pruebas de salud, configuración, autenticación, permisos, membresías, onboarding, invitaciones, portal, planes, límites, concurrencia, operaciones, aislamiento, migración, lealtad y PostgreSQL.
 
 Consulta [API](../docs/api.md) para las rutas y
 [autenticación](../docs/autenticacion.md) para los payloads y la matriz de acceso.
 Los modelos de Stripe y notificaciones no implican que esas integraciones estén
-implementadas. El portal web tiene layout, navegación, resúmenes y panel de plan;
-los CRUD comerciales, Stripe, las alianzas con puntos compartidos y el cliente
-móvil siguen pendientes.
+implementadas. El portal web incluye CRUD comercial y consultas operativas; los
+detalles avanzados de Stripe, analítica, alianzas y el cliente móvil siguen
+pendientes.
 
 ## Entornos y variables
 

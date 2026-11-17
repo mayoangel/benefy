@@ -1,13 +1,23 @@
 import { supabase } from './supabase.ts';
 import type {
+  CanjeResumen,
   CategoriaResumen,
+  ClienteResumen,
   ContextoPortal,
   CuponResumen,
+  DinamicaResumen,
+  InvitacionResumen,
   MembresiaResumen,
   MetricasPortal,
+  NegocioDetalle,
   NegocioResumen,
+  OnboardingResultado,
+  PaginaClientes,
+  PaginaResultados,
   PlanCatalogo,
   PlanNegocio,
+  RecompensaResumen,
+  SucursalDetalle,
   SucursalResumen,
   UsuarioPortal,
   UsuarioResumen,
@@ -126,8 +136,27 @@ function jsonBody(body: unknown): RequestInit {
   };
 }
 
+function jsonRequest(method: 'PATCH' | 'PUT', body: unknown): RequestInit {
+  return { method, body: JSON.stringify(body) };
+}
+
+type ValorQuery = string | number | boolean | undefined | null;
+
+function query(params: Record<string, ValorQuery>): string {
+  const search = new URLSearchParams();
+  Object.entries(params).forEach(([clave, valor]) => {
+    if (valor !== undefined && valor !== null && valor !== '') {
+      search.set(clave, String(valor));
+    }
+  });
+  const texto = search.toString();
+  return texto ? `?${texto}` : '';
+}
+
 export const api = {
   getProfile: () => request<UsuarioPortal>('/autenticacion/perfil/'),
+  completeOnboarding: () =>
+    request<OnboardingResultado>('/onboarding/comercial/', { method: 'POST' }),
   getContext: () => request<ContextoPortal>('/mi/contexto/'),
   getPlans: () => request<PlanCatalogo[]>('/planes/'),
   getBusinessPlan: (businessId: number) =>
@@ -143,14 +172,81 @@ export const api = {
     categoria: number;
   }) => request('/negocio/crear/', jsonBody(data)),
   getBusiness: (id: number) => request<NegocioResumen>(`/negocio/detalle/${id}/`),
+  getBusinessDetail: (id: number) =>
+    request<NegocioDetalle>(`/negocio/detalle/${id}/`),
+  updateBusiness: (id: number, data: Record<string, unknown>) =>
+    request<NegocioDetalle>(`/negocio/actualizar/${id}/`, jsonRequest('PATCH', data)),
   getBusinesses: () => request<NegocioResumen[]>('/negocios/listar/'),
   getBranches: () => request<SucursalResumen[]>('/sucursales/listar/'),
+  getBranchDetail: (id: number) =>
+    request<SucursalDetalle>(`/sucursal/detalle/${id}/`),
+  createBranch: (data: Record<string, unknown>) =>
+    request('/sucursal/crear/', jsonBody(data)),
+  updateBranch: (id: number, data: Record<string, unknown>) =>
+    request<SucursalDetalle>(`/sucursal/actualizar/${id}/`, jsonRequest('PATCH', data)),
+  getDynamics: () => request<DinamicaResumen[]>('/dinamicas/listar/'),
+  getDynamicDetail: (id: number) =>
+    request<DinamicaResumen>(`/dinamica/detalle/${id}/`),
+  createDynamic: (data: Record<string, unknown>) =>
+    request<DinamicaResumen>('/dinamica/crear/', jsonBody(data)),
+  updateDynamic: (id: number, data: Record<string, unknown>) =>
+    request<DinamicaResumen>(`/dinamica/actualizar/${id}/`, jsonRequest('PATCH', data)),
+  getRewards: () => request<RecompensaResumen[]>('/recompensas/listar/'),
+  createReward: (data: Record<string, unknown>) =>
+    request<RecompensaResumen>('/recompensa/crear/', jsonBody(data)),
+  updateReward: (id: number, data: Record<string, unknown>) =>
+    request<RecompensaResumen>(`/recompensa/actualizar/${id}/`, jsonRequest('PATCH', data)),
+  createCard: (businessId: number, data: Record<string, unknown>) =>
+    request<{ tarjeta: DinamicaResumen; recompensa: RecompensaResumen }>(
+      `/negocios/${businessId}/tarjetas/`,
+      jsonBody(data),
+    ),
   getMemberships: () => request<MembresiaResumen[]>('/usuarios-negocio/listar/'),
+  updateMembership: (id: number, data: Record<string, unknown>) =>
+    request<MembresiaResumen>(
+      `/usuario-negocio/actualizar/${id}/`, jsonRequest('PATCH', data),
+    ),
   getUsers: () => request<UsuarioResumen[]>('/usuarios/listar/'),
-  getMetrics: (businessId: number, branchId?: number) => {
-    const query = branchId ? `?sucursal=${branchId}` : '';
-    return request<MetricasPortal>(`/negocios/${businessId}/metricas/${query}`);
-  },
+  getMetrics: (
+    businessId: number,
+    options: { sucursal?: number; desde?: string; hasta?: string } = {},
+  ) => request<MetricasPortal>(
+    `/negocios/${businessId}/metricas/${query(options)}`,
+  ),
+  getBusinessVisits: (businessId: number, params: Record<string, ValorQuery> = {}) =>
+    request<PaginaResultados<VisitaResumen>>(
+      `/negocios/${businessId}/visitas/${query(params)}`,
+    ),
+  getBusinessCoupons: (businessId: number, params: Record<string, ValorQuery> = {}) =>
+    request<PaginaResultados<CuponResumen>>(
+      `/negocios/${businessId}/cupones/${query(params)}`,
+    ),
+  getBusinessRedemptions: (
+    businessId: number,
+    params: Record<string, ValorQuery> = {},
+  ) => request<PaginaResultados<CanjeResumen>>(
+    `/negocios/${businessId}/canjes/${query(params)}`,
+  ),
+  getBusinessClients: (businessId: number, params: Record<string, ValorQuery> = {}) =>
+    request<PaginaClientes>(
+      `/negocios/${businessId}/clientes/${query(params)}`,
+    ),
+  getInvitations: (businessId: number) =>
+    request<InvitacionResumen[]>(`/negocios/${businessId}/invitaciones/`),
+  createInvitation: (businessId: number, data: Record<string, unknown>) =>
+    request<InvitacionResumen>(
+      `/negocios/${businessId}/invitaciones/`, jsonBody(data),
+    ),
+  getInvitation: (token: string) =>
+    request<InvitacionResumen>(`/invitaciones/${token}/`),
+  acceptInvitation: (token: string) =>
+    request<{ aceptada: boolean; membresia_id: number; negocio_id: number }>(
+      `/invitaciones/${token}/aceptar/`, { method: 'POST' },
+    ),
+  revokeInvitation: (token: string) =>
+    request<InvitacionResumen>(
+      `/invitaciones/${token}/revocar/`, { method: 'POST' },
+    ),
   getVisits: () => request<VisitaResumen[]>('/registros-actividad/listar/'),
   getCoupons: () => request<CuponResumen[]>('/cupones-usuario/listar/'),
 };

@@ -246,6 +246,10 @@ class NegocioSerializerUpdate(serializers.ModelSerializer):
             "status",
             "categoria",
         ]
+        extra_kwargs = {
+            # El registro inicial no solicita dirección; puede completarse aquí.
+            "direccion": {"required": False, "allow_blank": True},
+        }
 
     def validate_nombre(self, value):
         value = value.strip()
@@ -254,10 +258,7 @@ class NegocioSerializerUpdate(serializers.ModelSerializer):
         return value
 
     def validate_direccion(self, value):
-        value = value.strip()
-        if not value:
-            raise serializers.ValidationError("La dirección del negocio no puede estar vacía.")
-        return value
+        return value.strip()
 
     def validate_zona_horaria(self, value):
         return validar_zona_horaria(value)
@@ -958,8 +959,11 @@ class RecompensaSerializerList(serializers.ModelSerializer):
         fields = [
             "id",
             "titulo",
+            "descripcion",
             "tipo",
+            "descuento",
             "costo_desbloqueo",
+            "terminos_condiciones",
             "status",
             "negocio",
             "es_meta",
@@ -1404,12 +1408,25 @@ class CanjeSerializerCreate(serializers.ModelSerializer):
 
 #List
 class CanjeSerializerList(serializers.ModelSerializer):
+    usuario_correo = serializers.EmailField(
+        source='cupon.usuario.correo', read_only=True,
+    )
+    titulo_beneficio = serializers.CharField(
+        source='cupon.titulo_beneficio', read_only=True,
+    )
+    sucursal_nombre = serializers.CharField(
+        source='sucursal.nombre', read_only=True, allow_null=True,
+    )
+
     class Meta:
         model = models.Canje
         fields = [
             "id",
             "cupon",
+            "usuario_correo",
+            "titulo_beneficio",
             "sucursal",
+            "sucursal_nombre",
             "negocio",
             "validado_por",
             "origen",
@@ -1417,6 +1434,7 @@ class CanjeSerializerList(serializers.ModelSerializer):
             "token_validacion",
             "expira_en",
             "fecha",
+            "anulado",
         ]
 
 

@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faCircleCheck,
@@ -17,6 +17,9 @@ import { supabase } from '../lib/supabase.ts';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const tokenInvitacion = searchParams.get('invitacion');
+  const esInvitacion = Boolean(tokenInvitacion);
   const [business, setBusiness] = useState('');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -40,12 +43,29 @@ export default function RegisterPage() {
         email: email.trim(),
         password,
         options: {
-          data: { nombre: name.trim(), negocio: business.trim() },
+          emailRedirectTo: `${window.location.origin}/login?confirmado=1${
+            tokenInvitacion
+              ? `&next=${encodeURIComponent(`/invitacion/${tokenInvitacion}`)}`
+              : ''
+          }`,
+          data: esInvitacion
+            ? {
+                benefy_tipo_registro: 'invitacion',
+                benefy_nombre_completo: name.trim(),
+              }
+            : {
+                benefy_tipo_registro: 'comercial',
+                benefy_nombre_negocio: business.trim(),
+                benefy_nombre_completo: name.trim(),
+              },
         },
       });
       if (authError) throw new Error(authError.message);
       if (data.session) {
-        navigate('/completar-perfil', { replace: true });
+        navigate(
+          tokenInvitacion ? `/invitacion/${tokenInvitacion}` : '/portal',
+          { replace: true },
+        );
       } else {
         setSent(true);
       }
@@ -66,7 +86,11 @@ export default function RegisterPage() {
           </div>
           <div className="auth-note">
             <FontAwesomeIcon icon={faCircleCheck} />
-            <p>Después de confirmar tu cuenta, inicia sesión para completar tu perfil y registrar tu negocio.</p>
+            <p>
+              {esInvitacion
+                ? 'Confirma tu correo y luego inicia sesión para aceptar la invitación. No se te asignará ningún negocio automáticamente.'
+                : 'Confirma tu correo y luego inicia sesión. Crearemos tu negocio automáticamente con los datos que ya capturaste; no tendrás que volver a escribir el formulario.'}
+            </p>
           </div>
           <p className="auth-signup"><Link to="/login">Volver a iniciar sesión</Link></p>
         </div>
@@ -91,13 +115,15 @@ export default function RegisterPage() {
         ) : null}
 
         <form className="auth-form auth-form-tight" onSubmit={submit}>
-          <div className="auth-field">
-            <label htmlFor="business-name">Nombre comercial o de tu negocio</label>
-            <div className="auth-control">
-              <span className="auth-control-icon"><FontAwesomeIcon icon={faStore} /></span>
-              <input id="business-name" value={business} onChange={(e) => setBusiness(e.target.value)} required placeholder="Ej: Café Blend Roma" />
+          {!esInvitacion ? (
+            <div className="auth-field">
+              <label htmlFor="business-name">Nombre comercial o de tu negocio</label>
+              <div className="auth-control">
+                <span className="auth-control-icon"><FontAwesomeIcon icon={faStore} /></span>
+                <input id="business-name" value={business} onChange={(e) => setBusiness(e.target.value)} required placeholder="Ej: Café Blend Roma" />
+              </div>
             </div>
-          </div>
+          ) : null}
           <div className="auth-field">
             <label htmlFor="full-name">Nombre completo del responsable</label>
             <div className="auth-control">

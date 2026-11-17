@@ -1,6 +1,6 @@
 """Validación remota de access tokens mediante Supabase Auth /user."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from http.client import HTTPException
 import json
 from urllib.error import HTTPError, URLError
@@ -30,6 +30,7 @@ class NoRedirects(HTTPRedirectHandler):
 class SupabaseIdentity:
     uid: UUID
     email: str
+    user_metadata: dict = field(default_factory=dict)
     is_authenticated: bool = True
     is_anonymous: bool = False
 
@@ -67,7 +68,10 @@ def verify_token(token):
             raise ValueError
     except (KeyError, TypeError, ValueError, AttributeError):
         raise AuthenticationFailed('Se requiere una cuenta autenticada con correo confirmado.') from None
-    return SupabaseIdentity(uid=uid, email=email)
+    metadata = user.get('user_metadata')
+    if not isinstance(metadata, dict):
+        metadata = {}
+    return SupabaseIdentity(uid=uid, email=email, user_metadata=metadata)
 
 
 class SupabaseAuthentication(BaseAuthentication):

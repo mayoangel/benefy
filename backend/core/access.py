@@ -323,11 +323,14 @@ class ResourceAccessMixin:
         if isinstance(instance, models.UsuarioNegocio):
             datos = getattr(self.request, 'data', None)
             motivo = datos.get('motivo', '') if hasattr(datos, 'get') else ''
-            membresias.desactivar_membresia(
-                membresia=instance,
-                actor=self.request.user,
-                motivo=motivo,
-            )
+            try:
+                membresias.desactivar_membresia(
+                    membresia=instance,
+                    actor=self.request.user,
+                    motivo=motivo,
+                )
+            except membresias.ErrorMembresia as exc:
+                raise ValidationError({'detail': str(exc)}) from None
             return
         try:
             instance.delete()

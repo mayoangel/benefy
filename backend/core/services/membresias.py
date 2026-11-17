@@ -53,6 +53,25 @@ def _validar_combinacion(negocio, sucursal, rol_comercio):
         raise ErrorMembresia('La sucursal no pertenece al negocio indicado.')
 
 
+def _validar_propietario_restante(membresia):
+    if not (
+        membresia.rol_comercio == 'dueno'
+        and membresia.sucursal_id is None
+        and membresia.status
+    ):
+        return
+    otros = models.UsuarioNegocio.objects.filter(
+        negocio=membresia.negocio,
+        rol_comercio='dueno',
+        sucursal__isnull=True,
+        status=True,
+    ).exclude(pk=membresia.pk)
+    if not otros.exists():
+        raise ErrorMembresia(
+            'El negocio debe conservar al menos un propietario activo.'
+        )
+
+
 def _buscar_existente(usuario, negocio, sucursal):
     filtro = models.UsuarioNegocio.objects.select_for_update().filter(
         usuario=usuario, negocio=negocio,
@@ -131,6 +150,19 @@ def actualizar_membresia(*, membresia, cambios, actor=None, motivo=''):
         nuevo_status = cambios.get('status', membresia.status)
         nuevo_negocio = cambios.get('negocio', membresia.negocio)
         _validar_combinacion(nuevo_negocio, nueva_sucursal, nuevo_rol)
+        era_dueno_activo = (
+            membresia.rol_comercio == 'dueno'
+            and membresia.sucursal_id is None
+            and membresia.status
+        )
+        sigue_dueno_activo = (
+            nuevo_rol == 'dueno'
+            and nueva_sucursal is None
+            and nuevo_status
+            and nuevo_negocio.pk == membresia.negocio_id
+        )
+        if era_dueno_activo and not sigue_dueno_activo:
+            _validar_propietario_restante(membresia)
 
         conflicto = models.UsuarioNegocio.objects.filter(
             usuario=cambios.get('usuario', membresia.usuario),
@@ -192,6 +224,7 @@ def desactivar_membresia(*, membresia, actor=None, motivo=''):
         ).get(pk=membresia.pk)
         if not membresia.status:
             return membresia
+        _validar_propietario_restante(membresia)
         anteriores = _snapshot(membresia)
         membresia.status = False
         membresia.fecha_baja = timezone.now()

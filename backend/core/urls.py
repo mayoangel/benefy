@@ -1,11 +1,20 @@
 from django.urls import path
 
-from core import views, views_lealtad, views_planes, views_portal
+from core import (
+    views,
+    views_invitaciones,
+    views_lealtad,
+    views_onboarding,
+    views_operaciones,
+    views_planes,
+    views_portal,
+)
 
 app_name = "core"
 
 urlpatterns = [
     path("v1/autenticacion/perfil/", views.PerfilAPIView.as_view(), name="autenticacion-perfil"),
+    path("v1/onboarding/comercial/", views_onboarding.CompletarRegistroComercialAPIView.as_view(), name="onboarding-comercial"),
 
     # Motor de lealtad
     path("v1/visitas/registrar/", views_lealtad.RegistrarVisitaAPIView.as_view(), name="visita-registrar"),
@@ -19,6 +28,15 @@ urlpatterns = [
     path("v1/admin/visitas/<int:pk>/anular/", views_lealtad.AnularVisitaAPIView.as_view(), name="admin-visita-anular"),
     path("v1/admin/cupones/<uuid:uuid>/anular/", views_lealtad.AnularCuponAPIView.as_view(), name="admin-cupon-anular"),
     path("v1/negocios/<int:pk>/metricas/", views_lealtad.MetricasAPIView.as_view(), name="negocio-metricas"),
+    path("v1/negocios/<int:pk>/visitas/", views_operaciones.VisitasNegocioAPIView.as_view(), name="negocio-visitas"),
+    path("v1/negocios/<int:pk>/cupones/", views_operaciones.CuponesNegocioAPIView.as_view(), name="negocio-cupones"),
+    path("v1/negocios/<int:pk>/canjes/", views_operaciones.CanjesNegocioAPIView.as_view(), name="negocio-canjes"),
+    path("v1/negocios/<int:pk>/clientes/", views_operaciones.ClientesNegocioAPIView.as_view(), name="negocio-clientes"),
+    path("v1/negocios/<int:pk>/tarjetas/", views_operaciones.TarjetaCreateAPIView.as_view(), name="negocio-tarjetas"),
+    path("v1/negocios/<int:pk>/invitaciones/", views_invitaciones.InvitacionesNegocioAPIView.as_view(), name="negocio-invitaciones"),
+    path("v1/invitaciones/<uuid:token>/", views_invitaciones.DetalleInvitacionAPIView.as_view(), name="invitacion-detalle"),
+    path("v1/invitaciones/<uuid:token>/aceptar/", views_invitaciones.AceptarInvitacionAPIView.as_view(), name="invitacion-aceptar"),
+    path("v1/invitaciones/<uuid:token>/revocar/", views_invitaciones.RevocarInvitacionAPIView.as_view(), name="invitacion-revocar"),
     path("v1/planes/", views_planes.CatalogoPlanesAPIView.as_view(), name="planes-catalogo"),
     path("v1/negocios/<int:pk>/plan/", views_planes.PlanNegocioAPIView.as_view(), name="negocio-plan"),
     path("v1/negocios/<int:pk>/plan/cambios/", views_planes.HistorialPlanAPIView.as_view(), name="negocio-plan-cambios"),

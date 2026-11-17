@@ -24,6 +24,8 @@ export default function BusinessOverviewPage() {
   const [plan, setPlan] = useState<PlanNegocio | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [desde, setDesde] = useState('');
+  const [hasta, setHasta] = useState('');
 
   const cargar = useCallback(async () => {
     if (!membresia) return;
@@ -31,7 +33,11 @@ export default function BusinessOverviewPage() {
     setError(null);
     try {
       const [metricasData, planData] = await Promise.all([
-        api.getMetrics(id, sucursalId),
+        api.getMetrics(id, {
+          sucursal: sucursalId,
+          desde: desde || undefined,
+          hasta: hasta || undefined,
+        }),
         api.getBusinessPlan(id),
       ]);
       setMetricas(metricasData);
@@ -41,7 +47,7 @@ export default function BusinessOverviewPage() {
     } finally {
       setLoading(false);
     }
-  }, [id, membresia, sucursalId]);
+  }, [desde, hasta, id, membresia, sucursalId]);
 
   useEffect(() => {
     void cargar();
@@ -69,6 +75,20 @@ export default function BusinessOverviewPage() {
           Actualizar
         </button>
       </header>
+
+      <div className="portal-panel portal-filters">
+        <label>
+          <span>Desde</span>
+          <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} />
+        </label>
+        <label>
+          <span>Hasta</span>
+          <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} />
+        </label>
+        <span className="portal-muted">
+          Sin fechas se muestran los últimos 30 días del negocio.
+        </span>
+      </div>
 
       {loading ? <PortalLoading /> : null}
       {error ? <PortalError message={error} onRetry={() => void cargar()} /> : null}
