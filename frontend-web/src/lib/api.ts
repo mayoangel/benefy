@@ -6,6 +6,8 @@ import type {
   MembresiaResumen,
   MetricasPortal,
   NegocioResumen,
+  PlanCatalogo,
+  PlanNegocio,
   SucursalResumen,
   UsuarioPortal,
   UsuarioResumen,
@@ -127,6 +129,9 @@ function jsonBody(body: unknown): RequestInit {
 export const api = {
   getProfile: () => request<UsuarioPortal>('/autenticacion/perfil/'),
   getContext: () => request<ContextoPortal>('/mi/contexto/'),
+  getPlans: () => request<PlanCatalogo[]>('/planes/'),
+  getBusinessPlan: (businessId: number) =>
+    request<PlanNegocio>(`/negocios/${businessId}/plan/`),
   createProfile: (nombre: string, apellido: string) =>
     request<UsuarioPortal>('/usuario/crear/', jsonBody({ nombre, apellido })),
   getCategories: () => request<CategoriaResumen[]>('/categorias-negocio/listar/'),

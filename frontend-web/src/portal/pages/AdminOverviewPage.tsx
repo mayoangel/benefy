@@ -7,6 +7,7 @@ import { PortalError, PortalLoading } from '../components/PortalState.tsx';
 export default function AdminOverviewPage() {
   const [negocios, setNegocios] = useState<NegocioResumen[]>([]);
   const [usuarios, setUsuarios] = useState<UsuarioResumen[]>([]);
+  const [planes, setPlanes] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -20,6 +21,15 @@ export default function AdminOverviewPage() {
       ]);
       setNegocios(negociosData);
       setUsuarios(usuariosData);
+      const planesData = await Promise.all(negociosData.map(async (negocio) => {
+        try {
+          const detalle = await api.getBusinessPlan(negocio.id);
+          return [negocio.id, detalle.plan.nombre] as const;
+        } catch {
+          return [negocio.id, '—'] as const;
+        }
+      }));
+      setPlanes(Object.fromEntries(planesData));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo cargar la administración global.');
     } finally {
@@ -67,12 +77,13 @@ export default function AdminOverviewPage() {
               <h2>Negocios</h2>
               <div className="portal-table-wrap">
                 <table className="portal-table">
-                  <thead><tr><th>ID</th><th>Negocio</th><th>Estado</th></tr></thead>
+                  <thead><tr><th>ID</th><th>Negocio</th><th>Plan</th><th>Estado</th></tr></thead>
                   <tbody>
                     {negocios.map((negocio) => (
                       <tr key={negocio.id}>
                         <td>{negocio.id}</td>
                         <td>{negocio.nombre}</td>
+                        <td>{planes[negocio.id] ?? '—'}</td>
                         <td><span className={negocio.status ? 'portal-badge is-on' : 'portal-badge'}>{negocio.status ? 'Activo' : 'Inactivo'}</span></td>
                       </tr>
                     ))}

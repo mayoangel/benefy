@@ -1,5 +1,61 @@
 export type RolGlobal = 'consumidor' | 'admin_sistema';
 export type RolComercio = 'dueno' | 'supervisor' | 'empleado';
+export type CodigoPlan = 'free' | 'premium';
+
+export type PlanResumenNegocio = {
+  id: number;
+  codigo: CodigoPlan | string;
+  nombre: string;
+  descripcion: string;
+  orden: number;
+  status: boolean;
+};
+
+export type LimitePlan = {
+  limite: number | null;
+  uso: number;
+  disponible: number | null;
+  excedido: boolean;
+};
+
+export type CaracteristicasPlan = {
+  metricas_avanzadas: boolean;
+  exportacion_reportes: boolean;
+  personalizacion_avanzada: boolean;
+  alianzas: boolean;
+};
+
+export type PlanNegocio = {
+  negocio: number;
+  plan: PlanResumenNegocio;
+  suscripcion: {
+    id: number;
+    status: string;
+    origen: string;
+    en_cancelacion: boolean;
+    fecha_inicio: string | null;
+    fecha_fin: string | null;
+    periodo_actual_inicio: string | null;
+    periodo_actual_fin: string | null;
+  } | null;
+  limites: Record<string, LimitePlan>;
+  caracteristicas: CaracteristicasPlan;
+  caracteristicas_implementadas: string[];
+  excedentes: string[];
+};
+
+export type PlanCatalogo = PlanResumenNegocio & {
+  limites: Record<string, number | null>;
+  caracteristicas: CaracteristicasPlan;
+  caracteristicas_implementadas: string[];
+  precios: {
+    intervalo: 'mensual' | 'anual';
+    monto: string | null;
+    divisa: string;
+    status: boolean;
+    stripe_price_id?: string | null;
+  }[];
+};
 
 export type UsuarioPortal = {
   id: number;
@@ -16,6 +72,7 @@ export type NegocioPortal = {
   logo_url: string | null;
   status: boolean;
   zona_horaria: string;
+  plan: PlanResumenNegocio | null;
 };
 
 export type SucursalPortal = {

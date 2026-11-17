@@ -50,6 +50,9 @@ export default function PortalLayout() {
   const esAdmin = Boolean(context?.es_admin_sistema);
   const membresia = id ? membresiaDelNegocio(context, id) : null;
   const rol = membresia?.rol_comercio ?? null;
+  const planNegocio = id
+    ? context?.negocios.find((negocio) => negocio.id === id)?.plan ?? null
+    : null;
 
   const sucursales = useMemo(() => {
     if (!context || !id) return [];
@@ -159,6 +162,11 @@ export default function PortalLayout() {
           <span className="portal-role">
             {esAdmin ? 'admin_sistema' : rol}
           </span>
+          {!esAdmin && planNegocio ? (
+            <span className={`portal-plan-tag${planNegocio.codigo === 'premium' ? ' is-premium' : ''}`}>
+              Plan {planNegocio.nombre}
+            </span>
+          ) : null}
         </header>
         <main className="portal-content">
           <Outlet />

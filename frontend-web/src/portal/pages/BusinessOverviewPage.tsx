@@ -4,8 +4,9 @@ import { Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthProvider.tsx';
 import { api } from '../../lib/api.ts';
 import { membresiaDelNegocio } from '../../lib/portal.ts';
-import type { MetricasPortal } from '../../lib/types.ts';
+import type { MetricasPortal, PlanNegocio } from '../../lib/types.ts';
 import { PortalError, PortalLoading } from '../components/PortalState.tsx';
+import PlanPanel from '../components/PlanPanel.tsx';
 
 function valor(valor: number | null) {
   return valor === null ? '—' : new Intl.NumberFormat('es-MX').format(valor);
@@ -20,6 +21,7 @@ export default function BusinessOverviewPage() {
   const sucursalParam = searchParams.get('sucursal');
   const sucursalId = sucursalParam ? Number(sucursalParam) : undefined;
   const [metricas, setMetricas] = useState<MetricasPortal | null>(null);
+  const [plan, setPlan] = useState<PlanNegocio | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -28,7 +30,12 @@ export default function BusinessOverviewPage() {
     setLoading(true);
     setError(null);
     try {
-      setMetricas(await api.getMetrics(id, sucursalId));
+      const [metricasData, planData] = await Promise.all([
+        api.getMetrics(id, sucursalId),
+        api.getBusinessPlan(id),
+      ]);
+      setMetricas(metricasData);
+      setPlan(planData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudieron cargar las métricas.');
     } finally {
@@ -122,6 +129,7 @@ export default function BusinessOverviewPage() {
               <h2>Información del negocio</h2>
               <dl className="portal-details">
                 <div><dt>Rol</dt><dd>{membresia.rol_comercio}</dd></div>
+                <div><dt>Plan</dt><dd>{plan?.plan.nombre ?? '—'}</dd></div>
                 <div><dt>Zona horaria</dt><dd>{membresia.negocio.zona_horaria}</dd></div>
                 <div><dt>Estado</dt><dd>{membresia.negocio.status ? 'Activo' : 'Inactivo'}</dd></div>
                 <div><dt>Sucursales disponibles</dt><dd>{context?.sucursales.filter((s) => s.negocio === id).length ?? 0}</dd></div>
@@ -143,6 +151,8 @@ export default function BusinessOverviewPage() {
               )}
             </article>
           </div>
+
+          {plan ? <PlanPanel plan={plan} /> : null}
         </>
       ) : null}
     </section>
