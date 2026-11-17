@@ -14,4 +14,4 @@ de validación de operaciones. No se deben distribuir credenciales PostgreSQL,
 contraseñas de usuarios ni claves secretas de Supabase en los dispositivos.
 
 El backend actual y sus limitaciones están descritos en [API](../docs/api.md)
-y [estado de implementación](../docs/estado-implementacion.md).
+y en el [README raíz](../README.md#estado-actual).

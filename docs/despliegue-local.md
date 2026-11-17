@@ -1,14 +1,8 @@
 # Montaje local tipo producción
 
-Guía del montaje de demostración: mismos servicios que producción, ejecutados
-en la máquina local y sin publicar puertos fuera de `127.0.0.1`. No sustituye
-al entorno de desarrollo de [compose.yaml](../compose.yaml).
-
-Esta guía es la referencia completa del montaje demo. El
-[README raíz](../README.md) y la [guía del backend](../backend/README.md)
-resumen los pasos y enlazan aquí para evitar duplicar el runbook.
-
-## Qué incluye
+Guía del montaje de demostración: los mismos servicios que producción,
+ejecutados en local y sin publicar puertos fuera de `127.0.0.1`. No sustituye al
+entorno de desarrollo de [compose.yaml](../compose.yaml).
 
 | Servicio | Imagen | Función |
 | --- | --- | --- |
@@ -17,7 +11,7 @@ resumen los pasos y enlazan aquí para evitar duplicar el runbook.
 | `benef-ai` | `benef-ai/Dockerfile` | FastAPI sin recarga y sin puerto público |
 | `cloudflared` | `cloudflare/cloudflared` | Túnel opcional (perfil `tunnel`) |
 
-La base de datos sigue siendo PostgreSQL de Supabase. No hay `db` local.
+La base de datos es PostgreSQL de Supabase; no hay `db` local.
 
 ## Preparación
 
@@ -26,11 +20,9 @@ cp backend/.env.production.example backend/.env.production
 ```
 
 Completa `SECRET_KEY` (mínimo 50 caracteres, sin prefijo `django-insecure-`),
-`DB_PASSWORD`, `SUPABASE_URL` y `SUPABASE_PUBLISHABLE_KEY`. Los valores de
-`ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS` y `CSRF_TRUSTED_ORIGINS` deben coincidir
-con la URL desde la que abrirás la demo.
-
-Generar una clave local:
+`DB_PASSWORD`, `SUPABASE_URL` y `SUPABASE_PUBLISHABLE_KEY`. `ALLOWED_HOSTS`,
+`CORS_ALLOWED_ORIGINS` y `CSRF_TRUSTED_ORIGINS` deben coincidir con la URL de la
+demo. Para generar una clave:
 
 ```bash
 python -c "import secrets; print(secrets.token_urlsafe(64))"
@@ -43,7 +35,7 @@ docker compose --env-file backend/.env.production -f compose.demo.yaml build
 docker compose --env-file backend/.env.production -f compose.demo.yaml up -d
 ```
 
-Las migraciones no se aplican solas. Ejecútalas una vez, revisando antes el plan:
+Las migraciones no se aplican solas. Revisa el plan y ejecútalas una vez:
 
 ```bash
 docker compose --env-file backend/.env.production -f compose.demo.yaml run --rm --no-deps backend python manage.py migrate --plan
@@ -57,49 +49,31 @@ Accesos:
 - Health con base de datos: <https://localhost/health/db/>
 
 `http://localhost` redirige a HTTPS. Caddy usa una CA interna, así que el
-navegador avisará hasta que la confíes. Para exportarla:
+navegador avisará hasta que la confíes:
 
 ```bash
 docker compose -f compose.demo.yaml cp web:/data/caddy/pki/authorities/local/root.crt caddy-root.crt
 ```
 
-Instala `caddy-root.crt` en el almacén de entidades de certificación de
-confianza del sistema (Windows: doble clic → Instalar certificado → Equipo
-local → Entidades de certificación raíz de confianza). Ese archivo no debe
-versionarse.
+Instala `caddy-root.crt` en las entidades de certificación raíz de confianza del
+sistema (Windows: doble clic → Instalar certificado → Equipo local). El archivo
+no debe versionarse. Para HTTP sin TLS, publica `:8080` en el `Caddyfile` y fija
+`SESSION_COOKIE_SECURE=false` y `CSRF_COOKIE_SECURE=false`; no es lo
+recomendado.
 
-Si prefieres HTTP sin TLS, cambia el `Caddyfile` para publicar solo `:8080` y
-pon `SESSION_COOKIE_SECURE=false` y `CSRF_COOKIE_SECURE=false`. No es la
-configuración recomendada.
-
-## Túnel para la presentación
-
-El perfil `tunnel` levanta `cloudflared` y lo conecta por HTTP al puerto 8080
-interno de Caddy; no abre puertos en el host. Crea un túnel nombrado en
-Cloudflare, copia el token en `backend/.env.production` y arranca:
+## Verificación y operación
 
 ```bash
-docker compose --env-file backend/.env.production -f compose.demo.yaml --profile tunnel up -d
-```
-
-Añade el hostname público a `ALLOWED_HOSTS` y a `CSRF_TRUSTED_ORIGINS`
-(con esquema `https://`). Evita el túnel rápido de Cloudflare: cambia el
-subdominio en cada ejecución y obliga a reiniciar el backend.
-
-## Operación
-
-```bash
-# Estado y logs
+# Estado y salud
 docker compose -f compose.demo.yaml ps
-docker compose -f compose.demo.yaml logs -f backend
+curl -k https://localhost/health/db/
 
-# Verificación de despliegue de Django
+# Comprobaciones de despliegue
 docker compose --env-file backend/.env.production -f compose.demo.yaml run --rm --no-deps backend python manage.py check --deploy
-
-# Destino real de la base de datos
 docker compose --env-file backend/.env.production -f compose.demo.yaml run --rm --no-deps backend python manage.py db_info --connect
 
-# Parada conservando volúmenes de Caddy
+# Logs y parada (conserva volúmenes de Caddy)
+docker compose -f compose.demo.yaml logs -f backend
 docker compose -f compose.demo.yaml down
 ```
 
@@ -107,9 +81,31 @@ docker compose -f compose.demo.yaml down
 
 - `security.W004` (`SECURE_HSTS_SECONDS`): Caddy gestiona el TLS y el HSTS en
   `localhost` puede dejar el navegador bloqueado si luego sirves HTTP.
-- `security.W008` (`SECURE_SSL_REDIRECT`): la redirección a HTTPS la hace
-  Caddy. Activarla en Django provocaría bucles detrás del túnel, que le habla
-  por HTTP interno.
+- `security.W008` (`SECURE_SSL_REDIRECT`): la redirección la hace Caddy.
+  Activarla en Django provoca bucles detrás del túnel, que habla HTTP interno.
+
+## Presentación
+
+```bash
+# Una vez: superusuario de Django Admin (no crea identidad Supabase).
+docker compose --env-file backend/.env.production -f compose.demo.yaml exec backend python manage.py createsuperuser
+
+# Arrancar y verificar.
+docker compose --env-file backend/.env.production -f compose.demo.yaml up -d
+curl -k https://localhost/health/db/
+
+# Demo pública opcional con Cloudflare Tunnel.
+docker compose --env-file backend/.env.production -f compose.demo.yaml --profile tunnel up -d
+
+# Al terminar.
+docker compose -f compose.demo.yaml down
+```
+
+El perfil `tunnel` levanta `cloudflared` y lo conecta por HTTP al puerto 8080
+interno de Caddy; no abre puertos en el host. Crea un túnel nombrado en
+Cloudflare, copia el token en `backend/.env.production` y añade el hostname
+público a `ALLOWED_HOSTS` y `CSRF_TRUSTED_ORIGINS` (con `https://`). Evita el
+túnel rápido: cambia el subdominio en cada ejecución y obliga a reiniciar.
 
 ## Diferencias con desarrollo
 
@@ -120,3 +116,12 @@ docker compose -f compose.demo.yaml down
 | Estáticos | `runserver` | `collectstatic` + WhiteNoise |
 | Origen | Dos puertos (5173 y 8000) | Un solo origen con Caddy |
 | Puertos | 5432, 8000, 5000 | 80 y 443 en loopback |
+
+| Objetivo | Compose |
+| --- | --- |
+| Programar y probar con base desechable | `compose.yaml` |
+| Comprobar Gunicorn, Caddy, HTTPS y cookies seguras | `compose.demo.yaml` |
+| Presentar el proyecto | `compose.demo.yaml` |
+
+Los detalles de variables, migraciones y comandos de desarrollo están en el
+[README raíz](../README.md) y en [backend/README.md](../backend/README.md).

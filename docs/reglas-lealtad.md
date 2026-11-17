@@ -2,9 +2,10 @@
 
 **Estado:** aprobadas.
 **Alcance:** visitas, puntos, tarjetas de visitas, catálogo y canje de cupones.
-**Fuera del MVP:** alianzas con puntos compartidos, beneficios cruzados, NFC, QR dinámicos y analíticas avanzadas.
+**Fuera del MVP:** alianzas con puntos compartidos, beneficios cruzados, NFC, QR
+dinámicos y analíticas avanzadas.
 
-Este documento es la referencia funcional del motor de lealtad. Los contratos de API están en [api.md](./api.md), el estado técnico en [estado-implementacion.md](./estado-implementacion.md) y las pruebas en [validacion-mvp-lealtad.md](./validacion-mvp-lealtad.md).
+Los contratos de API están en [api.md](./api.md).
 
 ---
 
@@ -27,7 +28,7 @@ Este documento es la referencia funcional del motor de lealtad. Los contratos de
 - Los puntos no caducan por defecto. El negocio puede configurar `dias_expiracion_puntos`.
 - El consumo es **FIFO por fecha de expiración más próxima**; los lotes sin expiración se consumen al final.
 - Un lote vencido no se consume.
-- La expiración genera un movimiento de expiración y descuenta el saldo una sola vez.
+- La expiración genera un movimiento y descuenta el saldo una sola vez.
 - Cada consumo registra los lotes específicos de los que se descontaron puntos.
 - Los cambios de configuración no alteran puntos ya otorgados.
 
@@ -39,24 +40,20 @@ Este documento es la referencia funcional del motor de lealtad. Los contratos de
 - La tarjeta puede ser:
   - **Repetible:** al completar la meta se emite la recompensa y comienza un nuevo ciclo desde cero.
   - **De una sola ocasión:** al completar la meta se emite la recompensa y la tarjeta queda completada para ese cliente.
-- El historial de ciclos se conserva.
-- Cada ciclo conserva su meta y los datos de la recompensa al momento de iniciar.
+- El historial de ciclos se conserva; cada ciclo guarda su meta y los datos de la recompensa al iniciar.
 - Los cambios posteriores de configuración no afectan ciclos ya iniciados.
-- Si la tarjeta se desactiva:
-  - Los ciclos existentes pueden completarse y recibir su recompensa.
-  - No se crean ciclos nuevos hasta que la dinámica vuelva a estar activa y vigente.
+- Si la tarjeta se desactiva, los ciclos existentes pueden completarse y recibir su recompensa, pero no se crean ciclos nuevos hasta que vuelva a estar activa y vigente.
 
 ## 4. Catálogo y adquisición de cupones
 
 - Las recompensas pertenecen al negocio y pueden existir con o sin dinámica.
 - Una recompensa puede adquirirse con puntos o entregarse como meta de una tarjeta.
-- Toda recompensa debe tener una vigencia explícita: fecha de expiración o duración desde la adquisición.
+- Toda recompensa tiene una vigencia explícita: fecha de expiración o duración desde la adquisición.
 - Si la recompensa pertenece a una dinámica con fecha de fin, el cupón no puede superar esa fecha.
 - Si pertenece a una alianza, el cupón nunca puede expirar después del fin de la alianza.
 - La adquisición es atómica: descuenta puntos, reserva stock y emite el cupón en una sola transacción.
-- La adquisición exige una **clave de idempotencia** generada por el cliente.
-- La misma clave debe reutilizarse en reintentos y está asociada a la recompensa original. Si se reutiliza para otra recompensa u operación, el backend responde conflicto.
-- Un cupón adquirido conserva sus condiciones aunque la recompensa o la dinámica cambien o se desactiven.
+- La adquisición exige una **clave de idempotencia** generada por el cliente. La misma clave debe reutilizarse en reintentos; si se usa para otra recompensa u operación, el backend responde conflicto.
+- Un cupón adquirido conserva sus condiciones aunque la recompensa o la dinámica cambien.
 
 ## 5. Canje
 
@@ -64,13 +61,8 @@ Este documento es la referencia funcional del motor de lealtad. Los contratos de
 - Antes de confirmar se muestra una advertencia de que es irreversible.
 - El cupón se consume al confirmar, no al terminar el contador.
 - No requiere confirmación digital del cajero.
-- La pantalla de validación muestra:
-  - Nombre y descripción del beneficio.
-  - Contador regresivo.
-  - Hora actual actualizada.
-  - Barra de progreso o animación.
-  - Identificación del establecimiento.
-- El contador usa la hora del backend; por defecto dura 5 minutos y es configurable por entorno.
+- La pantalla de validación muestra nombre y descripción del beneficio, contador regresivo, hora actual, barra de progreso e identificación del establecimiento.
+- El contador usa la hora del backend; por defecto dura 5 minutos y es configurable por entorno (`CANJE_VALIDACION_SEGUNDOS`).
 - Un cupón canjeado no puede reactivarse.
 
 ## 6. Historial y correcciones
@@ -80,8 +72,7 @@ Este documento es la referencia funcional del motor de lealtad. Los contratos de
 - Toda anulación registra fecha, responsable y motivo.
 - Anular una visita no revierte puntos automáticamente.
 - Anular un cupón no devuelve automáticamente los puntos gastados.
-- Los ajustes de puntos solo los realiza `admin_sistema`.
-- Un ajuste no puede dejar saldo negativo.
+- Los ajustes de puntos solo los realiza `admin_sistema` y no pueden dejar saldo negativo.
 - Los ajustes y anulaciones conservan el registro original.
 
 ## 7. Seguridad y consistencia
@@ -98,13 +89,9 @@ El backend impide:
 
 ## 8. Configuración del negocio
 
-Cada negocio define:
+Cada negocio define puntos por visita, vigencia de los puntos, número de visitas
+por tarjeta, si la tarjeta es repetible o de una sola ocasión, recompensas con
+costos/stock/vigencias y fechas de sus dinámicas.
 
-- Puntos otorgados por visita.
-- Vigencia de los puntos.
-- Número de visitas para completar una tarjeta.
-- Si la tarjeta es repetible o de una sola ocasión.
-- Recompensas, costos, stock y vigencias.
-- Fechas de inicio y fin de sus dinámicas.
-
-Benefy no calcula recompensas a partir de montos de compra ni se integra obligatoriamente con POS o pasarelas de pago.
+Benefy no calcula recompensas a partir de montos de compra ni se integra
+obligatoriamente con POS o pasarelas de pago.

@@ -68,9 +68,8 @@ Un consumidor sin membresías no entra al portal: se le redirige a
 comercial se completa automáticamente tras confirmar el correo, sin repetir el
 formulario. El portal consulta `/planes/` y `/negocios/{id}/plan/`; Django
 conserva la autoridad sobre los límites. El detalle está en
-[autenticación](../docs/autenticacion.md), [API](../docs/api.md),
-[planes](../docs/planes-free-premium.md) y
-[validación del registro y CRUD](../docs/validacion-registro-crud.md).
+[autenticación](../docs/autenticacion.md), [API](../docs/api.md) y
+[planes](../docs/planes-free-premium.md).
 
 ## Ejecución y verificación
 

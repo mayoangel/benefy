@@ -252,8 +252,8 @@ No existen credenciales de administrador predeterminadas en el código.
 - Los estáticos se recopilan en el entrypoint y WhiteNoise los sirve desde
   Gunicorn; no necesitas un servidor de estáticos aparte.
 - Revisa la matriz de permisos, la verificación de email y los flujos incompletos
-  de lealtad antes de exponer el servicio. Los límites y pendientes están en
-  [estado de implementación](../docs/estado-implementacion.md).
+  de lealtad antes de exponer el servicio. El estado y los pendientes están en el
+  [README raíz](../README.md#estado-actual).
 - Deshabilita la Data API de Supabase o excluye las tablas Django de sus esquemas
   expuestos; los permisos Python no controlan consultas directas por PostgREST.
 - Configura respaldos, restauración probada, monitoreo y permisos mínimos

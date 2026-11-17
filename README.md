@@ -22,12 +22,27 @@ idempotente y canje irreversible. El CRUD genérico de esas entidades es solo
 lectura; las operaciones pasan por endpoints y servicios dedicados. La web ya
 consume la API con JWT de Supabase. Free/Premium aplica límites reales desde
 Django y el portal permite configurar el negocio y operar el programa. Faltan la
-app móvil, Stripe y las funciones Premium avanzadas. Consulta
-[estado y correspondencia con el SRS](./docs/estado-implementacion.md),
-[reglas de lealtad](./docs/reglas-lealtad.md), la
-[documentación de planes](./docs/planes-free-premium.md), su
-[validación](./docs/validacion-planes-free-premium.md) y la
-[validación de registro y CRUD](./docs/validacion-registro-crud.md).
+app móvil, Stripe y las funciones Premium avanzadas. Detalles en
+[reglas de lealtad](./docs/reglas-lealtad.md),
+[planes Free/Premium](./docs/planes-free-premium.md), [API](./docs/api.md) y
+[autenticación](./docs/autenticacion.md).
+
+## Diferencias con el SRS
+
+El [SRS](./docs/Benefy%20SRS.pdf) (revisión 1.0) describe requisitos de producto,
+no funcionalidades terminadas. El código actual difiere en:
+
+| Tema del SRS | Código actual |
+| --- | --- |
+| Firebase Auth | Supabase Auth verificado remotamente por Django |
+| Google API | Solo correo confirmado; Google no está integrado en los clientes |
+| React con Tailwind | React 18 con CSS propio |
+| Dashboard y app de consumidores | Portal web por rol; móvil con datos de demostración |
+| IA / ESP32-S3 | FastAPI solo con health check; hardware sin firmware |
+| Stripe, FCM, Cloudinary, Sentry | Modelos o placeholders, sin integración |
+
+La siguiente revisión formal del SRS debe actualizar el proveedor de identidad,
+la sección de IA y los servicios externos.
 
 ## Estructura
 
@@ -131,20 +146,20 @@ un solo origen (`https://localhost`), usando Supabase como base de datos. Sirve
 para presentar el proyecto y practicar un despliegue real sin publicar puertos
 ni pagar hosting.
 
-La guía paso a paso está en [docs/despliegue-local.md](./docs/despliegue-local.md)
-y la lista de comandos en [docs/run_project.md](./docs/run_project.md).
+La guía paso a paso y la lista de comandos están en
+[docs/despliegue-local.md](./docs/despliegue-local.md), incluida la CA interna de
+Caddy, el perfil `tunnel` (Cloudflare Tunnel) y las diferencias con desarrollo.
 
 El backend no publica puertos: solo Caddy lo alcanza. Los puertos 80 y 443 se
-enlazan a `127.0.0.1`. Para una demo pública existe el perfil `tunnel`
-(Cloudflare Tunnel). Los detalles, la CA interna de Caddy y las diferencias con
-desarrollo están en [docs/despliegue-local.md](./docs/despliegue-local.md).
+enlazan a `127.0.0.1`.
 
 ## Documentación y convenciones
 
-- [API actual](./docs/api.md): rutas y métodos implementados.
-- [Autenticación y permisos](./docs/autenticacion.md): Supabase Auth, perfiles y roles.
-- [Comandos del proyecto](./docs/run_project.md): desarrollo, verificación demo y presentación.
-- [Estado y SRS](./docs/estado-implementacion.md): funcionalidades existentes y pendientes.
+- [API](./docs/api.md): rutas, permisos y errores implementados.
+- [Autenticación y permisos](./docs/autenticacion.md): Supabase Auth, sesión web, roles y onboarding.
+- [Reglas de lealtad](./docs/reglas-lealtad.md): visitas, puntos, tarjetas y cupones.
+- [Planes Free y Premium](./docs/planes-free-premium.md): límites y cambios de plan.
+- [Montaje demo](./docs/despliegue-local.md): comandos, Caddy, HTTPS y presentación.
 - [SRS original](./docs/Benefy%20SRS.pdf): requisitos de producto; no certifica implementación.
 
 Las guías y comentarios nuevos se escriben en español; los identificadores
