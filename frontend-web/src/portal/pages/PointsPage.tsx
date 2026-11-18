@@ -1,3 +1,4 @@
+import { PortalPageHeader, PortalTable, PortalForm } from '../components/PortalUI';
 import { useRequestGuard } from '../hooks/useRequestGuard';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
@@ -151,16 +152,11 @@ export default function PointsPage() {
 
   return (
     <section className="portal-page">
-      <header className="portal-page-head">
-        <div>
-          <span className="portal-eyebrow">Fidelización</span>
-          <h1>Programa de puntos</h1>
-          <p>Un programa activo por negocio. Los puntos históricos no se recalculan.</p>
-        </div>
+      <PortalPageHeader eyebrow="Fidelización" title={<>Programa de puntos</>} description={<>Un programa activo por negocio. Los puntos históricos no se recalculan.</>}>
         <button className="portal-button" type="button" onClick={nuevo}>
           Nuevo programa
         </button>
-      </header>
+      </PortalPageHeader>
 
       {plan ? (
         <div className="portal-note">
@@ -171,7 +167,7 @@ export default function PointsPage() {
       {error ? <PortalError message={error} /> : null}
       {ok ? <div className="portal-note" role="status">{ok}</div> : null}
 
-      <form className="portal-panel portal-form" onSubmit={guardar}>
+      <PortalForm onSubmit={guardar}>
         <h2>{editando ? `Editar ${editando.nombre}` : 'Configurar programa'}</h2>
         <div className="portal-form-grid">
           <label>
@@ -243,7 +239,7 @@ export default function PointsPage() {
             {busy ? 'Guardando...' : editando ? 'Guardar cambios' : 'Crear programa'}
           </button>
         </div>
-      </form>
+      </PortalForm>
 
       {loading ? <PortalLoading /> : null}
       {!loading && programas.length === 0 ? (
@@ -253,8 +249,7 @@ export default function PointsPage() {
       ) : null}
       {programas.length > 0 ? (
         <div className="portal-panel">
-          <div tabIndex={0} role="region" aria-label="Listado de puntos" className="portal-table-wrap">
-            <table className="portal-table">
+          <PortalTable label="Listado de puntos">
               <thead>
                 <tr>
                   <th scope="col">Programa</th><th scope="col">Puntos/visita</th><th scope="col">Vigencia</th>
@@ -287,8 +282,7 @@ export default function PointsPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+            </PortalTable>
         </div>
       ) : null}
     </section>

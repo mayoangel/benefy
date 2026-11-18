@@ -1,3 +1,4 @@
+import { PortalPageHeader, PortalTable, PortalForm } from '../components/PortalUI';
 import { useRequestGuard } from '../hooks/useRequestGuard';
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
@@ -157,16 +158,11 @@ export default function RewardsPage() {
 
   return (
     <section className="portal-page">
-      <header className="portal-page-head">
-        <div>
-          <span className="portal-eyebrow">Fidelización</span>
-          <h1>Recompensas</h1>
-          <p>Beneficios que los clientes pueden adquirir con puntos.</p>
-        </div>
+      <PortalPageHeader eyebrow="Fidelización" title={<>Recompensas</>} description={<>Beneficios que los clientes pueden adquirir con puntos.</>}>
         <button className="portal-button" type="button" onClick={nueva}>
           Nueva recompensa
         </button>
-      </header>
+      </PortalPageHeader>
 
       {plan ? (
         <div className="portal-note">
@@ -178,7 +174,7 @@ export default function RewardsPage() {
       {error ? <PortalError message={error} /> : null}
       {ok ? <div className="portal-note" role="status">{ok}</div> : null}
 
-      {showForm ? <form ref={formRef} className="portal-panel portal-form" onSubmit={guardar}>
+      {showForm ? <PortalForm ref={formRef} onSubmit={guardar}>
         <h2>{editando ? `Editar ${editando.titulo}` : 'Nueva recompensa'}</h2>
         <div className="portal-form-grid">
           <label>
@@ -279,7 +275,7 @@ export default function RewardsPage() {
             {busy ? 'Guardando...' : editando ? 'Guardar cambios' : 'Crear recompensa'}
           </button>
         </div>
-      </form> : null}
+      </PortalForm> : null}
 
       {loading ? <PortalLoading /> : null}
       {!loading && recompensas.length === 0 ? (
@@ -289,8 +285,7 @@ export default function RewardsPage() {
       ) : null}
       {recompensas.length > 0 ? (
         <div className="portal-panel">
-          <div tabIndex={0} role="region" aria-label="Listado de recompensas" className="portal-table-wrap">
-            <table className="portal-table">
+          <PortalTable label="Listado de recompensas">
               <thead>
                 <tr>
                   <th scope="col">Recompensa</th><th scope="col">Tipo</th><th scope="col">Puntos</th>
@@ -327,8 +322,7 @@ export default function RewardsPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+            </PortalTable>
         </div>
       ) : null}
     </section>

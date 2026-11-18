@@ -1,3 +1,4 @@
+import { PortalPageHeader, PortalTable, PortalForm } from '../components/PortalUI';
 import { useRequestGuard } from '../hooks/useRequestGuard';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
@@ -152,22 +153,15 @@ export default function BranchesPage() {
 
   return (
     <section className="portal-page">
-      <header className="portal-page-head">
-        <div>
-          <span className="portal-eyebrow">Negocio</span>
-          <h1>Sucursales</h1>
-          <p>
-            {uso
+      <PortalPageHeader eyebrow="Negocio" title={<>Sucursales</>} description={uso
               ? `${uso.uso} de ${uso.limite ?? '∞'} sucursales activas en tu plan.`
-              : 'Sucursales a las que tienes acceso.'}
-          </p>
-        </div>
+              : 'Sucursales a las que tienes acceso.'}>
         {puedeEditar ? (
           <button className="portal-button" type="button" onClick={abrirNueva}>
             Nueva sucursal
           </button>
         ) : null}
-      </header>
+      </PortalPageHeader>
 
       {error ? (
         <div className="portal-state portal-state-error" role="alert">
@@ -179,7 +173,7 @@ export default function BranchesPage() {
       {ok ? <div className="portal-note" role="status">{ok}</div> : null}
 
       {mostrarForm && puedeEditar ? (
-        <form className="portal-panel portal-form" onSubmit={guardar}>
+        <PortalForm onSubmit={guardar}>
           <h2>{editando ? 'Editar sucursal' : 'Nueva sucursal'}</h2>
           <div className="portal-form-grid">
             <label>
@@ -241,7 +235,7 @@ export default function BranchesPage() {
               {busy ? 'Guardando...' : editando ? 'Guardar cambios' : 'Crear sucursal'}
             </button>
           </div>
-        </form>
+        </PortalForm>
       ) : null}
 
       {loading ? <PortalLoading /> : null}
@@ -258,8 +252,7 @@ export default function BranchesPage() {
 
       {!loading && sucursales.length > 0 ? (
         <div className="portal-panel">
-          <div tabIndex={0} role="region" aria-label="Listado de sucursales" className="portal-table-wrap">
-            <table className="portal-table">
+          <PortalTable label="Listado de sucursales">
               <thead>
                 <tr>
                   <th scope="col">Sucursal</th><th scope="col">Dirección</th><th scope="col">Ciudad</th>
@@ -298,8 +291,7 @@ export default function BranchesPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+            </PortalTable>
         </div>
       ) : null}
     </section>

@@ -1,3 +1,4 @@
+import { PortalPageHeader, PortalForm } from '../components/PortalUI';
 import { useRequestGuard } from '../hooks/useRequestGuard';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
@@ -84,21 +85,16 @@ export default function BusinessSettingsPage() {
 
   return (
     <section className="portal-page">
-      <header className="portal-page-head">
-        <div>
-          <span className="portal-eyebrow">Configuración</span>
-          <h1>Datos del negocio</h1>
-          <p>Información pública y de contacto que verán tus clientes.</p>
-        </div>
+      <PortalPageHeader eyebrow="Configuración" title={<>Datos del negocio</>} description={<>Información pública y de contacto que verán tus clientes.</>}>
         <Link className="portal-button-secondary" to="/registrar-negocio">
           Registrar otro negocio
         </Link>
-      </header>
+      </PortalPageHeader>
 
       {error ? <PortalError message={error} onRetry={() => void cargar()} /> : null}
       {ok ? <div className="portal-note" role="status">{ok}</div> : null}
 
-      <form className="portal-panel portal-form" onSubmit={guardar}>
+      <PortalForm onSubmit={guardar}>
         <div className="portal-form-grid">
           <label>
             <span>Nombre comercial</span>
@@ -170,7 +166,7 @@ export default function BusinessSettingsPage() {
             {busy ? 'Guardando...' : 'Guardar cambios'}
           </button>
         </div>
-      </form>
+      </PortalForm>
 
       {plan ? <PlanPanel plan={plan} /> : null}
     </section>

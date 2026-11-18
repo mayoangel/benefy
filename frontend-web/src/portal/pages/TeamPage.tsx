@@ -1,3 +1,4 @@
+import { PortalPageHeader, PortalTable, PortalForm } from '../components/PortalUI';
 import { useRequestGuard } from '../hooks/useRequestGuard';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
@@ -192,12 +193,7 @@ export default function TeamPage() {
 
   return (
     <section className="portal-page">
-      <header className="portal-page-head">
-        <div>
-          <span className="portal-eyebrow">Equipo</span>
-          <h1>Membresías y accesos</h1>
-          <p>Invita personas y controla su rol, sucursal y estado.</p>
-        </div>
+      <PortalPageHeader eyebrow="Equipo" title={<>Membresías y accesos</>} description={<>Invita personas y controla su rol, sucursal y estado.</>}>
         <button
           className="portal-button"
           type="button"
@@ -205,7 +201,7 @@ export default function TeamPage() {
         >
           Invitar persona
         </button>
-      </header>
+      </PortalPageHeader>
 
       {plan ? (
         <div className="portal-note">
@@ -218,7 +214,7 @@ export default function TeamPage() {
       {ok ? <div className="portal-note" role="status">{ok}</div> : null}
 
       {invitando ? (
-        <form className="portal-panel portal-form" onSubmit={invitar}>
+        <PortalForm onSubmit={invitar}>
           <h2>Nueva invitación</h2>
           <p className="portal-muted">
             La persona debe iniciar sesión con el mismo correo y aceptar la
@@ -278,11 +274,11 @@ export default function TeamPage() {
               {busy ? 'Enviando...' : 'Crear invitación'}
             </button>
           </div>
-        </form>
+        </PortalForm>
       ) : null}
 
       {editando ? (
-        <form className="portal-panel portal-form" onSubmit={guardarEdicion}>
+        <PortalForm onSubmit={guardarEdicion}>
           <h2>Editar membresía</h2>
           <div className="portal-form-grid">
             <label>
@@ -336,7 +332,7 @@ export default function TeamPage() {
               {busy ? 'Guardando...' : 'Guardar membresía'}
             </button>
           </div>
-        </form>
+        </PortalForm>
       ) : null}
 
       {invitationError ? <PortalError message={invitationError} onRetry={() => void cargar()} /> : null}
@@ -348,8 +344,7 @@ export default function TeamPage() {
       {!loading && filas.length > 0 ? (
         <div className="portal-panel">
           <h2>Membresías</h2>
-          <div tabIndex={0} role="region" aria-label="Listado de equipo" className="portal-table-wrap">
-            <table className="portal-table">
+          <PortalTable label="Listado de equipo">
               <thead>
                 <tr>
                   <th scope="col">Usuario</th><th scope="col">Correo</th><th scope="col">Rol</th>
@@ -386,16 +381,14 @@ export default function TeamPage() {
                   );
                 })}
               </tbody>
-            </table>
-          </div>
+            </PortalTable>
         </div>
       ) : null}
 
       {invitaciones.length > 0 ? (
         <div className="portal-panel">
           <h2>Invitaciones</h2>
-          <div tabIndex={0} role="region" aria-label="Listado de equipo" className="portal-table-wrap">
-            <table className="portal-table">
+          <PortalTable label="Listado de equipo">
               <thead>
                 <tr>
                   <th scope="col">Correo</th><th scope="col">Rol</th><th scope="col">Sucursal</th>
@@ -436,8 +429,7 @@ export default function TeamPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+            </PortalTable>
           <p className="portal-muted">
             Enlace de ejemplo: {enlace(invitaciones[0].token)}
           </p>

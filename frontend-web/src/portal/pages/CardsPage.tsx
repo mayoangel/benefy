@@ -1,3 +1,4 @@
+import { PortalPageHeader, PortalTable, PortalForm } from '../components/PortalUI';
 import { useRequestGuard } from '../hooks/useRequestGuard';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
@@ -209,16 +210,11 @@ export default function CardsPage() {
 
   return (
     <section className="portal-page">
-      <header className="portal-page-head">
-        <div>
-          <span className="portal-eyebrow">Fidelización</span>
-          <h1>Tarjetas de sellos</h1>
-          <p>Configura visitas requeridas y la recompensa al completar la tarjeta.</p>
-        </div>
+      <PortalPageHeader eyebrow="Fidelización" title={<>Tarjetas de sellos</>} description={<>Configura visitas requeridas y la recompensa al completar la tarjeta.</>}>
         <button className="portal-button" type="button" onClick={nueva}>
           Nueva tarjeta
         </button>
-      </header>
+      </PortalPageHeader>
 
       {plan ? (
         <div className="portal-note">
@@ -230,7 +226,7 @@ export default function CardsPage() {
       {error ? <PortalError message={error} /> : null}
       {ok ? <div className="portal-note" role="status">{ok}</div> : null}
 
-      <form className="portal-panel portal-form" onSubmit={guardar}>
+      <PortalForm onSubmit={guardar}>
         <h2>{editando ? `Editar ${editando.nombre}` : 'Nueva tarjeta'}</h2>
         <div className="portal-form-grid">
           <label>
@@ -363,7 +359,7 @@ export default function CardsPage() {
             {busy ? 'Guardando...' : editando ? 'Guardar cambios' : 'Crear tarjeta'}
           </button>
         </div>
-      </form>
+      </PortalForm>
 
       {loading ? <PortalLoading /> : null}
       {!loading && tarjetas.length === 0 ? (
@@ -373,8 +369,7 @@ export default function CardsPage() {
       ) : null}
       {tarjetas.length > 0 ? (
         <div className="portal-panel">
-          <div tabIndex={0} role="region" aria-label="Listado de tarjetas" className="portal-table-wrap">
-            <table className="portal-table">
+          <PortalTable label="Listado de tarjetas">
               <thead>
                 <tr>
                   <th scope="col">Tarjeta</th><th scope="col">Sellos</th><th scope="col">Repetible</th>
@@ -411,8 +406,7 @@ export default function CardsPage() {
                   );
                 })}
               </tbody>
-            </table>
-          </div>
+            </PortalTable>
         </div>
       ) : null}
     </section>

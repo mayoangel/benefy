@@ -13,6 +13,13 @@ import {
 import { useAuth } from '../auth/AuthProvider.tsx';
 import { membresiaDelNegocio, nombreRol } from '../lib/portal.ts';
 import type { RolComercio } from '../lib/types.ts';
+import { PortalIcon } from './components/PortalUI';
+
+const NAV_GROUPS = [
+  { label: 'Actividad', paths: ['', 'clientes', 'visitas', 'canjes', 'cupones'] },
+  { label: 'Fidelización', paths: ['puntos', 'tarjetas', 'recompensas'] },
+  { label: 'Tu negocio', paths: ['sucursales', 'equipo', 'configuracion'] },
+];
 
 function navItems(rol: RolComercio | null) {
   if (rol === 'dueno') {
@@ -170,17 +177,22 @@ export default function PortalLayout() {
               Administración global
             </NavLink>
           ) : null}
-          {!esAdmin && items.map((item) => (
+          {!esAdmin && NAV_GROUPS.map(group => {
+            const entries = group.paths.flatMap(path => items.filter(item => item.path === path));
+            return entries.length ? <div className="portal-nav-group" key={group.label}>
+            <span className="portal-nav-label">{group.label}</span>
+            {entries.map((item) => (
             <NavLink
               end={item.path === ''}
               key={item.path}
               to={{pathname: base + (item.path ? '/' + item.path : ''), search: selectedSucursal ? '?sucursal=' + encodeURIComponent(selectedSucursal) : ''}}
-              className={({ isActive }) => isActive ? 'is-active' : ''}
+              className={({ isActive }) => `portal-nav-link${isActive ? ' is-active' : ''}`}
               onClick={() => setMenuOpen(false)}
             >
-              {item.label}
+              <PortalIcon name={item.path || 'resumen'} />{item.label}
             </NavLink>
-          ))}
+          ))}</div> : null;
+          })}
         </nav>
 
         <div className="portal-sidebar-footer">
@@ -188,7 +200,7 @@ export default function PortalLayout() {
             <Link to="/registrar-negocio">Registrar otro negocio</Link>
           ) : null}
           <Link to="/">Volver al sitio</Link>
-          <button type="button" onClick={() => void signOut()}>Cerrar sesión</button>
+          <button type="button" onClick={() => void signOut()}><PortalIcon name="salir" />Cerrar sesión</button>
         </div>
       </aside>
 
@@ -204,7 +216,7 @@ export default function PortalLayout() {
             onClick={() => setMenuOpen((value) => !value)}
             aria-label="Abrir menú"
           >
-            ☰
+            <PortalIcon name="menu" />
           </button>
           <div>
             <strong>{esAdmin ? 'Panel de plataforma' : membresia?.negocio.nombre}</strong>

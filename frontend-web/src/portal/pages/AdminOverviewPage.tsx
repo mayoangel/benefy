@@ -1,3 +1,4 @@
+import { PortalPageHeader, PortalTable } from '../components/PortalUI';
 import { useRequestGuard } from '../hooks/useRequestGuard';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -48,16 +49,11 @@ export default function AdminOverviewPage() {
 
   return (
     <section className="portal-page">
-      <header className="portal-page-head">
-        <div>
-          <span className="portal-eyebrow">Benefy</span>
-          <h1>Administración global</h1>
-          <p>Resumen de negocios y usuarios de la plataforma.</p>
-        </div>
+      <PortalPageHeader eyebrow="Benefy" title={<>Administración global</>} description={<>Resumen de negocios y usuarios de la plataforma.</>}>
         <button type="button" className="portal-button-secondary" onClick={() => void cargar()}>
           Actualizar
         </button>
-      </header>
+      </PortalPageHeader>
 
       {loading ? <PortalLoading /> : null}
       {error ? <PortalError message={error} onRetry={() => void cargar()} /> : null}
@@ -80,8 +76,7 @@ export default function AdminOverviewPage() {
           <div className="portal-section-grid">
             <article className="portal-panel">
               <h2>Negocios</h2>
-              <div tabIndex={0} role="region" aria-label="Listado de administración" className="portal-table-wrap">
-                <table className="portal-table">
+              <PortalTable label="Listado de administración">
                   <thead><tr><th scope="col">ID</th><th scope="col">Negocio</th><th scope="col">Plan</th><th scope="col">Estado</th></tr></thead>
                   <tbody>
                     {negocios.map((negocio) => (
@@ -93,14 +88,12 @@ export default function AdminOverviewPage() {
                       </tr>
                     ))}
                   </tbody>
-                </table>
-              </div>
+                </PortalTable>
             </article>
 
             <article className="portal-panel">
               <h2>Usuarios</h2>
-              <div tabIndex={0} role="region" aria-label="Listado de administración" className="portal-table-wrap">
-                <table className="portal-table">
+              <PortalTable label="Listado de administración">
                   <thead><tr><th scope="col">Usuario</th><th scope="col">Correo</th><th scope="col">Rol</th></tr></thead>
                   <tbody>
                     {usuarios.map((usuario) => (
@@ -111,8 +104,7 @@ export default function AdminOverviewPage() {
                       </tr>
                     ))}
                   </tbody>
-                </table>
-              </div>
+                </PortalTable>
             </article>
           </div>
         </>

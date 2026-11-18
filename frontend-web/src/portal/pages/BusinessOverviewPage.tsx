@@ -1,3 +1,4 @@
+import { PortalPageHeader } from '../components/PortalUI';
 import { usePlan } from '../hooks/usePlan';
 import { useRequestGuard } from '../hooks/useRequestGuard';
 import { useCallback, useEffect, useState } from 'react';
@@ -63,20 +64,13 @@ export default function BusinessOverviewPage() {
 
   return (
     <section className="portal-page">
-      <header className="portal-page-head">
-        <div>
-          <span className="portal-eyebrow">Resumen</span>
-          <h1>{membresia.negocio.nombre}</h1>
-          <p>
-            {alcanceSucursal
+      <PortalPageHeader eyebrow="Resumen" title={membresia.negocio.nombre} description={alcanceSucursal
               ? 'Datos de la sucursal autorizada.'
-              : 'Datos consolidados del negocio y todas sus sucursales.'}
-          </p>
-        </div>
+              : 'Datos consolidados del negocio y todas sus sucursales.'}>
         <button type="button" className="portal-button-secondary" onClick={() => { void cargar(); void reloadPlan(); }}>
           Actualizar
         </button>
-      </header>
+      </PortalPageHeader>
 
       <div className="portal-panel portal-filters">
         <label>

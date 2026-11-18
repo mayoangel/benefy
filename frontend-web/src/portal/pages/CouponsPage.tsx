@@ -1,3 +1,4 @@
+import { PortalPageHeader, PortalTable } from '../components/PortalUI';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { useRequestGuard } from '../hooks/useRequestGuard';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -56,16 +57,11 @@ export default function CouponsPage() {
 
   return (
     <section className="portal-page">
-      <header className="portal-page-head">
-        <div>
-          <span className="portal-eyebrow">Lealtad</span>
-          <h1>Cupones emitidos</h1>
-          <p>Cupones adquiridos por clientes; los cupones ya emitidos no se invalidan al desactivar una recompensa.</p>
-        </div>
+      <PortalPageHeader eyebrow="Lealtad" title={<>Cupones emitidos</>} description={<>Cupones adquiridos por clientes; los cupones ya emitidos no se invalidan al desactivar una recompensa.</>}>
         <button className="portal-button-secondary" type="button" onClick={() => void cargar()}>
           Actualizar
         </button>
-      </header>
+      </PortalPageHeader>
 
       <div className="portal-panel portal-filters">
         <label>
@@ -105,8 +101,7 @@ export default function CouponsPage() {
 
       {datos.results.length > 0 ? (
         <div className="portal-panel">
-          <div tabIndex={0} role="region" aria-label="Listado de cupones" className="portal-table-wrap" aria-busy={loading}>
-            <table className="portal-table">
+          <PortalTable label="Listado de cupones" busy={loading}>
               <thead>
                 <tr>
                   <th scope="col">Beneficio</th><th scope="col">Cliente</th><th scope="col">Origen</th>
@@ -129,8 +124,7 @@ export default function CouponsPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+            </PortalTable>
           <PortalPagination
             page={filtros.page}
             pageSize={filtros.page_size}

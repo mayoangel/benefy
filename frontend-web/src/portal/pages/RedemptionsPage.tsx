@@ -1,3 +1,4 @@
+import { PortalPageHeader, PortalTable } from '../components/PortalUI';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { useRequestGuard } from '../hooks/useRequestGuard';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -70,16 +71,11 @@ export default function RedemptionsPage() {
 
   return (
     <section className="portal-page">
-      <header className="portal-page-head">
-        <div>
-          <span className="portal-eyebrow">Operación</span>
-          <h1>Canjes</h1>
-          <p>Cupones utilizados en el negocio o en tu sucursal.</p>
-        </div>
+      <PortalPageHeader eyebrow="Operación" title={<>Canjes</>} description={<>Cupones utilizados en el negocio o en tu sucursal.</>}>
         <button className="portal-button-secondary" type="button" onClick={() => void cargar()}>
           Actualizar
         </button>
-      </header>
+      </PortalPageHeader>
 
       <div className="portal-panel portal-filters">
         <label>
@@ -126,8 +122,7 @@ export default function RedemptionsPage() {
 
       {datos.results.length > 0 ? (
         <div className="portal-panel">
-          <div tabIndex={0} role="region" aria-label="Listado de canjes" className="portal-table-wrap" aria-busy={loading}>
-            <table className="portal-table">
+          <PortalTable label="Listado de canjes" busy={loading}>
               <thead>
                 <tr>
                   <th scope="col">Fecha</th><th scope="col">Beneficio</th><th scope="col">Cliente</th>
@@ -150,8 +145,7 @@ export default function RedemptionsPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+            </PortalTable>
           <PortalPagination
             page={filtros.page}
             pageSize={filtros.page_size}

@@ -1,3 +1,4 @@
+import { PortalPageHeader, PortalTable } from '../components/PortalUI';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { useRequestGuard } from '../hooks/useRequestGuard';
 import { useCallback, useEffect, useState } from 'react';
@@ -45,16 +46,11 @@ export default function ClientsPage() {
 
   return (
     <section className="portal-page">
-      <header className="portal-page-head">
-        <div>
-          <span className="portal-eyebrow">Clientes</span>
-          <h1>Clientes del negocio</h1>
-          <p>Datos operativos de clientes con visitas, puntos o cupones en este negocio.</p>
-        </div>
+      <PortalPageHeader eyebrow="Clientes" title={<>Clientes del negocio</>} description={<>Datos operativos de clientes con visitas, puntos o cupones en este negocio.</>}>
         <button className="portal-button-secondary" type="button" onClick={() => void cargar()}>
           Actualizar
         </button>
-      </header>
+      </PortalPageHeader>
 
       <div className="portal-panel portal-filters">
         <label className="portal-filter-wide">
@@ -79,8 +75,7 @@ export default function ClientsPage() {
 
       {datos.results.length > 0 ? (
         <div className="portal-panel">
-          <div tabIndex={0} role="region" aria-label="Listado de clientes" className="portal-table-wrap" aria-busy={loading}>
-            <table className="portal-table">
+          <PortalTable label="Listado de clientes" busy={loading}>
               <thead>
                 <tr>
                   <th scope="col">Cliente</th><th scope="col">Correo</th><th scope="col">Visitas</th>
@@ -103,8 +98,7 @@ export default function ClientsPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+            </PortalTable>
           <PortalPagination
             page={datos.page}
             pageSize={datos.page_size}

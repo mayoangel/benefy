@@ -26,3 +26,4 @@ dist-ssr
 # Browser validation artifacts
 test-results/
 playwright-report/
+artifacts/
