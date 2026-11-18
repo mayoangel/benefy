@@ -7,7 +7,8 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 
 # Cargar variables de entorno desde benef-ai/.env (si existe).
-load_dotenv(Path(__file__).resolve().parent / ".env")
+if os.getenv("BENEFY_LOAD_DOTENV", "1") != "0":
+    load_dotenv(Path(__file__).resolve().parent / ".env")
 
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 

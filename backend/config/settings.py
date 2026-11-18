@@ -24,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # tienen prioridad y no son sobrescritas.
 # Producción recibe sus variables del despliegue, nunca del .env local.
 ENVIRONMENT = os.getenv('ENVIRONMENT', 'development')
-if ENVIRONMENT != 'production':
+if ENVIRONMENT != 'production' and os.getenv('BENEFY_LOAD_DOTENV', '1') != '0':
     load_dotenv(BASE_DIR / '.env')
 ENVIRONMENT = os.getenv('ENVIRONMENT', 'development')
 IS_PRODUCTION = ENVIRONMENT == 'production'
