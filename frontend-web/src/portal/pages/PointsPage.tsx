@@ -7,7 +7,7 @@ import { useAuth } from '../../auth/AuthProvider.tsx';
 import { ApiError, api } from '../../lib/api.ts';
 import { membresiaDelNegocio } from '../../lib/portal.ts';
 import type { DinamicaResumen } from '../../lib/types.ts';
-import { PortalError, PortalLoading } from '../components/PortalState.tsx';
+import { PortalEmpty, PortalError, PortalLoading } from '../components/PortalState.tsx';
 import { usePlan } from '../hooks/usePlan.ts';
 
 function fechaInput(valor: string | null): string {
@@ -152,7 +152,7 @@ export default function PointsPage() {
 
   return (
     <section className="portal-page">
-      <PortalPageHeader eyebrow="Fidelización" title={<>Programa de puntos</>} description={<>Un programa activo por negocio. Los puntos históricos no se recalculan.</>}>
+      <PortalPageHeader eyebrow="Fidelización" title="Programa de puntos" description={<>Un programa activo por negocio. Los puntos históricos no se recalculan.</>}>
         <button className="portal-button" type="button" onClick={nuevo}>
           Nuevo programa
         </button>
@@ -170,17 +170,17 @@ export default function PointsPage() {
       <PortalForm onSubmit={guardar}>
         <h2>{editando ? `Editar ${editando.nombre}` : 'Configurar programa'}</h2>
         <div className="portal-form-grid">
-          <label>
+          <label htmlFor="portal-points-1">
             <span>Nombre</span>
-            <input
+            <input id="portal-points-1" name="nombre"
               value={form.nombre}
               onChange={(event) => setForm({ ...form, nombre: event.target.value })}
               required
             />
           </label>
-          <label>
+          <label htmlFor="portal-points-2">
             <span>Puntos por visita</span>
-            <input
+            <input id="portal-points-2" name="regla_conversion"
               type="number"
               min="1"
               step="1"
@@ -189,9 +189,9 @@ export default function PointsPage() {
               required
             />
           </label>
-          <label>
+          <label htmlFor="portal-points-3">
             <span>Vigencia de puntos (días, opcional)</span>
-            <input
+            <input id="portal-points-3" name="dias_expiracion_puntos"
               type="number"
               min="1"
               value={form.dias_expiracion_puntos}
@@ -200,33 +200,33 @@ export default function PointsPage() {
               })}
             />
           </label>
-          <label>
+          <label htmlFor="portal-points-4">
             <span>Inicio</span>
-            <input
+            <input id="portal-points-4" name="fecha_inicio"
               type="date"
               value={form.fecha_inicio}
               onChange={(event) => setForm({ ...form, fecha_inicio: event.target.value })}
               required
             />
           </label>
-          <label>
+          <label htmlFor="portal-points-5">
             <span>Fin (opcional)</span>
-            <input
+            <input id="portal-points-5" name="fecha_fin"
               type="date"
               value={form.fecha_fin}
               onChange={(event) => setForm({ ...form, fecha_fin: event.target.value })}
             />
           </label>
-          <label className="portal-form-wide">
+          <label className="portal-form-wide" htmlFor="portal-points-6">
             <span>Descripción</span>
-            <textarea
+            <textarea id="portal-points-6" name="descripcion"
               rows={2}
               value={form.descripcion}
               onChange={(event) => setForm({ ...form, descripcion: event.target.value })}
             />
           </label>
-          <label className="portal-check">
-            <input
+          <label className="portal-check" htmlFor="portal-points-7">
+            <input id="portal-points-7" name="status"
               type="checkbox"
               checked={form.status}
               onChange={(event) => setForm({ ...form, status: event.target.checked })}
@@ -243,9 +243,7 @@ export default function PointsPage() {
 
       {loading ? <PortalLoading /> : null}
       {!loading && programas.length === 0 ? (
-        <div className="portal-state portal-state-empty">
-          <p>Aún no hay un programa de puntos. Crea el primero para empezar.</p>
-        </div>
+        <PortalEmpty message="Aún no hay un programa de puntos. Crea el primero para empezar." />
       ) : null}
       {programas.length > 0 ? (
         <div className="portal-panel">

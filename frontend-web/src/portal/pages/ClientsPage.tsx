@@ -46,16 +46,16 @@ export default function ClientsPage() {
 
   return (
     <section className="portal-page">
-      <PortalPageHeader eyebrow="Clientes" title={<>Clientes del negocio</>} description={<>Datos operativos de clientes con visitas, puntos o cupones en este negocio.</>}>
+      <PortalPageHeader eyebrow="Clientes" title="Clientes del negocio" description={<>Datos operativos de clientes con visitas, puntos o cupones en este negocio.</>}>
         <button className="portal-button-secondary" type="button" onClick={() => void cargar()}>
           Actualizar
         </button>
       </PortalPageHeader>
 
       <div className="portal-panel portal-filters">
-        <label className="portal-filter-wide">
+        <label className="portal-filter-wide" htmlFor="portal-clients-1">
           <span>Buscar por nombre o correo</span>
-          <input
+          <input id="portal-clients-1" name="portal-clients-1"
             value={buscar}
             onChange={(event) => {
               setBuscar(event.target.value);
@@ -78,8 +78,8 @@ export default function ClientsPage() {
           <PortalTable label="Listado de clientes" busy={loading}>
               <thead>
                 <tr>
-                  <th scope="col">Cliente</th><th scope="col">Correo</th><th scope="col">Visitas</th>
-                  <th scope="col">Puntos</th><th scope="col">Cupones</th><th scope="col">Última visita</th>
+                  <th scope="col">Cliente</th><th scope="col">Correo</th><th className="portal-numeric" scope="col">Visitas</th>
+                  <th className="portal-numeric" scope="col">Puntos</th><th className="portal-numeric" scope="col">Cupones</th><th scope="col">Última visita</th>
                 </tr>
               </thead>
               <tbody>
@@ -87,9 +87,9 @@ export default function ClientsPage() {
                   <tr key={cliente.id}>
                     <td>{cliente.nombre} {cliente.apellido}</td>
                     <td>{cliente.correo}</td>
-                    <td>{cliente.visitas}</td>
-                    <td>{cliente.puntos}</td>
-                    <td>{cliente.cupones}</td>
+                    <td className="portal-numeric">{cliente.visitas}</td>
+                    <td className="portal-numeric">{cliente.puntos}</td>
+                    <td className="portal-numeric">{cliente.cupones}</td>
                     <td>
                       {cliente.ultima_visita
                         ? new Date(cliente.ultima_visita).toLocaleDateString('es-MX')

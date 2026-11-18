@@ -71,41 +71,41 @@ export default function VisitsPage() {
 
   return (
     <section className="portal-page">
-      <PortalPageHeader eyebrow="Operación" title={<>Visitas</>} description={<>Historial de visitas válidas y anuladas dentro de tu alcance.</>}>
+      <PortalPageHeader eyebrow="Operación" title="Visitas" description={<>Historial de visitas válidas y anuladas dentro de tu alcance.</>}>
         <button className="portal-button-secondary" type="button" onClick={() => void cargar()}>
           Actualizar
         </button>
       </PortalPageHeader>
 
       <div className="portal-panel portal-filters">
-        <label>
+        <label htmlFor="portal-visits-1">
           <span>Desde</span>
-          <input type="date" value={filtros.desde} onChange={(e) => cambiar('desde', e.target.value)} />
+          <input id="portal-visits-1" name="desde" type="date" value={filtros.desde} onChange={(e) => cambiar('desde', e.target.value)} />
         </label>
-        <label>
+        <label htmlFor="portal-visits-2">
           <span>Hasta</span>
-          <input type="date" value={filtros.hasta} onChange={(e) => cambiar('hasta', e.target.value)} />
+          <input id="portal-visits-2" name="hasta" type="date" value={filtros.hasta} onChange={(e) => cambiar('hasta', e.target.value)} />
         </label>
-        <label>
+        <label htmlFor="portal-visits-3">
           <span>Sucursal</span>
-          <select value={selectedBranch} onChange={(e) => cambiar('sucursal', e.target.value)}>
+          <select id="portal-visits-3" name="portal-visits-3" value={selectedBranch} onChange={(e) => cambiar('sucursal', e.target.value)}>
             <option value="">Todas</option>
             {sucursales.map((sucursal) => (
               <option key={sucursal.id} value={sucursal.id}>{sucursal.nombre}</option>
             ))}
           </select>
         </label>
-        <label>
+        <label htmlFor="portal-visits-4">
           <span>Estado</span>
-          <select value={filtros.estado} onChange={(e) => cambiar('estado', e.target.value)}>
+          <select id="portal-visits-4" name="estado" value={filtros.estado} onChange={(e) => cambiar('estado', e.target.value)}>
             <option value="">Todas</option>
             <option value="validas">Válidas</option>
             <option value="anuladas">Anuladas</option>
           </select>
         </label>
-        <label>
+        <label htmlFor="portal-visits-5">
           <span>Cliente</span>
-          <input
+          <input id="portal-visits-5" name="buscar"
             placeholder="correo@ejemplo.com"
             value={filtros.buscar}
             onChange={(e) => cambiar('buscar', e.target.value)}
@@ -135,7 +135,7 @@ export default function VisitsPage() {
                     <td>{visita.fecha_negocio}</td>
                     <td>{visita.usuario_correo ?? `Usuario #${visita.usuario}`}</td>
                     <td>{visita.sucursal_nombre ?? 'QR del negocio'}</td>
-                    <td>{visita.metodo_validacion}</td>
+                    <td>{visita.metodo_validacion === 'qr' ? 'QR' : visita.metodo_validacion === 'nfc' ? 'NFC' : visita.metodo_validacion}</td>
                     <td>
                       <span className={visita.es_valida ? 'portal-badge is-on' : 'portal-badge'}>
                         {visita.es_valida ? 'Válida' : 'Anulada'}

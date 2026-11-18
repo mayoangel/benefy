@@ -1,4 +1,5 @@
-import { forwardRef, type ComponentPropsWithoutRef, type ReactNode } from 'react';
+import { forwardRef, useEffect, useId, useRef, useState, type ComponentPropsWithoutRef, type ReactNode } from 'react';
+import { nombreRol } from '../../lib/portal';
 
 const paths: Record<string, string> = {
   resumen: 'M3 11 12 3l9 8M5 10v11h5v-7h4v7h5V10',
@@ -20,12 +21,35 @@ export function PortalIcon({ name }: { name: string }) {
   return <svg className="portal-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={paths[name] ?? paths.resumen} /></svg>;
 }
 
-export function PortalPageHeader({ eyebrow, title, description, children }: { eyebrow: string; title: ReactNode; description: ReactNode; children?: ReactNode }) {
+export function PortalPageHeader({ eyebrow, title, description, children }: { eyebrow: string; title: string; description: ReactNode; children?: ReactNode }) {
+  useEffect(() => {
+    const previous = document.title;
+    document.title = `${title} | Benefy`;
+    return () => { document.title = previous; };
+  }, [title]);
   return <header className="portal-page-head"><div><span className="portal-eyebrow">{eyebrow}</span><h1>{title}</h1><p>{description}</p></div>{children ? <div className="portal-page-actions">{children}</div> : null}</header>;
 }
 
 export function PortalTable({ label, busy, children }: { label: string; busy?: boolean; children: ReactNode }) {
-  return <div tabIndex={0} role="region" aria-label={label} aria-busy={busy} className="portal-table-wrap"><table className="portal-table"><caption className="portal-sr-only">{label}</caption>{children}</table></div>;
+  const region = useRef<HTMLDivElement>(null);
+  const [overflow, setOverflow] = useState(false);
+  const hint = useId();
+  useEffect(() => {
+    const wrapper = region.current;
+    const table = wrapper?.querySelector('table');
+    if (!wrapper || !table || typeof ResizeObserver === 'undefined') return;
+    const measure = () => setOverflow(table.scrollWidth > wrapper.clientWidth + 1);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(wrapper);
+    observer.observe(table);
+    return () => observer.disconnect();
+  }, []);
+  return <><div ref={region} tabIndex={0} role="region" aria-label={label} aria-describedby={overflow ? hint : undefined} aria-busy={busy} className="portal-table-wrap"><table className="portal-table"><caption className="portal-sr-only">{label}</caption>{children}</table></div>{overflow ? <p className="portal-table-hint" id={hint}>Desplaza la tabla para consultar todas las columnas.</p> : null}</>;
+}
+
+export function PortalRoleBadge({ role, className = 'portal-badge' }: { role: string | null | undefined; className?: string }) {
+  return <span className={`${className} portal-role-badge`} data-role={role}>{nombreRol(role)}</span>;
 }
 
 export const PortalForm = forwardRef<HTMLFormElement, ComponentPropsWithoutRef<'form'>>(function PortalForm({ className = '', children, ...props }, ref) {

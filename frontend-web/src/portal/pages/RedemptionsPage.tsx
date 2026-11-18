@@ -71,41 +71,41 @@ export default function RedemptionsPage() {
 
   return (
     <section className="portal-page">
-      <PortalPageHeader eyebrow="Operación" title={<>Canjes</>} description={<>Cupones utilizados en el negocio o en tu sucursal.</>}>
+      <PortalPageHeader eyebrow="Operación" title="Canjes" description={<>Cupones utilizados en el negocio o en tu sucursal.</>}>
         <button className="portal-button-secondary" type="button" onClick={() => void cargar()}>
           Actualizar
         </button>
       </PortalPageHeader>
 
       <div className="portal-panel portal-filters">
-        <label>
+        <label htmlFor="portal-redemptions-1">
           <span>Desde</span>
-          <input type="date" value={filtros.desde} onChange={(e) => cambiar('desde', e.target.value)} />
+          <input id="portal-redemptions-1" name="desde" type="date" value={filtros.desde} onChange={(e) => cambiar('desde', e.target.value)} />
         </label>
-        <label>
+        <label htmlFor="portal-redemptions-2">
           <span>Hasta</span>
-          <input type="date" value={filtros.hasta} onChange={(e) => cambiar('hasta', e.target.value)} />
+          <input id="portal-redemptions-2" name="hasta" type="date" value={filtros.hasta} onChange={(e) => cambiar('hasta', e.target.value)} />
         </label>
-        <label>
+        <label htmlFor="portal-redemptions-3">
           <span>Sucursal</span>
-          <select value={selectedBranch} onChange={(e) => cambiar('sucursal', e.target.value)}>
+          <select id="portal-redemptions-3" name="portal-redemptions-3" value={selectedBranch} onChange={(e) => cambiar('sucursal', e.target.value)}>
             <option value="">Todas</option>
             {sucursales.map((sucursal) => (
               <option key={sucursal.id} value={sucursal.id}>{sucursal.nombre}</option>
             ))}
           </select>
         </label>
-        <label>
+        <label htmlFor="portal-redemptions-4">
           <span>Estado</span>
-          <select value={filtros.anulado} onChange={(e) => cambiar('anulado', e.target.value)}>
+          <select id="portal-redemptions-4" name="anulado" value={filtros.anulado} onChange={(e) => cambiar('anulado', e.target.value)}>
             <option value="">Todos</option>
             <option value="false">Vigentes</option>
             <option value="true">Anulados</option>
           </select>
         </label>
-        <label>
+        <label htmlFor="portal-redemptions-5">
           <span>Cliente</span>
-          <input
+          <input id="portal-redemptions-5" name="buscar"
             placeholder="correo@ejemplo.com"
             value={filtros.buscar}
             onChange={(e) => cambiar('buscar', e.target.value)}
@@ -136,7 +136,7 @@ export default function RedemptionsPage() {
                     <td>{canje.titulo_beneficio || `Cupón #${canje.cupon}`}</td>
                     <td>{canje.usuario_correo ?? '—'}</td>
                     <td>{canje.sucursal_nombre ?? 'Todo el negocio'}</td>
-                    <td>{canje.metodo}</td>
+                    <td>{canje.metodo === 'qr' ? 'QR' : canje.metodo === 'nfc' ? 'NFC' : canje.metodo}</td>
                     <td>
                       <span className={canje.anulado ? 'portal-badge' : 'portal-badge is-on'}>
                         {canje.anulado ? 'Anulado' : 'Vigente'}

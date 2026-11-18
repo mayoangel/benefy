@@ -153,7 +153,7 @@ export default function BranchesPage() {
 
   return (
     <section className="portal-page">
-      <PortalPageHeader eyebrow="Negocio" title={<>Sucursales</>} description={uso
+      <PortalPageHeader eyebrow="Negocio" title="Sucursales" description={uso
               ? `${uso.uso} de ${uso.limite ?? '∞'} sucursales activas en tu plan.`
               : 'Sucursales a las que tienes acceso.'}>
         {puedeEditar ? (
@@ -176,46 +176,47 @@ export default function BranchesPage() {
         <PortalForm onSubmit={guardar}>
           <h2>{editando ? 'Editar sucursal' : 'Nueva sucursal'}</h2>
           <div className="portal-form-grid">
-            <label>
+            <label htmlFor="portal-branches-1">
               <span>Nombre</span>
-              <input
+              <input id="portal-branches-1" name="nombre"
+                autoFocus
                 value={form.nombre}
                 onChange={(event) => setForm({ ...form, nombre: event.target.value })}
                 required
               />
             </label>
-            <label>
+            <label htmlFor="portal-branches-2">
               <span>Ciudad</span>
-              <input
+              <input id="portal-branches-2" name="ciudad"
                 value={form.ciudad}
                 onChange={(event) => setForm({ ...form, ciudad: event.target.value })}
                 required
               />
             </label>
-            <label className="portal-form-wide">
+            <label className="portal-form-wide" htmlFor="portal-branches-3">
               <span>Dirección</span>
-              <input
+              <input id="portal-branches-3" name="direccion"
                 value={form.direccion}
                 onChange={(event) => setForm({ ...form, direccion: event.target.value })}
                 required
               />
             </label>
-            <label>
+            <label htmlFor="portal-branches-4">
               <span>Teléfono</span>
-              <input
+              <input id="portal-branches-4" name="telefono"
                 value={form.telefono}
                 onChange={(event) => setForm({ ...form, telefono: event.target.value })}
               />
             </label>
-            <label>
+            <label htmlFor="portal-branches-5">
               <span>Código postal</span>
-              <input
+              <input id="portal-branches-5" name="codigo_postal"
                 value={form.codigo_postal}
                 onChange={(event) => setForm({ ...form, codigo_postal: event.target.value })}
               />
             </label>
-            <label className="portal-check">
-              <input
+            <label className="portal-check" htmlFor="portal-branches-6">
+              <input id="portal-branches-6" name="status"
                 type="checkbox"
                 checked={form.status}
                 onChange={(event) => setForm({ ...form, status: event.target.checked })}

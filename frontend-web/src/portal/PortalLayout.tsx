@@ -11,9 +11,9 @@ import {
 } from 'react-router-dom';
 
 import { useAuth } from '../auth/AuthProvider.tsx';
-import { membresiaDelNegocio, nombreRol } from '../lib/portal.ts';
+import { membresiaDelNegocio } from '../lib/portal.ts';
 import type { RolComercio } from '../lib/types.ts';
-import { PortalIcon } from './components/PortalUI';
+import { PortalIcon, PortalRoleBadge } from './components/PortalUI';
 
 const NAV_GROUPS = [
   { label: 'Actividad', paths: ['', 'clientes', 'visitas', 'canjes', 'cupones'] },
@@ -145,9 +145,9 @@ export default function PortalLayout() {
         </div>
 
         {!esAdmin && context.membresias.length > 1 ? (
-          <label className="portal-selector">
+          <label className="portal-selector" htmlFor="portal-portallayout-1">
             <span>Negocio</span>
-            <select value={id ?? ''} onChange={(event) => cambiarNegocio(event.target.value)}>
+            <select id="portal-portallayout-1" name="portal-portallayout-1" value={id ?? ''} onChange={(event) => cambiarNegocio(event.target.value)}>
               {context.membresias.map((item) => (
                 <option key={item.id} value={item.negocio.id}>
                   {item.negocio.nombre}
@@ -158,9 +158,9 @@ export default function PortalLayout() {
         ) : null}
 
         {!esAdmin && id && sucursales.length > 1 ? (
-          <label className="portal-selector">
+          <label className="portal-selector" htmlFor="portal-portallayout-2">
             <span>Sucursal</span>
-            <select value={selectedSucursal} onChange={(event) => cambiarSucursal(event.target.value)}>
+            <select id="portal-portallayout-2" name="portal-portallayout-2" value={selectedSucursal} onChange={(event) => cambiarSucursal(event.target.value)}>
               {rol === 'dueno' ? <option value="">Todas las sucursales</option> : null}
               {sucursales.map((sucursal) => (
                 <option key={sucursal.id} value={sucursal.id}>
@@ -222,9 +222,7 @@ export default function PortalLayout() {
             <strong>{esAdmin ? 'Panel de plataforma' : membresia?.negocio.nombre}</strong>
             <span>{profile?.correo}</span>
           </div>
-          <span className="portal-role">
-            {nombreRol(esAdmin ? 'admin_sistema' : rol)}
-          </span>
+          <PortalRoleBadge className="portal-role" role={esAdmin ? 'admin_sistema' : rol} />
           {!esAdmin && planNegocio ? (
             <span className={`portal-plan-tag${planNegocio.codigo === 'premium' ? ' is-premium' : ''}`}>
               Plan {planNegocio.nombre}

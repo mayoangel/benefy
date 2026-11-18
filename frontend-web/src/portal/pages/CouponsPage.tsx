@@ -57,24 +57,24 @@ export default function CouponsPage() {
 
   return (
     <section className="portal-page">
-      <PortalPageHeader eyebrow="Lealtad" title={<>Cupones emitidos</>} description={<>Cupones adquiridos por clientes; los cupones ya emitidos no se invalidan al desactivar una recompensa.</>}>
+      <PortalPageHeader eyebrow="Lealtad" title="Cupones emitidos" description={<>Cupones adquiridos por clientes; los cupones ya emitidos no se invalidan al desactivar una recompensa.</>}>
         <button className="portal-button-secondary" type="button" onClick={() => void cargar()}>
           Actualizar
         </button>
       </PortalPageHeader>
 
       <div className="portal-panel portal-filters">
-        <label>
+        <label htmlFor="portal-coupons-1">
           <span>Desde</span>
-          <input type="date" value={filtros.desde} onChange={(e) => cambiar('desde', e.target.value)} />
+          <input id="portal-coupons-1" name="desde" type="date" value={filtros.desde} onChange={(e) => cambiar('desde', e.target.value)} />
         </label>
-        <label>
+        <label htmlFor="portal-coupons-2">
           <span>Hasta</span>
-          <input type="date" value={filtros.hasta} onChange={(e) => cambiar('hasta', e.target.value)} />
+          <input id="portal-coupons-2" name="hasta" type="date" value={filtros.hasta} onChange={(e) => cambiar('hasta', e.target.value)} />
         </label>
-        <label>
+        <label htmlFor="portal-coupons-3">
           <span>Estado</span>
-          <select value={filtros.estado} onChange={(e) => cambiar('estado', e.target.value)}>
+          <select id="portal-coupons-3" name="estado" value={filtros.estado} onChange={(e) => cambiar('estado', e.target.value)}>
             <option value="">Todos</option>
             <option value="disponible">Disponible</option>
             <option value="canjeado">Canjeado</option>
@@ -82,9 +82,9 @@ export default function CouponsPage() {
             <option value="vencido">Vencido</option>
           </select>
         </label>
-        <label>
+        <label htmlFor="portal-coupons-4">
           <span>Cliente</span>
-          <input
+          <input id="portal-coupons-4" name="buscar"
             placeholder="correo@ejemplo.com"
             value={filtros.buscar}
             onChange={(e) => cambiar('buscar', e.target.value)}

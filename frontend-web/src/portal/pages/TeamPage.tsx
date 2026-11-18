@@ -1,12 +1,12 @@
 import { usePortalConfirmation } from '../components/PortalConfirmation';
-import { PortalPageHeader, PortalTable, PortalForm } from '../components/PortalUI';
+import { PortalPageHeader, PortalTable, PortalForm, PortalRoleBadge } from '../components/PortalUI';
 import { useRequestGuard } from '../hooks/useRequestGuard';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
 import { useAuth } from '../../auth/AuthProvider.tsx';
 import { ApiError, api } from '../../lib/api.ts';
-import { membresiaDelNegocio, nombreRol } from '../../lib/portal.ts';
+import { membresiaDelNegocio } from '../../lib/portal.ts';
 import type {
   InvitacionResumen,
   MembresiaResumen,
@@ -195,7 +195,7 @@ export default function TeamPage() {
 
   return (
     <section className="portal-page">
-      <PortalPageHeader eyebrow="Equipo" title={<>Membresías y accesos</>} description={<>Invita personas y controla su rol, sucursal y estado.</>}>
+      <PortalPageHeader eyebrow="Equipo" title="Membresías y accesos" description={<>Invita personas y controla su rol, sucursal y estado.</>}>
         <button
           className="portal-button"
           type="button"
@@ -223,18 +223,18 @@ export default function TeamPage() {
             invitación. No se concede acceso antes de aceptarla.
           </p>
           <div className="portal-form-grid">
-            <label>
+            <label htmlFor="portal-team-1">
               <span>Correo electrónico</span>
-              <input
-                type="email"
+              <input id="portal-team-1" name="correo"
+                type="email" autoComplete="email" autoFocus
                 value={form.correo}
                 onChange={(event) => setForm({ ...form, correo: event.target.value })}
                 required
               />
             </label>
-            <label>
+            <label htmlFor="portal-team-2">
               <span>Rol</span>
-              <select
+              <select id="portal-team-2" name="rol_comercio"
                 value={form.rol_comercio}
                 onChange={(event) => setForm({ ...form, rol_comercio: event.target.value })}
               >
@@ -243,9 +243,9 @@ export default function TeamPage() {
                 ))}
               </select>
             </label>
-            <label>
+            <label htmlFor="portal-team-3">
               <span>Sucursal</span>
-              <select
+              <select id="portal-team-3" name="sucursal"
                 value={form.sucursal}
                 onChange={(event) => setForm({ ...form, sucursal: event.target.value })}
                 required
@@ -256,9 +256,9 @@ export default function TeamPage() {
                 ))}
               </select>
             </label>
-            <label className="portal-form-wide">
+            <label className="portal-form-wide" htmlFor="portal-team-4">
               <span>Motivo (opcional)</span>
-              <input
+              <input id="portal-team-4" name="motivo"
                 value={form.motivo}
                 onChange={(event) => setForm({ ...form, motivo: event.target.value })}
               />
@@ -283,9 +283,10 @@ export default function TeamPage() {
         <PortalForm onSubmit={guardarEdicion}>
           <h2>Editar membresía</h2>
           <div className="portal-form-grid">
-            <label>
+            <label htmlFor="portal-team-5">
               <span>Rol</span>
-              <select
+              <select id="portal-team-5" name="rol_comercio"
+                autoFocus
                 value={edicion.rol_comercio}
                 onChange={(event) => setEdicion({
                   ...edicion, rol_comercio: event.target.value,
@@ -296,9 +297,9 @@ export default function TeamPage() {
                 ))}
               </select>
             </label>
-            <label>
+            <label htmlFor="portal-team-6">
               <span>Sucursal</span>
-              <select
+              <select id="portal-team-6" name="sucursal"
                 value={edicion.sucursal}
                 onChange={(event) => setEdicion({
                   ...edicion, sucursal: event.target.value,
@@ -311,8 +312,8 @@ export default function TeamPage() {
                 ))}
               </select>
             </label>
-            <label className="portal-check">
-              <input
+            <label className="portal-check" htmlFor="portal-team-7">
+              <input id="portal-team-7" name="status"
                 type="checkbox"
                 checked={edicion.status}
                 onChange={(event) => setEdicion({
@@ -346,7 +347,7 @@ export default function TeamPage() {
       {!loading && filas.length > 0 ? (
         <div className="portal-panel">
           <h2>Membresías</h2>
-          <PortalTable label="Listado de equipo">
+          <PortalTable label="Listado de membresías">
               <thead>
                 <tr>
                   <th scope="col">Usuario</th><th scope="col">Correo</th><th scope="col">Rol</th>
@@ -360,8 +361,8 @@ export default function TeamPage() {
                   return (
                     <tr key={fila.id} className={propio ? 'is-current' : ''}>
                       <td>{fila.usuario_nombre ?? `Usuario #${fila.usuario}`}</td>
-                      <td>{fila.usuario_correo ?? '—'}</td>
-                      <td>{nombreRol(fila.rol_comercio)}</td>
+                      <td className="portal-contact">{fila.usuario_correo ?? '—'}</td>
+                      <td><PortalRoleBadge role={fila.rol_comercio} /></td>
                       <td>{fila.sucursal_nombre ?? 'Todo el negocio'}</td>
                       <td>
                         <span className={fila.status ? 'portal-badge is-on' : 'portal-badge'}>
@@ -390,7 +391,7 @@ export default function TeamPage() {
       {invitaciones.length > 0 ? (
         <div className="portal-panel">
           <h2>Invitaciones</h2>
-          <PortalTable label="Listado de equipo">
+          <PortalTable label="Listado de invitaciones">
               <thead>
                 <tr>
                   <th scope="col">Correo</th><th scope="col">Rol</th><th scope="col">Sucursal</th>
@@ -400,8 +401,8 @@ export default function TeamPage() {
               <tbody>
                 {invitaciones.map((invitacion) => (
                   <tr key={invitacion.token}>
-                    <td>{invitacion.correo}</td>
-                    <td>{invitacion.rol_comercio}</td>
+                    <td className="portal-contact">{invitacion.correo}</td>
+                    <td><PortalRoleBadge role={invitacion.rol_comercio} /></td>
                     <td>{invitacion.sucursal?.nombre ?? 'Todo el negocio'}</td>
                     <td>
                       <span className={invitacion.estado === 'pendiente'

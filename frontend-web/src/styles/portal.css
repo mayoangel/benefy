@@ -8,6 +8,7 @@
   --portal-panel: #fff;
   --portal-line: #dce5e9;
   --portal-muted: #526975;
+  --portal-control-line: #8195a1;
   --portal-subtle: #f7f9fa;
   --portal-radius: 12px;
   --portal-space: 24px;
@@ -74,7 +75,7 @@ body { background: var(--portal-bg); }
 .portal-list { list-style: none; padding: 0; margin: 0; }
 .portal-list li + li { margin-top: 12px; }
 .portal-list strong { font-variant-numeric: tabular-nums; }
-.portal-note, .portal-muted { color: var(--portal-muted); font-size: 13px; }
+.portal-note, .portal-muted { color: var(--portal-muted); font-size: 13px; overflow-wrap: anywhere; }
 .portal-note { background: #edf7f2; border: 1px solid #cae6d9; border-inline-start: 3px solid var(--portal-green); padding: 13px 16px; border-radius: 6px; margin: 0; }
 .portal-loading, .portal-state { min-height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--portal-muted); text-align: center; padding: 32px 24px; }
 .portal-state p { margin: 0; max-width: 56ch; }
@@ -82,13 +83,24 @@ body { background: var(--portal-bg); }
 @keyframes portal-spin { to { transform: rotate(360deg); } }
 .portal-state-error { min-height: 130px; color: #8b1e1e; background: #fff6f6; border: 1px solid #edbebe; border-radius: var(--portal-radius); }
 .portal-state-empty { border: 1px dashed #b9cbd4; border-radius: var(--portal-radius); background: white; }
-.portal-table-wrap { overflow: auto; max-inline-size: 100%; border: 1px solid var(--portal-line); border-radius: 8px; scrollbar-color: #a4b6c0 #f1f5f7; }
+.portal-table-wrap { overflow: auto; max-inline-size: 100%; max-block-size: min(680px, 75dvh); border: 1px solid var(--portal-line); border-radius: 8px; scrollbar-color: #a4b6c0 #f1f5f7; }
 .portal-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; text-align: left; }
 .portal-table th { text-align: left; color: var(--portal-muted); background: var(--portal-subtle); font-weight: 600; border-bottom: 1px solid var(--portal-line); padding: 12px 16px; white-space: nowrap; }
 .portal-table td { padding: 15px 16px; border-bottom: 1px solid #eaf0f2; color: #263f4c; font-variant-numeric: tabular-nums; min-width: 100px; }
 .portal-table tbody tr:last-child td { border-bottom: 0; }
 .portal-table tbody tr:hover td { background: #f5faf8; }
 .portal-table tbody td:first-child { font-weight: 600; color: var(--portal-navy); }
+.portal-table thead { position: sticky; inset-block-start: 0; z-index: 2; }
+.portal-table td:first-child, .portal-table th:first-child { position: sticky; inset-inline-start: 0; background: white; z-index: 1; max-inline-size: 240px; overflow-wrap: anywhere; }
+.portal-table th:first-child { background: var(--portal-subtle); z-index: 3; }
+.portal-table .portal-numeric { text-align: right; }
+.portal-table .portal-contact { white-space: nowrap; }
+.portal-table-hint { color: var(--portal-muted); font-size: 12px; margin: 10px 0 0; }
+.portal-role-badge[data-role="dueno"], .portal-role-badge[data-role="admin_sistema"] { background: #e8eff7; color: var(--portal-navy); }
+.portal-role-badge[data-role="supervisor"] { background: #e6f5ed; color: #005c40; }
+.portal-admin-kpis .portal-kpi:nth-child(-n+3) { grid-column: span 6; }
+.portal-empty-icon { color: var(--portal-green); }
+.portal-state h2 { font: 600 17px/1.4 var(--heading); color: var(--portal-navy); letter-spacing: -.02em; margin: 0; }
 .portal-table tr.is-current td { background: #edf8f2; }
 .portal-table td small { display: block; margin-top: 3px; color: var(--portal-muted); font-weight: 400; }
 .portal-badge { display: inline-flex; align-items: center; gap: 6px; border-radius: 5px; background: #edf1f3; color: #51636d; padding: 4px 8px; font-size: 11px; font-weight: 600; line-height: 1.5; }
@@ -97,7 +109,7 @@ body { background: var(--portal-bg); }
 .portal-badge.is-soon { background: #fff3dc; color: #805300; }
 .portal-button, .portal-button-secondary, .portal-state-error button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; gap: 8px; border: 1px solid var(--portal-green); background: var(--portal-green); color: white; padding: 10px 16px; border-radius: 7px; cursor: pointer; font: inherit; font-size: 13px; font-weight: 600; text-decoration: none; line-height: 1.4; }
 .portal-button:hover { background: #00543b; border-color: #00543b; }
-.portal-button-secondary, .portal-state-error button { border-color: #b9cbd4; background: white; color: var(--portal-navy); }
+.portal-button-secondary, .portal-state-error button { border-color: var(--portal-control-line); background: white; color: var(--portal-navy); }
 .portal-button-secondary:hover, .portal-state-error button:hover { background: #f0f5f6; }
 .portal-button:disabled, .portal-button-secondary:disabled { opacity: .55; cursor: not-allowed; }
 .portal-form { display: flex; flex-direction: column; gap: 22px; border-top: 3px solid var(--portal-green); }
@@ -108,7 +120,7 @@ body { background: var(--portal-bg); }
 .portal-form-section > p { margin: 0 0 18px; }
 .portal-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 24px; }
 .portal-form-grid label, .portal-filters label { display: flex; flex-direction: column; gap: 7px; color: #314f5d; font-size: 13px; font-weight: 500; min-width: 0; }
-.portal-form-grid input, .portal-form-grid select, .portal-form-grid textarea, .portal-filters input, .portal-filters select { width: 100%; min-width: 0; min-height: 44px; border: 1px solid #a7bac4; border-radius: 6px; padding: 10px 12px; font: inherit; font-size: 14px; font-weight: 400; color: var(--portal-navy); background: white; }
+.portal-form-grid input, .portal-form-grid select, .portal-form-grid textarea, .portal-filters input, .portal-filters select { width: 100%; min-width: 0; min-height: 44px; border: 1px solid var(--portal-control-line); border-radius: 6px; padding: 10px 12px; font: inherit; font-size: 14px; font-weight: 400; color: var(--portal-navy); background: white; }
 .portal-form-grid textarea { resize: vertical; line-height: 1.6; }
 .portal-form-grid input:hover, .portal-form-grid select:hover, .portal-filters input:hover, .portal-filters select:hover { border-color: #637f8e; }
 .portal-form-wide { grid-column: 1 / -1; }

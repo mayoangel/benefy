@@ -85,7 +85,7 @@ export default function BusinessSettingsPage() {
 
   return (
     <section className="portal-page">
-      <PortalPageHeader eyebrow="Configuración" title={<>Datos del negocio</>} description={<>Información pública y de contacto que verán tus clientes.</>}>
+      <PortalPageHeader eyebrow="Configuración" title="Datos del negocio" description={<>Información pública y de contacto que verán tus clientes.</>}>
         <Link className="portal-button-secondary" to="/registrar-negocio">
           Registrar otro negocio
         </Link>
@@ -96,17 +96,17 @@ export default function BusinessSettingsPage() {
 
       <PortalForm onSubmit={guardar}>
         <PortalFormSection title="Identidad del negocio" description="El nombre y la descripción que conocen tus clientes.">
-<label>
+<label htmlFor="portal-businesssettings-1">
             <span>Nombre comercial</span>
-            <input
+            <input id="portal-businesssettings-1" name="nombre"
               value={negocio.nombre}
               onChange={(event) => actualizar('nombre', event.target.value)}
               required
             />
           </label>
-<label className="portal-form-wide">
+<label className="portal-form-wide" htmlFor="portal-businesssettings-2">
             <span>Descripción</span>
-            <textarea
+            <textarea id="portal-businesssettings-2" name="descripcion"
               rows={3}
               value={negocio.descripcion ?? ''}
               onChange={(event) => actualizar('descripcion', event.target.value)}
@@ -114,50 +114,50 @@ export default function BusinessSettingsPage() {
           </label>
         </PortalFormSection>
         <PortalFormSection title="Ubicación y contacto" description="Mantén tus datos de contacto y zona horaria actualizados.">
-<label>
+<label htmlFor="portal-businesssettings-3">
             <span>Correo del negocio</span>
-            <input
+            <input id="portal-businesssettings-3" name="correo"
               type="email" autoComplete="section-business email"
               value={negocio.correo}
               onChange={(event) => actualizar('correo', event.target.value)}
               required
             />
           </label>
-<label>
+<label htmlFor="portal-businesssettings-4">
             <span>Teléfono</span>
-            <input
+            <input id="portal-businesssettings-4" name="telefono"
               inputMode="tel" autoComplete="section-business tel"
               value={negocio.telefono ?? ''}
               onChange={(event) => actualizar('telefono', event.target.value)}
             />
           </label>
-<label>
+<label htmlFor="portal-businesssettings-5">
             <span>Zona horaria</span>
-            <input
+            <input id="portal-businesssettings-5" name="zona_horaria"
               value={negocio.zona_horaria}
               onChange={(event) => actualizar('zona_horaria', event.target.value)}
               required
             />
           </label>
-<label className="portal-form-wide">
+<label className="portal-form-wide" htmlFor="portal-businesssettings-6">
             <span>Dirección</span>
-            <input
+            <input id="portal-businesssettings-6" name="direccion"
               value={negocio.direccion}
               onChange={(event) => actualizar('direccion', event.target.value)}
             />
           </label>
         </PortalFormSection>
         <PortalFormSection title="Recursos de marca" description="Enlaces a las imágenes de tu negocio.">
-<label>
+<label htmlFor="portal-businesssettings-7">
             <span>URL del logo</span>
-            <input
+            <input id="portal-businesssettings-7" name="logo_url"
               value={negocio.logo_url ?? ''}
               onChange={(event) => actualizar('logo_url', event.target.value)}
             />
           </label>
-<label>
+<label htmlFor="portal-businesssettings-8">
             <span>URL del banner</span>
-            <input
+            <input id="portal-businesssettings-8" name="banner_url"
               value={negocio.banner_url ?? ''}
               onChange={(event) => actualizar('banner_url', event.target.value)}
             />

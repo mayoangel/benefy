@@ -8,7 +8,7 @@ import { useAuth } from '../../auth/AuthProvider.tsx';
 import { ApiError, api } from '../../lib/api.ts';
 import { membresiaDelNegocio } from '../../lib/portal.ts';
 import type { DinamicaResumen, RecompensaResumen } from '../../lib/types.ts';
-import { PortalError, PortalLoading } from '../components/PortalState.tsx';
+import { PortalEmpty, PortalError, PortalLoading } from '../components/PortalState.tsx';
 import { usePlan } from '../hooks/usePlan.ts';
 
 function fechaInput(valor: string | null): string {
@@ -214,7 +214,7 @@ export default function CardsPage() {
 
   return (
     <section className="portal-page">
-      <PortalPageHeader eyebrow="Fidelización" title={<>Tarjetas de sellos</>} description={<>Configura visitas requeridas y la recompensa al completar la tarjeta.</>}>
+      <PortalPageHeader eyebrow="Fidelización" title="Tarjetas de sellos" description={<>Configura visitas requeridas y la recompensa al completar la tarjeta.</>}>
         <button className="portal-button" type="button" onClick={nueva}>
           Nueva tarjeta
         </button>
@@ -233,17 +233,17 @@ export default function CardsPage() {
       <PortalForm onSubmit={guardar}>
         <h2>{editando ? `Editar ${editando.nombre}` : 'Nueva tarjeta'}</h2>
         <PortalFormSection title="Datos de la tarjeta">
-          <label>
+          <label htmlFor="portal-cards-1">
             <span>Nombre de la tarjeta</span>
-            <input
+            <input id="portal-cards-1" name="nombre"
               value={form.nombre}
               onChange={(event) => setForm({ ...form, nombre: event.target.value })}
               required
             />
           </label>
-          <label>
+          <label htmlFor="portal-cards-2">
             <span>Sellos para completar</span>
-            <input
+            <input id="portal-cards-2" name="meta"
               type="number"
               min="1"
               value={form.meta}
@@ -251,42 +251,42 @@ export default function CardsPage() {
               required
             />
           </label>
-          <label>
+          <label htmlFor="portal-cards-3">
             <span>Inicio</span>
-            <input
+            <input id="portal-cards-3" name="fecha_inicio"
               type="date"
               value={form.fecha_inicio}
               onChange={(event) => setForm({ ...form, fecha_inicio: event.target.value })}
               required
             />
           </label>
-          <label>
+          <label htmlFor="portal-cards-4">
             <span>Fin (opcional)</span>
-            <input
+            <input id="portal-cards-4" name="fecha_fin"
               type="date"
               value={form.fecha_fin}
               onChange={(event) => setForm({ ...form, fecha_fin: event.target.value })}
             />
           </label>
-          <label className="portal-check">
-            <input
+          <label className="portal-check" htmlFor="portal-cards-5">
+            <input id="portal-cards-5" name="es_repetible"
               type="checkbox"
               checked={form.es_repetible}
               onChange={(event) => setForm({ ...form, es_repetible: event.target.checked })}
             />
             <span>Se puede repetir tras completarla</span>
           </label>
-          <label className="portal-check">
-            <input
+          <label className="portal-check" htmlFor="portal-cards-6">
+            <input id="portal-cards-6" name="status"
               type="checkbox"
               checked={form.status}
               onChange={(event) => setForm({ ...form, status: event.target.checked })}
             />
             <span>Activa</span>
           </label>
-          <label className="portal-form-wide">
+          <label className="portal-form-wide" htmlFor="portal-cards-7">
             <span>Descripción de la tarjeta</span>
-            <textarea
+            <textarea id="portal-cards-7" name="descripcion"
               rows={2}
               value={form.descripcion}
               onChange={(event) => setForm({ ...form, descripcion: event.target.value })}
@@ -295,17 +295,17 @@ export default function CardsPage() {
         </PortalFormSection>
 
         <PortalFormSection title="Recompensa al completar">
-          <label>
+          <label htmlFor="portal-cards-8">
             <span>Título del premio</span>
-            <input
+            <input id="portal-cards-8" name="titulo_premio"
               value={form.titulo_premio}
               onChange={(event) => setForm({ ...form, titulo_premio: event.target.value })}
               required
             />
           </label>
-          <label>
+          <label htmlFor="portal-cards-9">
             <span>Tipo</span>
-            <select
+            <select id="portal-cards-9" name="tipo_premio"
               value={form.tipo_premio}
               onChange={(event) => setForm({ ...form, tipo_premio: event.target.value })}
             >
@@ -315,9 +315,9 @@ export default function CardsPage() {
             </select>
           </label>
           {form.tipo_premio !== 'gratis' ? (
-            <label>
+            <label htmlFor="portal-cards-10">
               <span>{form.tipo_premio === 'descuento' ? 'Porcentaje' : 'Monto'}</span>
-              <input
+              <input id="portal-cards-10" name="descuento"
                 type="number"
                 min="0.01"
                 step="0.01"
@@ -327,9 +327,9 @@ export default function CardsPage() {
               />
             </label>
           ) : null}
-          <label>
+          <label htmlFor="portal-cards-11">
             <span>Vigencia del cupón (días)</span>
-            <input
+            <input id="portal-cards-11" name="vigencia_dias"
               type="number"
               min="1"
               value={form.vigencia_dias}
@@ -337,9 +337,9 @@ export default function CardsPage() {
               required
             />
           </label>
-          <label className="portal-form-wide">
+          <label className="portal-form-wide" htmlFor="portal-cards-12">
             <span>Descripción del premio</span>
-            <textarea
+            <textarea id="portal-cards-12" name="descripcion_premio"
               rows={2}
               value={form.descripcion_premio}
               onChange={(event) => setForm({
@@ -348,9 +348,9 @@ export default function CardsPage() {
               required
             />
           </label>
-          <label className="portal-form-wide">
+          <label className="portal-form-wide" htmlFor="portal-cards-13">
             <span>Términos y condiciones</span>
-            <textarea
+            <textarea id="portal-cards-13" name="terminos"
               rows={2}
               value={form.terminos}
               onChange={(event) => setForm({ ...form, terminos: event.target.value })}
@@ -366,9 +366,7 @@ export default function CardsPage() {
 
       {loading ? <PortalLoading /> : null}
       {!loading && tarjetas.length === 0 ? (
-        <div className="portal-state portal-state-empty">
-          <p>Aún no hay tarjetas de sellos.</p>
-        </div>
+        <PortalEmpty message="Aún no hay tarjetas de sellos." />
       ) : null}
       {tarjetas.length > 0 ? (
         <div className="portal-panel">

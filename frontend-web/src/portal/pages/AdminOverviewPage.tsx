@@ -1,4 +1,4 @@
-import { PortalPageHeader, PortalTable } from '../components/PortalUI';
+import { PortalPageHeader, PortalTable, PortalRoleBadge } from '../components/PortalUI';
 import { useRequestGuard } from '../hooks/useRequestGuard';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -49,7 +49,7 @@ export default function AdminOverviewPage() {
 
   return (
     <section className="portal-page">
-      <PortalPageHeader eyebrow="Benefy" title={<>Administración global</>} description={<>Resumen de negocios y usuarios de la plataforma.</>}>
+      <PortalPageHeader eyebrow="Benefy" title="Administración global" description={<>Resumen de negocios y usuarios de la plataforma.</>}>
         <button type="button" className="portal-button-secondary" onClick={() => void cargar()}>
           Actualizar
         </button>
@@ -60,7 +60,7 @@ export default function AdminOverviewPage() {
 
       {!loading && !error ? (
         <>
-          <div className="portal-kpi-grid">
+          <div className="portal-kpi-grid portal-admin-kpis">
             <article className="portal-kpi">
               <span>Negocios</span>
               <strong>{negocios.length}</strong>
@@ -76,7 +76,7 @@ export default function AdminOverviewPage() {
           <div className="portal-section-grid">
             <article className="portal-panel">
               <h2>Negocios</h2>
-              <PortalTable label="Listado de administración">
+              <PortalTable label="Listado de negocios">
                   <thead><tr><th scope="col">ID</th><th scope="col">Negocio</th><th scope="col">Plan</th><th scope="col">Estado</th></tr></thead>
                   <tbody>
                     {negocios.map((negocio) => (
@@ -93,14 +93,14 @@ export default function AdminOverviewPage() {
 
             <article className="portal-panel">
               <h2>Usuarios</h2>
-              <PortalTable label="Listado de administración">
+              <PortalTable label="Listado de usuarios">
                   <thead><tr><th scope="col">Usuario</th><th scope="col">Correo</th><th scope="col">Rol</th></tr></thead>
                   <tbody>
                     {usuarios.map((usuario) => (
                       <tr key={usuario.id}>
                         <td>{usuario.nombre} {usuario.apellido}</td>
                         <td>{usuario.correo}</td>
-                        <td>{usuario.rol}</td>
+                        <td><PortalRoleBadge role={usuario.rol} /></td>
                       </tr>
                     ))}
                   </tbody>

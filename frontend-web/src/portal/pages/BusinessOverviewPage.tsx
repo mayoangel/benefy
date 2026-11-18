@@ -73,13 +73,13 @@ export default function BusinessOverviewPage() {
       </PortalPageHeader>
 
       <div className="portal-panel portal-filters">
-        <label>
+        <label htmlFor="portal-businessoverview-1">
           <span>Desde</span>
-          <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} />
+          <input id="portal-businessoverview-1" name="portal-businessoverview-1" type="date" value={desde} onChange={(e) => setDesde(e.target.value)} />
         </label>
-        <label>
+        <label htmlFor="portal-businessoverview-2">
           <span>Hasta</span>
-          <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} />
+          <input id="portal-businessoverview-2" name="portal-businessoverview-2" type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} />
         </label>
         <span className="portal-muted">
           Sin fechas se muestran los últimos 30 días del negocio.

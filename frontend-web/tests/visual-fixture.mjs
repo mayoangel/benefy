@@ -35,10 +35,12 @@ export async function installVisualFixture(page, options={}) {
   else if(path.endsWith('/sucursales/listar/'))data=options.empty?[]:branches;
   else if(path.includes('/sucursal/detalle/'))data=branches.find(b=>path.includes('/'+b.id+'/'));
   else if(path.endsWith('/dinamicas/listar/'))data=options.empty?[]:dynamics;
+  else if(path.includes('/dinamica/actualizar/')){data=dynamics.find(d=>path.includes('/'+d.id+'/'));Object.assign(data,payload);}
   else if(path.endsWith('/recompensas/listar/'))data=options.empty?[]:rewards;
   else if(path.includes('/recompensa/actualizar/')){const reward=rewards.find(r=>path.includes('/'+r.id+'/'));Object.assign(reward,payload);data=reward;}
   else if(path.endsWith('/usuarios-negocio/listar/'))data=members;
-  else if(path.endsWith('/invitaciones/'))data=method==='POST'?{...invitations[0],...payload}:invitations;
+  else if(path.endsWith('/invitaciones/'))data=method==='POST'?{...invitations[0],...payload,token:'fixture-created',sucursal:branches.find(b=>b.id===payload.sucursal)}:invitations;
+  else if(path.includes('/invitaciones/')&&path.endsWith('/revocar/')){data=invitations.find(i=>path.includes('/'+i.token+'/'));data.estado='revocada';}
   else if(path.endsWith('/negocios/listar/'))data=[business];
   else if(path.endsWith('/usuarios/listar/'))data=[profile];
   else if(path.endsWith('/categorias-negocio/listar/'))data=[{id:1,nombre:'Cafeter\u00eda'}];

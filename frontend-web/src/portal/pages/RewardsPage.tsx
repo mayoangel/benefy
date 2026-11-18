@@ -8,7 +8,7 @@ import { useAuth } from '../../auth/AuthProvider.tsx';
 import { ApiError, api } from '../../lib/api.ts';
 import { membresiaDelNegocio } from '../../lib/portal.ts';
 import type { RecompensaResumen } from '../../lib/types.ts';
-import { PortalError, PortalLoading } from '../components/PortalState.tsx';
+import { PortalEmpty, PortalError, PortalLoading } from '../components/PortalState.tsx';
 import { usePlan } from '../hooks/usePlan.ts';
 
 const formInicial = {
@@ -162,7 +162,7 @@ export default function RewardsPage() {
 
   return (
     <section className="portal-page">
-      <PortalPageHeader eyebrow="Fidelización" title={<>Recompensas</>} description={<>Beneficios que los clientes pueden adquirir con puntos.</>}>
+      <PortalPageHeader eyebrow="Fidelización" title="Recompensas" description={<>Beneficios que los clientes pueden adquirir con puntos.</>}>
         <button className="portal-button" type="button" onClick={nueva}>
           Nueva recompensa
         </button>
@@ -181,17 +181,17 @@ export default function RewardsPage() {
       {showForm ? <PortalForm ref={formRef} onSubmit={guardar}>
         <h2>{editando ? `Editar ${editando.titulo}` : 'Nueva recompensa'}</h2>
         <div className="portal-form-grid">
-          <label>
+          <label htmlFor="portal-rewards-1">
             <span>Título</span>
-            <input
+            <input id="portal-rewards-1" name="titulo"
               value={form.titulo}
               onChange={(event) => setForm({ ...form, titulo: event.target.value })}
               required
             />
           </label>
-          <label>
+          <label htmlFor="portal-rewards-2">
             <span>Costo en puntos</span>
-            <input
+            <input id="portal-rewards-2" name="costo_desbloqueo"
               type="number"
               min="0"
               value={form.costo_desbloqueo}
@@ -201,9 +201,9 @@ export default function RewardsPage() {
               required
             />
           </label>
-          <label>
+          <label htmlFor="portal-rewards-3">
             <span>Tipo</span>
-            <select
+            <select id="portal-rewards-3" name="tipo"
               value={form.tipo}
               onChange={(event) => setForm({ ...form, tipo: event.target.value })}
             >
@@ -213,9 +213,9 @@ export default function RewardsPage() {
             </select>
           </label>
           {form.tipo !== 'gratis' ? (
-            <label>
+            <label htmlFor="portal-rewards-4">
               <span>{form.tipo === 'descuento' ? 'Porcentaje' : 'Monto'}</span>
-              <input
+              <input id="portal-rewards-4" name="descuento"
                 type="number"
                 min="0.01"
                 step="0.01"
@@ -225,9 +225,9 @@ export default function RewardsPage() {
               />
             </label>
           ) : null}
-          <label>
+          <label htmlFor="portal-rewards-5">
             <span>Vigencia del cupón (días)</span>
-            <input
+            <input id="portal-rewards-5" name="vigencia_dias"
               type="number"
               min="1"
               value={form.vigencia_dias}
@@ -235,9 +235,9 @@ export default function RewardsPage() {
               required
             />
           </label>
-          <label>
+          <label htmlFor="portal-rewards-6">
             <span>Stock (vacío = ilimitado)</span>
-            <input
+            <input id="portal-rewards-6" name="cantidad_disponible"
               type="number"
               min="0"
               value={form.cantidad_disponible}
@@ -246,26 +246,26 @@ export default function RewardsPage() {
               })}
             />
           </label>
-          <label className="portal-form-wide">
+          <label className="portal-form-wide" htmlFor="portal-rewards-7">
             <span>Descripción</span>
-            <textarea
+            <textarea id="portal-rewards-7" name="descripcion"
               rows={2}
               value={form.descripcion}
               onChange={(event) => setForm({ ...form, descripcion: event.target.value })}
               required
             />
           </label>
-          <label className="portal-form-wide">
+          <label className="portal-form-wide" htmlFor="portal-rewards-8">
             <span>Términos y condiciones</span>
-            <textarea
+            <textarea id="portal-rewards-8" name="terminos"
               rows={2}
               value={form.terminos}
               onChange={(event) => setForm({ ...form, terminos: event.target.value })}
               required
             />
           </label>
-          <label className="portal-check">
-            <input
+          <label className="portal-check" htmlFor="portal-rewards-9">
+            <input id="portal-rewards-9" name="status"
               type="checkbox"
               checked={form.status}
               onChange={(event) => setForm({ ...form, status: event.target.checked })}
@@ -283,9 +283,7 @@ export default function RewardsPage() {
 
       {loading ? <PortalLoading /> : null}
       {!loading && recompensas.length === 0 ? (
-        <div className="portal-state portal-state-empty">
-          <p>Aún no hay recompensas configurables.</p>
-        </div>
+        <PortalEmpty message="Aún no hay recompensas configurables." />
       ) : null}
       {recompensas.length > 0 ? (
         <div className="portal-reward-grid">
@@ -301,7 +299,7 @@ export default function RewardsPage() {
                     {recompensa.descripcion ? <p className="portal-muted">{recompensa.descripcion}</p> : null}
                     <dl className="portal-reward-details">
                       <div className="portal-reward-cost"><dt>Puntos</dt><dd>{recompensa.costo_desbloqueo}</dd></div>
-                      <div><dt>Tipo</dt><dd>{recompensa.tipo === 'gratis' ? 'Gratis' : recompensa.tipo === 'descuento' ? 'Descuento' : recompensa.tipo}</dd></div>
+                      <div><dt>Tipo</dt><dd>{recompensa.tipo === 'gratis' ? 'Gratis' : recompensa.tipo === 'descuento' ? 'Descuento' : recompensa.tipo === 'descuento_fijo' ? 'Descuento fijo' : recompensa.tipo}</dd></div>
                       <div><dt>Vigencia</dt><dd>{recompensa.vigencia_dias ?? 0} días</dd></div>
                       <div><dt>Disponibles</dt><dd>{recompensa.cantidad_disponible ?? 'Ilimitado'}</dd></div>
                     </dl>
