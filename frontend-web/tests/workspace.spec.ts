@@ -17,7 +17,6 @@ test('reward confirmation supports Escape, returns focus and submits the origina
   await expect(deactivate).toBeFocused();
   expect(writes).toEqual([]);
   await deactivate.click();
-  await dialog.screenshot({ path: 'artifacts/portal-visual/after/dialog-recompensa.png' });
   await dialog.getByRole('button', { name: 'Desactivar', exact: true }).click();
   await expect(reward.getByText('Inactiva', { exact: true })).toBeVisible();
   expect(writes).toEqual([{ path: '/api/v1/recompensa/actualizar/201/', method: 'PATCH', payload: { status: false } }]);
@@ -55,18 +54,15 @@ test('mobile tables preserve column context while keyboard scrolling', async ({ 
   const box = await first.boundingBox();
   const region = await table.boundingBox();
   expect(Math.abs(box!.x - region!.x)).toBeLessThan(3);
-  await table.screenshot({ path: 'artifacts/portal-visual/after/mobile-table-scroll.png' });
 });
 
 test('empty results and HTTP errors remain visible and retry recovers', async ({ page }) => {
   await installVisualFixture(page, { empty: true });
   await page.goto('/portal/negocio/1/clientes');
   await expect(page.getByText('No hay clientes con esos criterios.')).toBeVisible();
-  await page.screenshot({ path: 'artifacts/portal-visual/after/empty-clientes.png' });
   await page.route('**/clientes/**', route => route.fulfill({ status: 500, json: { detail: 'Fallo de prueba controlado' } }));
   await page.getByRole('button', { name: 'Actualizar', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('Fallo de prueba controlado');
-  await page.screenshot({ path: 'artifacts/portal-visual/after/error-clientes.png' });
   await page.unroute('**/clientes/**');
   await page.getByRole('button', { name: 'Reintentar' }).click();
   await expect(page.getByText('No hay clientes con esos criterios.')).toBeVisible();
@@ -136,7 +132,6 @@ test('reward editor preserves discount validation and payload', async ({ page })
   await expect(page.getByLabel('Título', { exact: true })).toBeFocused();
   await expect(page.getByLabel('Porcentaje')).toHaveAttribute('required', '');
   await page.getByLabel('Porcentaje').fill('25');
-  await page.screenshot({ path: 'artifacts/portal-visual/after/mobile-recompensa-editor.png', fullPage: true });
   await page.getByRole('button', { name: 'Guardar cambios', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('Recompensa actualizada.');
   expect(writes).toEqual([{ path: '/api/v1/recompensa/actualizar/203/', method: 'PATCH', payload: {

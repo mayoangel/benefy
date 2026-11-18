@@ -59,9 +59,7 @@ test('mobile drawer, responsive header and fonts',async({page})=>{
  await page.getByRole('button',{name:/^Cerrar men/}).focus();await page.keyboard.press('Shift+Tab');
  await expect(page.getByRole('button',{name:/^Cerrar sesi/})).toBeFocused();
  await page.keyboard.press('Escape');await expect(trigger).toBeFocused();await expect(trigger).toHaveAttribute('aria-expanded','false');
- await page.screenshot({path:'test-results/mobile.png',fullPage:true});
  await page.setViewportSize({width:1440,height:1000});await page.goto('/portal/negocio/1');await expect(page.locator('.portal-kpi')).not.toHaveCount(0);
- await page.screenshot({path:'test-results/desktop.png',fullPage:true});
 });
 test('all owner sections and public routes load',async({page})=>{
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));

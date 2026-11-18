@@ -21,7 +21,6 @@ for (const [device, width, height] of [['desktop', 1440, 1000], ['tablet', 768, 
       }));
       expect(overflow, section).toBe(false);
       for (const table of await page.getByRole('table').all()) await expect(table).toHaveAccessibleName(/Listado/);
-      await page.screenshot({ path: `artifacts/portal-visual/${process.env.BENEFY_VISUAL_STAGE || 'after'}/${device}-${section || 'resumen'}.png`, fullPage: true });
     }
     expect(errors).toEqual([]);
   });
@@ -34,5 +33,4 @@ test('admin retains global tables and distinct table names', async ({ page }) =>
   await expect(page.getByRole('table')).toHaveCount(2);
   await expect(page.getByRole('table', { name: 'Listado de negocios' })).toBeVisible();
   await expect(page.getByRole('table', { name: 'Listado de usuarios' })).toBeVisible();
-  await page.screenshot({ path: `artifacts/portal-visual/${process.env.BENEFY_VISUAL_STAGE || 'after'}/desktop-admin.png`, fullPage: true });
 });
