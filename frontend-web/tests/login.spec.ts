@@ -48,27 +48,21 @@ test('existing business login awaits hydration instead of entering registration 
   return false;
  });
  await submit(page);await profileRequested.promise;
- if(process.env.BENEFY_TEST_AUTH_REVISION){
-  await expect(page.getByRole('heading',{name:'No pudimos terminar de crear tu negocio'})).toBeVisible();
-  console.log('Historical reproduction: registration error while profile is pending; HTTP failures:',http.filter(r=>r.status>=400).length);
- }else{
-  await expect(page.locator('#btn-primary-login')).toBeDisabled();
-  expect((await page.evaluate(()=>(window as any).__loginTrace)).errors).toEqual([]);
- }
+ await expect(page.locator('#btn-primary-login')).toBeDisabled();
+ expect((await page.evaluate(()=>(window as any).__loginTrace)).errors).toEqual([]);
  profileGate.resolve();
  await contextRequested.promise;
- if(!process.env.BENEFY_TEST_AUTH_REVISION)await expect(page.locator('#btn-primary-login')).toBeDisabled();
+ await expect(page.locator('#btn-primary-login')).toBeDisabled();
  contextGate.resolve();
  await expect(page.locator('.portal-kpi strong').first()).toHaveText('100');
  const trace=await page.evaluate(()=>(window as any).__loginTrace);
- if(!process.env.BENEFY_TEST_AUTH_REVISION){expect(trace.paths).not.toContain('/completar-registro');expect(trace.errors).toEqual([]);}
+ expect(trace.paths).not.toContain('/completar-registro');expect(trace.errors).toEqual([]);
  expect(http.some(r=>r.status>=400)).toBe(false);
  expect(requests.filter(path=>path.endsWith('/perfil/'))).toHaveLength(1);
  expect(requests.filter(path=>path.endsWith('/contexto/'))).toHaveLength(1);
  expect(requests.some(path=>path.includes('/onboarding/'))).toBe(false);
 });
 test('a real incomplete registration reports its failure and retry recovers it',async({page})=>{
- test.skip(Boolean(process.env.BENEFY_TEST_AUTH_REVISION),'Historical probe only exercises the existing-business race');
  await observe(page);
  let complete=false;let attempts=0;
  await fixture(page,async(route:any,url:URL)=>{
@@ -90,7 +84,6 @@ test('a real incomplete registration reports its failure and retry recovers it',
 });
 
 test('missing registration data requests profile completion without a commercial failure',async({page})=>{
- test.skip(Boolean(process.env.BENEFY_TEST_AUTH_REVISION),'Historical probe only exercises the existing-business race');
  await observe(page);
  await fixture(page,async(route:any,url:URL)=>{
   if(url.pathname.endsWith('/perfil/')){await route.fulfill({status:404,json:{detail:'Profile missing'}});return true;}

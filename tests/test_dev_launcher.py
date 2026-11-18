@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 class LauncherTests(unittest.TestCase):
     def launcher(self):
         spec = importlib.util.spec_from_file_location('benefy_dev', ROOT / 'dev.py')
-        self.assertTrue(Path(spec.origin).exists(), 'Falta el launcher unificado')
+        self.assertTrue(Path(spec.origin).exists(), 'Falta el launcher')
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         return module
@@ -33,12 +33,28 @@ class LauncherTests(unittest.TestCase):
 
     def test_frontend_never_receives_private_variables(self):
         dev = self.launcher()
-        compose = (ROOT / 'compose.unified.yaml').read_text(encoding='utf-8')
+        compose = (ROOT / 'compose.yaml').read_text(encoding='utf-8')
         frontend = compose.split('  web:')[1].split('  benef-ai:')[0]
         self.assertNotIn('DB_PASSWORD', frontend)
         self.assertNotIn('SECRET_KEY', frontend)
         self.assertNotIn('env_file:', frontend)
         self.assertIn('VITE_SUPABASE_PUBLISHABLE_KEY', frontend)
+
+    def test_default_configuration_and_docker_project_are_benefy(self):
+        dev = self.launcher()
+        self.assertEqual(dev.CONFIG, ROOT / '.env')
+        with patch.object(dev.subprocess, 'run') as run:
+            dev.compose(['config', '--quiet'], {})
+        command = run.call_args.args[0]
+        self.assertEqual(command[command.index('--project-name') + 1], 'benefy')
+        self.assertEqual(command[command.index('-f') + 1], str(ROOT / 'compose.yaml'))
+
+    def test_missing_env_requires_explicit_configuration(self):
+        dev = self.launcher()
+        with tempfile.TemporaryDirectory() as directory:
+            dev.CONFIG = Path(directory) / '.env'
+            with self.assertRaisesRegex(ValueError, r'\.env\.example'):
+                dev.initialize()
 
     def test_file_wins_over_stale_terminal_database_configuration(self):
         dev = self.launcher()

@@ -38,8 +38,8 @@ def wait_for_reload(container, previous, health):
 
 
 for relative, container, health in [
-    ('backend/config/devdemo.py', 'benefy-unified-backend-1', 'http://127.0.0.1:8001/'),
-    ('benef-ai/main.py', 'benefy-unified-benef-ai-1', 'http://127.0.0.1:5001/'),
+    ('backend/config/devdemo.py', 'benefy-backend-1', 'http://127.0.0.1:8001/'),
+    ('benef-ai/main.py', 'benefy-benef-ai-1', 'http://127.0.0.1:5001/'),
 ]:
     path = ROOT / relative
     original = path.read_bytes()

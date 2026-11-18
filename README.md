@@ -54,132 +54,39 @@ la sección de IA y los servicios externos.
 | [benef-ai/](./benef-ai/README.md) | `main.py`: servicio IA en preparación |
 | [hardware/](./hardware/README.md) | Futuro firmware ESP32-S3 |
 | [docs/](./docs/README.md) | Guías técnicas y SRS revisión 1.0 |
-| [Caddyfile](./Caddyfile) | Proxy inverso y servidor de la web en el montaje de demostración |
-| [compose.yaml](./compose.yaml) | Desarrollo: PostgreSQL local, backend y Benef AI |
-| [compose.demo.yaml](./compose.demo.yaml) | Demostración local tipo producción: Caddy, Gunicorn y Supabase |
+| [compose.yaml](./compose.yaml) | Desarrollo y demostración con Vite, Django y Supabase |
 
-## Inicio recomendado: desarrollo y demo unificados
+## Desarrollo y demostración
 
-Requisitos: Docker Desktop con Compose v2 y Python 3.11 o posterior.
+Requisitos: Docker Desktop con Compose v2 y Python 3.11 o posterior para `dev.py`.
+La única configuración de servicios es `compose.yaml` y el único archivo de
+credenciales es `.env` en la raíz, ignorado por Git. Para una instalación nueva,
+copia `.env.example` a `.env` y configura sus valores sin sobrescribir otro archivo.
 
 ```powershell
 python dev.py up
+# Alternativa directa: docker compose up -d --build --wait
 ```
 
-Abre **http://localhost:5173**. Vite tiene HMR y los servicios Python tienen
-recarga automática. La primera ejecución importa la configuración existente
-sin sobrescribirla; el archivo autoritativo es `.env.devdemo`, ignorado por Git.
-No se ejecutan migraciones ni seed remoto al arrancar.
+El proyecto Docker se llama `benefy`. Abre **http://localhost:5173**; la API está
+en http://localhost:8001 y Benef AI en http://localhost:5001. Vite tiene HMR y
+los servicios Python recarga automática. Los puertos se limitan a loopback.
+No se ejecutan migraciones ni seed al arrancar.
 
 ```powershell
-python dev.py demo-init
-python dev.py down
+python dev.py demo-init   # Completar la demo sin duplicados
+python dev.py demo-reset  # Reemplazo explícito, con respaldo previo
+python dev.py down       # Detener sin borrar volúmenes
 ```
 
-`demo-init` completa el dataset de presentación sin duplicados y conserva sus
-identificadores y permisos. `python dev.py demo-reset` reemplaza explícitamente
-los datos ficticios del único proyecto Supabase autorizado, tras crear y verificar
-un respaldo. Consulta [cuentas, negocios y verificaciones](./docs/demo-dataset.md).
+Consulta [desarrollo y pruebas](./docs/desarrollo-demo.md) y
+[cuentas y dataset de presentación](./docs/demo-dataset.md). El perfil `local`
+solo proporciona PostgreSQL aislado para pruebas; no es otro despliegue.
+Las pruebas de Django se ejecutan con `python dev.py test-backend --local`,
+nunca contra la base remota de demostración.
 
-Consulta [la guía completa](./docs/desarrollo-demo.md) para seed autorizado,
-respaldos, pruebas, inventario y explicación de las diferencias anteriores.
-El Compose recomendado es `compose.unified.yaml`; los siguientes procedimientos
-antiguos se conservan como referencia y para volver atrás.
-
-## Desarrollo anterior (referencia)
-
-Requisitos: Docker con Compose v2 para los servicios y npm/Node.js para los
-clientes. Los proyectos Node usan sus propios `package-lock.json`; utiliza
-`npm ci`. El CI de GitHub Actions ejecuta las pruebas de Django, el typecheck
-y el build del frontend; no hay un comando global de lint/pruebas en la raíz.
-
-Desde la raíz, crea los archivos de entorno que no existan:
-
-| Archivo real | Plantilla | Uso |
-| --- | --- | --- |
-| `.env` | [.env.example](./.env.example) | Credenciales del PostgreSQL local para Compose |
-| `backend/.env` | [backend/.env.example](./backend/.env.example) | Settings locales y conexión con Supabase Auth |
-| `backend/.env.production` | [backend/.env.production.example](./backend/.env.production.example) | Variables del montaje de demostración; no necesarias para iniciar desarrollo |
-| `benef-ai/.env` | [benef-ai/.env.example](./benef-ai/.env.example) | Entorno del servicio; integraciones aún sin uso |
-| `frontend-web/.env` | [frontend-web/.env.example](./frontend-web/.env.example) | Variables públicas web previstas |
-| `mobile-app/.env` | [mobile-app/.env.example](./mobile-app/.env.example) | Variables públicas móviles previstas |
-
-No sobrescribas archivos reales al copiar plantillas. Configura
-`SUPABASE_URL` y `SUPABASE_PUBLISHABLE_KEY` en el backend para usar rutas
-autenticadas. El proveedor Auth requiere internet también durante desarrollo.
-
-```bash
-docker compose -f compose.yaml config --quiet
-docker compose -f compose.yaml up -d --build
-docker compose -f compose.yaml exec backend python manage.py migrate
-docker compose -f compose.yaml exec backend python manage.py check
-docker compose -f compose.yaml exec backend python manage.py test --noinput
-```
-
-URLs locales: backend en <http://localhost:8000/>, Admin en
-<http://localhost:8000/admin/>, Benef AI en <http://localhost:5000/>.
-Los health checks comprueban Django y su conexión con PostgreSQL; no
-verifican Supabase Auth.
-
-Para crear una cuenta staff del Admin de Django:
-
-```bash
-docker compose -f compose.yaml exec backend python manage.py createsuperuser
-```
-
-Esa cuenta es distinta de una identidad de Supabase y del rol Benefy
-`admin_sistema`. Consulta [autenticación](./docs/autenticacion.md).
-
-Ejecuta cada cliente en su propia terminal, desde su carpeta:
-
-```bash
-cd frontend-web
-npm ci
-npm run dev
-```
-
-```bash
-cd mobile-app
-npm ci
-npm run start
-```
-
-Detén los clientes con Ctrl+C y los servicios Docker con:
-
-```bash
-docker compose -f compose.yaml down
-```
-
-El volumen de PostgreSQL se conserva. Evita `down -v` si necesitas sus datos.
-Si otro proyecto usa 5432, 8000 o 5000, resuelve el conflicto antes del inicio.
-
-## Base de datos y entornos
-
-Desarrollo fija PostgreSQL en `db:5432`. El montaje de demostración usa
-Supabase con los parámetros `DB_*` de `backend/.env.production`, SSL
-obligatorio y Gunicorn. Los modelos y archivos de migración son los mismos;
-los datos de ambos entornos no se sincronizan ni se copian automáticamente.
-
-```bash
-docker compose --env-file backend/.env.production -f compose.demo.yaml config --quiet
-```
-
-Consulta la [guía del backend](./backend/README.md) para migraciones manuales,
-comprobación de conexión y secretos. Iniciar contenedores no aplica migraciones.
-
-## Demostración local tipo producción
-
-`compose.demo.yaml` ejecuta el mismo stack con Gunicorn, WhiteNoise y Caddy en
-un solo origen (`https://localhost`), usando Supabase como base de datos. Sirve
-para presentar el proyecto y practicar un despliegue real sin publicar puertos
-ni pagar hosting.
-
-La guía paso a paso y la lista de comandos están en
-[docs/despliegue-local.md](./docs/despliegue-local.md), incluida la CA interna de
-Caddy, el perfil `tunnel` (Cloudflare Tunnel) y las diferencias con desarrollo.
-
-El backend no publica puertos: solo Caddy lo alcanza. Los puertos 80 y 443 se
-enlazan a `127.0.0.1`.
+La app móvil sigue siendo un subproyecto Expo con datos simulados. No forma
+parte del arranque Compose ni necesita credenciales para su estado actual.
 
 ## Documentación y convenciones
 
@@ -187,7 +94,7 @@ enlazan a `127.0.0.1`.
 - [Autenticación y permisos](./docs/autenticacion.md): Supabase Auth, sesión web, roles y onboarding.
 - [Reglas de lealtad](./docs/reglas-lealtad.md): visitas, puntos, tarjetas y cupones.
 - [Planes Free y Premium](./docs/planes-free-premium.md): límites y cambios de plan.
-- [Montaje demo](./docs/despliegue-local.md): comandos, Caddy, HTTPS y presentación.
+- [Desarrollo y demo](./docs/desarrollo-demo.md): arranque, recarga y pruebas locales.
 - [SRS original](./docs/Benefy%20SRS.pdf): requisitos de producto; no certifica implementación.
 
 Las guías y comentarios nuevos se escriben en español; los identificadores

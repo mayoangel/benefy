@@ -75,8 +75,5 @@ CLAUDE.md
 *.log
 sentry-debug.meta
 
-# Certificado raíz exportado para confiar en la CA de Caddy en local
-caddy-root.crt
-
 # Respaldo de datos y recibos locales; nunca se incluyen en Git.
 backups/

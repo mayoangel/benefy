@@ -28,7 +28,7 @@ verifica el destino, crea un respaldo de `public` y `auth`, decodifica su archiv
 completo con `pg_restore`, verifica sus tablas y registra SHA-256 y destino.
 Si cualquiera de esos pasos falla, no se inicia el reemplazo.
 
-Los secretos y contraseñas están en `.env.devdemo`, que no se versiona. El seed
+Los secretos y contraseñas están en `.env`, que no se versiona. El seed
 requiere `SUPABASE_SEED_ADMIN_KEY` y `BENEFY_SHOWCASE_PASSWORDS` (un objeto JSON
 serializado con las entradas `admin`, `business`, `user`, `supervisor`,
 `employee` y `customers`). El frontend nunca recibe estos valores.

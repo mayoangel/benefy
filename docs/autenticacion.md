@@ -75,7 +75,7 @@ En Supabase configura el proveedor Email, confirmación de correo, URLs de
 redirección y SMTP. Si después habilitas Google, se configura como proveedor de
 Supabase Auth; Firebase queda fuera del flujo.
 
-Añade a `backend/.env` y `backend/.env.production`:
+Configura en el único `.env` de la raíz:
 
 ```dotenv
 SUPABASE_URL=https://tu-proyecto.supabase.co
@@ -88,7 +88,7 @@ and secret API keys**. La URL Auth no es el host del pooler PostgreSQL y
 en el backend ni en los clientes. Si falta configuración, una petición con
 bearer devuelve `503`; el health check sigue público.
 
-Tras cambiar el entorno, reinicia Django (`docker compose restart backend`) o
+Tras cambiar el entorno, recrea los servicios (`python dev.py up`) o
 recrea el contenedor en el montaje demo. Deshabilita la **Data API** de Supabase
 o excluye las tablas de Django de sus esquemas expuestos: los permisos Python no
 protegen accesos directos por PostgREST, GraphQL o credenciales PostgreSQL. Los

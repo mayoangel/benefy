@@ -47,19 +47,14 @@ La navegación futura debe seguir las instrucciones locales de Expo del proyecto
 
 ## Variables y acceso al backend
 
-Crea `.env` a partir de [.env.example](./.env.example) si no existe.
-El prefijo público móvil es `EXPO_PUBLIC_*`; las variables del ejemplo aún
-no se consumen en `App.tsx`.
-
-Para un dispositivo físico, `EXPO_PUBLIC_API_URL` deberá usar la IP LAN del
-equipo que ejecuta Django, por ejemplo `http://192.168.1.50:8000/api/v1`.
-`localhost` en el teléfono apunta al propio teléfono. Comprueba red y firewall.
-El backend del montaje de demostración está ligado al loopback del servidor;
-requiere publicación HTTPS para el acceso móvil externo.
+La app actual usa datos simulados y no necesita un archivo `.env`.
+La configuración de servicios de Benefy reside en el `.env` de la raíz.
+Para integrar un dispositivo físico en el futuro habrá que definir una URL
+accesible y autenticación: los servicios actuales están ligados a loopback.
 
 La autenticación prevista para los clientes es Supabase Auth; el backend ya
 verifica access tokens y aplica permisos. Consulta [autenticación](../docs/autenticacion.md)
-y [API](../docs/api.md). Los IDs OAuth Google del ejemplo son placeholders;
+y [API](../docs/api.md). Google OAuth no está implementado;
 Firebase está pospuesto y no se encuentra integrado.
 
 Nunca uses variables `EXPO_PUBLIC_*` para passwords, claves secretas o

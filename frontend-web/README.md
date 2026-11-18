@@ -1,10 +1,10 @@
 # Frontend web
 
-> El flujo recomendado de desarrollo y demo es `python dev.py up` desde la raíz.
-> Consulta [el entorno unificado](../docs/desarrollo-demo.md). Esta guía conserva el flujo anterior como referencia.
+> Inicia el portal con `python dev.py up` desde la raíz.
+> Consulta [la guía de desarrollo](../docs/desarrollo-demo.md).
 
 Landing pública y portal de negocios de Benefy, implementados con React 18,
-React Router 6, TypeScript 5, Vite 5 y Supabase Auth. El portal consume la API
+React Router 7, TypeScript 5, Vite 6 y Supabase Auth. El portal consume la API
 real de Django; no hay datos ni inicios de sesión simulados.
 
 ## Código y páginas
@@ -76,52 +76,28 @@ conserva la autoridad sobre los límites. El detalle está en
 
 ## Ejecución y verificación
 
-Desde `frontend-web/`:
+El único Dockerfile sirve Vite con HMR en http://localhost:5173. El código se
+monta desde el repositorio y las dependencias residen en un volumen Docker.
+No hay build estático intermedio ni archivos `.env` propios de la web.
 
-```bash
+`compose.yaml` deriva las variables públicas desde el `.env` de la raíz:
+URL Supabase, clave publicable y `/api/v1`. El proxy conecta con Django sin
+exponer credenciales privadas. El launcher valida que la clave sea publicable.
+
+Para verificaciones locales, desde `frontend-web/` con Node instalado:
+
+```powershell
 npm ci
-npm run dev
-```
-
-Vite suele usar <http://localhost:5173/>; confirma la dirección que imprime
-la terminal, porque puede seleccionar otro puerto si está ocupado.
-
-```bash
+npm test
 npm run typecheck
 npm run build
-npm run preview
+npm run test:e2e
 ```
 
-`typecheck` ejecuta `tsc --noEmit`. `build` solo ejecuta `vite build`; por eso
-deben ejecutarse ambos comandos. `preview` sirve el contenido de `dist/` para
-revisión local. No hay scripts de pruebas ni lint.
+Las E2E usan respuestas controladas en el puerto 5174 y Edge; no modifican la
+base remota. `tests/smoke.mjs` comprueba el servidor real y HMR sin credenciales.
+`tests/showcase-live.mjs` comprueba los roles reales usando contraseñas solo
+por entorno. Las pruebas visuales siguen comprobando el responsive del portal.
 
-En PowerShell con scripts deshabilitados puedes usar `npm.cmd` en lugar
-de `npm`. No es necesario cambiar la política de ejecución del sistema.
-
-## Variables
-
-El código lee `import.meta.env`; crea `.env` desde [.env.example](./.env.example):
-
-```dotenv
-VITE_API_BASE_URL=http://localhost:8000/api/v1
-VITE_SUPABASE_URL=https://tu-proyecto.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_reemplazar
-```
-
-En producción, `VITE_API_BASE_URL=/api/v1` porque Caddy sirve la SPA y la API
-en el mismo origen. `Dockerfile` recibe las tres variables como `ARG` y
-`compose.demo.yaml` toma las de Supabase de `SUPABASE_URL` y
-`SUPABASE_PUBLISHABLE_KEY`.
-
-Todo valor `VITE_*` termina siendo público en el navegador. No incluyas
-claves `service_role`, contraseñas de base de datos ni claves secretas.
-
-## Publicación
-
-`npm run build` produce `dist/`. El hosting debe devolver `index.html`
-para rutas como `/about`, `/precios` o `/portal/negocio/1`, dado que se utiliza
-BrowserRouter. El montaje de demostración (`compose.demo.yaml`) compila `dist/`
-con `frontend-web/Dockerfile` y Caddy lo sirve junto a la API; para un hosting
-aparte, publica ese contenido con la misma regla de fallback. El servidor
-Vite de desarrollo no es el hosting de producción.
+`npm run build` produce `dist/` para validar compilación; la demo sirve el código
+actual mediante Vite. No existe un montaje de producción o un túnel incluido.

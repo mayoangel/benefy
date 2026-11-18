@@ -1,7 +1,6 @@
 # Benef AI
 
-> El flujo recomendado de desarrollo y demo es `python dev.py up` desde la raíz.
-> Consulta [el entorno unificado](../docs/desarrollo-demo.md). Esta guía conserva el flujo anterior como referencia.
+> El entorno se inicia con `python dev.py up` desde la raíz.
 
 Microservicio FastAPI preparado para incorporar funciones de inteligencia
 artificial de Benefy. Actualmente contiene únicamente el endpoint de estado;
@@ -21,57 +20,17 @@ LLM. No hay rutas de análisis/chat, autenticación propia ni llamadas al backen
 
 ## Desarrollo
 
-Desde la raíz del repositorio:
+Desde la raíz: `python dev.py up`. El servicio se publica en
+http://localhost:5001, monta el código en solo lectura y usa Uvicorn con recarga
+automática y polling para Docker Desktop.
 
-```bash
-docker compose -f compose.yaml up -d --build benef-ai
-docker compose -f compose.yaml logs --tail 50 benef-ai
+```powershell
+docker compose logs --tail 50 benef-ai
+docker compose stop benef-ai
 ```
 
-Se publica <http://localhost:5000/> y el código de `benef-ai/` se monta
-en `/app`. Uvicorn utiliza recarga automática.
-
-Para detener solo este servicio:
-
-```bash
-docker compose -f compose.yaml stop benef-ai
-```
-
-Para ejecución fuera de Docker, desde `benef-ai/` y en un entorno virtual propio:
-
-```bash
-python -m pip install -r requirements.txt
-uvicorn main:app --host 0.0.0.0 --port 5000 --reload
-```
-
-Las dependencias están fijadas en [requirements.txt](./requirements.txt).
-No hay suite de pruebas ni linter configurados para este servicio.
-
-## Variables
-
-`main.py` carga `benef-ai/.env` sin sobrescribir variables ya inyectadas.
-Puedes crearlo desde [.env.example](./.env.example) si no existe.
-
-| Variable del ejemplo | Uso actual |
-| --- | --- |
-| `ENVIRONMENT` | Se devuelve en el health check; defecto `development` |
-| `PORT` | Reservada; Uvicorn usa el puerto del comando, no esta variable |
-| `OPENAI_API_KEY`, `GEMINI_API_KEY` | Placeholders; no hay SDK ni llamadas a proveedores |
-| `BACKEND_API_URL` | Prevista; todavía no hay cliente HTTP de Django |
-| `BACKEND_INTERNAL_TOKEN` | Prevista; no se valida ni concede acceso a la API Django |
-
-El hostname `backend` solo se resuelve en la red Compose. Para una ejecución
-futura fuera de Docker se deberá usar una URL accesible como
-`http://localhost:8000/api/v1`.
-
-## Montaje de demostración y trabajo pendiente
-
-[compose.demo.yaml](../compose.demo.yaml) conserva el servicio, ejecuta Uvicorn
-sin `--reload` y expone `5000` únicamente dentro de su red. No monta el código
-ni el `.env` local. Solo inyecta `ENVIRONMENT=production` y `BACKEND_API_URL`;
-las claves LLM no se pasan a producción.
-
-El siguiente trabajo requiere definir un caso de uso, un contrato interno
-y autenticación entre servicios. La API Django actual exige identidad Supabase
-y perfil Benefy; el placeholder `BACKEND_INTERNAL_TOKEN` no sustituye ese flujo.
-Las propuestas analíticas y la integración ESP32-S3 del SRS continúan pendientes.
+No utiliza un archivo de entorno propio. Compose inyecta `ENVIRONMENT` y
+`BACKEND_API_URL`; la configuración compartida está en `.env` en la raíz.
+No hay proveedores LLM ni tokens internos activos. El siguiente trabajo requiere
+un caso de uso y autenticación entre servicios; el backend exige identidad
+Supabase y perfil Benefy.

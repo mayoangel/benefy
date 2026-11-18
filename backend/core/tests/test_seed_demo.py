@@ -21,24 +21,8 @@ class SeedDemoTests(TestCase):
         self.assertEqual(models.Negocio.objects.count(), 0)
         self.assertIn('plan', output.getvalue())
 
-    def test_seed_twice_preserves_identifiers_counts_and_revoked_membership(self):
-        call_command('seed_demo', apply=True, offline_profiles=True, stdout=StringIO())
-        users = dict(models.Usuario.objects.values_list('correo', 'supabase_uid'))
-        counts = {model: model.objects.count() for model in (models.RegistroActividad, models.CuponUsuario, models.Canje, models.MovimientoPuntos, models.CicloTarjeta, models.AuditoriaMembresia)}
-        membership = models.UsuarioNegocio.objects.filter(rol_comercio='empleado').first()
-        membership.status = False
-        membership.save()
-        call_command('seed_demo', apply=True, offline_profiles=True, stdout=StringIO())
-        self.assertEqual(users, dict(models.Usuario.objects.values_list('correo', 'supabase_uid')))
-        self.assertEqual(counts, {model: model.objects.count() for model in counts})
-        membership.refresh_from_db()
-        self.assertFalse(membership.status)
-        self.assertGreater(models.Canje.objects.count(), 0)
-        self.assertGreater(models.LotePuntos.objects.count(), 0)
-        self.assertGreater(models.CicloTarjeta.objects.filter(estado='completado').count(), 0)
-
     def test_remote_writes_fail_before_any_auth_or_database_write(self):
-        with patch('core.management.commands.seed_demo.is_local_database', return_value=False), patch('core.management.commands.seed_demo.provision_accounts') as auth:
+        with patch('core.management.commands.seed_demo.is_local_database', return_value=False), patch('core.services.showcase_runner.AdminAuth') as auth:
             with self.assertRaises(CommandError):
                 call_command('seed_demo', apply=True, offline_profiles=True, stdout=StringIO())
             auth.assert_not_called()

@@ -8,8 +8,7 @@ validaciones están en `backend/core/serializers.py`; el alcance de acceso, en
 
 | Entorno | Base de la API |
 | --- | --- |
-| Desarrollo Docker | `http://localhost:8000/api/v1` |
-| Demostración con Caddy | `https://localhost/api/v1` |
+| Desarrollo y demostración | `http://localhost:8001/api/v1` |
 | Dentro de la red Compose | `http://backend:8000/api/v1` |
 
 Todas las rutas de negocio requieren `Authorization: Bearer <access_token>` de
@@ -271,7 +270,7 @@ distingas permisos por el texto de un mensaje.
 | --- | --- |
 | `GET /` en Django | Estado público `{"service":"backend","status":"ok"}`; no consulta la base |
 | `/admin/` en Django | Admin con sesión staff propia |
-| `GET /` en Benef AI | Estado del microservicio en el puerto 5000 local |
+| `GET /` en Benef AI | Estado del microservicio en el puerto 5001 local |
 
 Benef AI documenta su API en `/docs`; el backend Django no genera OpenAPI.
 

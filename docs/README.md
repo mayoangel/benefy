@@ -10,7 +10,8 @@ propia guía.
 | [API](./api.md) | Rutas, permisos, payloads, errores y límites implementados |
 | [Reglas de lealtad](./reglas-lealtad.md) | Visitas, puntos, tarjetas, cupones y canje |
 | [Planes Free y Premium](./planes-free-premium.md) | Límites, suscripciones y cambios de plan |
-| [Montaje local tipo producción](./despliegue-local.md) | Comandos de demo, Gunicorn, Caddy, HTTPS y túnel |
+| [Desarrollo y demo](./desarrollo-demo.md) | Compose, recarga automática, configuración y pruebas |
+| [Dataset de presentación](./demo-dataset.md) | Cuentas, negocios, respaldo e inicialización/reinicio |
 | [Benefy SRS.pdf](./Benefy%20SRS.pdf) | Especificación de requisitos de software, revisión 1.0 |
 
 El SRS describe requisitos de producto, no funcionalidades terminadas. Las

@@ -11,11 +11,11 @@ import sys
 from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parent
-CONFIG = ROOT / '.env.devdemo'
+CONFIG = ROOT / '.env'
 CONFIG_KEYS = ('SECRET_KEY', 'DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASSWORD',
                'DB_SSLMODE', 'SUPABASE_URL', 'SUPABASE_PUBLISHABLE_KEY',
                'CANJE_VALIDACION_SEGUNDOS', 'BENEFY_DB_MODE', 'LOCAL_DB_PASSWORD',
-               'SUPABASE_SEED_ADMIN_KEY', 'BENEFY_DEMO_PASSWORD', 'BENEFY_SHOWCASE_PASSWORDS')
+               'SUPABASE_SEED_ADMIN_KEY', 'BENEFY_SHOWCASE_PASSWORDS')
 
 
 def read_env(path):
@@ -47,25 +47,29 @@ def read_env(path):
 
 
 def write_new_env(path, values):
+    for name, value in values.items():
+        if "'" in value or '\n' in value or '\r' in value:
+            raise ValueError(f'Usa un valor de una línea sin comillas simples en {name}.')
     # O_EXCL: ni init ni up pueden sustituir un archivo existente.
     descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     with os.fdopen(descriptor, 'w', encoding='utf-8') as stream:
-        stream.write('# Configuración local unificada; no subir a Git.\n')
+        stream.write('# Configuración local de Benefy; no subir a Git.\n')
         for name, value in values.items():
-            stream.write(f'{name}={json.dumps(value)}\n')
+            stream.write(f"{name}='{value}'\n")
 
 
 def initialize(source=None):
     if CONFIG.exists():
         return
-    source = Path(source) if source else ROOT / 'backend/.env.production'
-    if not source.is_file():
-        raise ValueError('Falta configuración. Crea .env.devdemo a partir de .env.devdemo.example o usa init --from ARCHIVO.')
+    source = Path(source) if source else None
+    if source is None or not source.is_file():
+        raise ValueError('Falta configuración. Crea .env a partir de .env.example o usa init --from ARCHIVO.')
     values = {key: value for key, value in read_env(source).items() if key in CONFIG_KEYS}
     values.setdefault('DB_SSLMODE', 'require')
     values.setdefault('BENEFY_DB_MODE', 'remote')
+    values.setdefault('LOCAL_DB_PASSWORD', hashlib.sha256((values.get('SECRET_KEY', '') + ':benefy-local').encode()).hexdigest())
     write_new_env(CONFIG, values)
-    print('Creado .env.devdemo sin modificar el archivo de origen.')
+    print('Creado .env sin modificar el archivo de origen.')
 
 
 def compose_environment(local=False):
@@ -113,7 +117,7 @@ def compose_environment(local=False):
 
 
 def compose(arguments, env, local=False, capture=False):
-    cmd = ['docker', 'compose', '--project-name', 'benefy-unified', '--env-file', os.devnull, '-f', str(ROOT / 'compose.unified.yaml')]
+    cmd = ['docker', 'compose', '--project-name', 'benefy', '--env-file', os.devnull, '-f', str(ROOT / 'compose.yaml')]
     if local:
         cmd += ['--profile', 'local']
     return subprocess.run(cmd + arguments, cwd=ROOT, env=env, check=True,
@@ -167,7 +171,6 @@ def main():
     parser.add_argument('--allow-remote', action='store_true')
     parser.add_argument('--expected-target')
     parser.add_argument('--backup-receipt')
-    parser.add_argument('--dataset', choices=['legacy', 'showcase'], default='showcase')
     parser.add_argument('--reset', action='store_true', help='Reemplaza solo el dataset del proyecto demo verificado; requiere respaldo.')
     parser.add_argument('--expected-project')
     args = parser.parse_args()
@@ -210,8 +213,8 @@ def main():
         if args.action == 'seed' and args.local:
             run(['up', '-d', '--wait', 'postgres'])
             run(['run', '--rm', '--no-deps', 'backend', 'python', 'manage.py', 'migrate', '--noinput'])
-        command = ['run', '--rm', '--no-deps', '-e', 'SUPABASE_SEED_ADMIN_KEY', '-e', 'BENEFY_DEMO_PASSWORD', '-e', 'BENEFY_SHOWCASE_PASSWORDS',
-                   'backend', 'python', 'manage.py', 'seed_demo', '--dataset', args.dataset]
+        command = ['run', '--rm', '--no-deps', '-e', 'SUPABASE_SEED_ADMIN_KEY', '-e', 'BENEFY_SHOWCASE_PASSWORDS',
+                   'backend', 'python', 'manage.py', 'seed_demo']
         if args.reset:
             command += ['--reset']
         if args.expected_project:
@@ -233,7 +236,7 @@ def main():
         project = validated_showcase_project(env)
         receipt, target = create_backup(run)
         command = ['run', '--rm', '--no-deps', '-e', 'SUPABASE_SEED_ADMIN_KEY', '-e', 'BENEFY_SHOWCASE_PASSWORDS',
-                   'backend', 'python', 'manage.py', 'seed_demo', '--dataset', 'showcase', '--apply',
+                   'backend', 'python', 'manage.py', 'seed_demo', '--apply',
                    '--allow-remote', '--expected-project', project, '--expected-target', target,
                    '--backup-receipt', '/backups/' + receipt.name]
         if args.action == 'demo-reset':
