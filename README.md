@@ -72,14 +72,14 @@ sin sobrescribirla; el archivo autoritativo es `.env.devdemo`, ignorado por Git.
 No se ejecutan migraciones ni seed remoto al arrancar.
 
 ```powershell
-python dev.py seed-plan
+python dev.py demo-init
 python dev.py down
 ```
 
-`seed-plan` muestra el plan sin escribir. La escritura remota está protegida
-por confirmación de destino y respaldo. Para datos sintéticos sin Auth remoto:
-`python dev.py seed --local --offline-profiles`. Este comando prepara únicamente
-el PostgreSQL local y sus migraciones; los perfiles offline no son cuentas Auth.
+`demo-init` completa el dataset de presentación sin duplicados y conserva sus
+identificadores y permisos. `python dev.py demo-reset` reemplaza explícitamente
+los datos ficticios del único proyecto Supabase autorizado, tras crear y verificar
+un respaldo. Consulta [cuentas, negocios y verificaciones](./docs/demo-dataset.md).
 
 Consulta [la guía completa](./docs/desarrollo-demo.md) para seed autorizado,
 respaldos, pruebas, inventario y explicación de las diferencias anteriores.

@@ -11,7 +11,7 @@ Node y los paquetes Python de los servicios se instalan dentro de Docker.
 
 ```powershell
 python dev.py up
-python dev.py seed-plan
+python dev.py demo-init
 python dev.py down
 ```
 
@@ -19,9 +19,9 @@ Abre **http://localhost:5173**. La API responde en http://localhost:8001 y
 Benef AI en http://localhost:5001. Todos los puertos se publican únicamente en
 loopback. `down` conserva los volúmenes; no incluye `-v` ni borra datos.
 
-`seed-plan` solo describe lo que se añadiría. La escritura remota permanece
-bloqueada hasta confirmar el destino, disponer de respaldo y proporcionar las
-credenciales administrativas específicas del seed.
+`demo-init` inicializa el dataset actual sin duplicados. `demo-reset` es el
+reinicio completo explícito: verifica el proyecto autorizado y crea/decodifica un
+respaldo antes de retirar datos. Detalles en [dataset de presentación](./demo-dataset.md).
 
 ## Una fuente de configuración
 
@@ -81,63 +81,27 @@ mismo Auth remoto que la demo. La demo obtiene PostgreSQL de su archivo de
 entorno y compila Vite en una imagen estática. Esa combinación explica perfiles,
 negocios y permisos distintos al iniciar sesión con el mismo UUID.
 
-El entorno nuevo reutiliza la conexión del demo existente. No copia, reasigna
-ni elimina los usuarios o negocios existentes. Un perfil sin correspondencia
+El entorno nuevo reutiliza la conexión del demo existente. El arranque no copia, reasigna ni elimina datos; solo el reinicio explícito autorizado reemplaza la demostración. Un perfil sin correspondencia
 actual en Auth requiere investigación manual; el seed nunca lo vincula por
 coincidencia de correo.
 
-## Seed aditivo e idempotente
+## Seed de presentación
 
-`backend/core/management/commands/seed_demo.py` utiliza el namespace
-`benefy-demo-v1` y correos reservados `@example.invalid`. Crea siete cuentas:
-propietario, supervisor, empleado, administrador y tres clientes. Separa el
-provisionamiento de Auth de los perfiles Django.
+El dataset vigente contiene cuatro negocios y 60 clientes, con historial de
+seis meses. [La guía del dataset](./demo-dataset.md) describe cuentas, reglas,
+límites, respaldo y reinicio. La autorización actual permite reemplazar los datos
+ficticios del proyecto de demo; no se extiende a otros destinos.
 
-En el negocio aislado crea una sucursal, membresías auditadas, plan Free,
-programa de puntos, tarjeta repetible y recompensas. Genera 36 visitas
-históricas mediante el motor existente, con lotes, saldos, movimientos, ciclos,
-cupones y canjes reales. Solo corrige las fechas `auto_now_add` de las filas
-recién creadas para representar el instante histórico suministrado al motor.
-
-Los UUIDs de Auth se reutilizan y las claves de operación son estables. Un
-bloqueo transaccional evita seeds concurrentes. Repetir el seed no duplica el
-historial, no restablece contraseñas, no reactiva accesos revocados ni cambia
-permisos existentes. Una colisión de identidad cancela la transacción.
-
-El provisionamiento remoto exige que Auth y PostgreSQL pertenezcan al mismo
-proyecto. Antes de cualquier escritura:
-
-```powershell
-python dev.py seed-plan
-python dev.py backup
-```
-
-Revisa el destino mostrado por el plan. `backup` realiza un `pg_dump` de
-`public` y `auth`, sin modificar datos, y crea un recibo de destino y SHA-256.
-Los respaldos contienen información sensible: quedan en `backups/`, ignorados
-por Git y excluidos de las imágenes. Protege y conserva esa carpeta.
-
-Solo después de autorización explícita para ese destino, configura en el
-archivo local la clave administrativa de Supabase y una contraseña de prueba
-de al menos 12 caracteres, y ejecuta:
-
-```powershell
-python dev.py seed --allow-remote --expected-target HUELLA_DEL_PLAN --backup-receipt backups/RECIBO.json
-```
-
-El recibo debe corresponder al destino y al contenido del dump y tener menos
-de 24 horas. Verificar SHA-256 y formato no sustituye una prueba de restauración.
-Si Auth se provisiona y luego falla la transacción Django, las cuentas nuevas
-se conservan identificadas por metadatos para reintentar; no se eliminan usuarios
-como compensación. No se usa `service_role` en el navegador.
+El ejemplo aditivo anterior se conserva para regresión con `--dataset legacy`.
+El launcher usa `showcase` por defecto. No se ejecuta ningún seed al arrancar.
 
 ## Pruebas locales sin escribir en Supabase
 
 ```powershell
 python dev.py test-backend --local
 python dev.py migrate-local --local
-python dev.py seed --local --offline-profiles
-python dev.py seed --local --offline-profiles
+python dev.py seed --local --offline-profiles --dataset legacy
+python dev.py seed --local --offline-profiles --dataset legacy
 ```
 
 El servicio `postgres` es un PostgreSQL 17 aislado, sin puerto publicado.
