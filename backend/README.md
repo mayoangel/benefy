@@ -1,5 +1,8 @@
 # Backend
 
+> El flujo recomendado de desarrollo y demo es `python dev.py up` desde la raíz.
+> Consulta [el entorno unificado](../docs/desarrollo-demo.md). Esta guía conserva el flujo anterior como referencia.
+
 API Django 5.2 + Django REST Framework. La configuración está en `config/`;
 `core/` contiene 25 modelos, serializers, vistas, permisos y quince migraciones
 de dominio. La entrada de URLs es `config/urls.py`.

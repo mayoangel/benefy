@@ -1,5 +1,8 @@
 # Frontend web
 
+> El flujo recomendado de desarrollo y demo es `python dev.py up` desde la raíz.
+> Consulta [el entorno unificado](../docs/desarrollo-demo.md). Esta guía conserva el flujo anterior como referencia.
+
 Landing pública y portal de negocios de Benefy, implementados con React 18,
 React Router 6, TypeScript 5, Vite 5 y Supabase Auth. El portal consume la API
 real de Django; no hay datos ni inicios de sesión simulados.

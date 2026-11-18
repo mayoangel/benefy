@@ -2,8 +2,8 @@
 
 Benefy es una plataforma SaaS de lealtad para comercios y consumidores, con
 programas de puntos, sellos y cupones. El repositorio contiene subproyectos
-independientes; no existe un gestor de paquetes ni un comando de ejecución
-único para todo el producto.
+independientes. El entorno integrado de desarrollo y demostración se inicia
+con `python dev.py up`, sin instalar Node ni Django en el host.
 
 ## Estado actual
 
@@ -58,7 +58,35 @@ la sección de IA y los servicios externos.
 | [compose.yaml](./compose.yaml) | Desarrollo: PostgreSQL local, backend y Benef AI |
 | [compose.demo.yaml](./compose.demo.yaml) | Demostración local tipo producción: Caddy, Gunicorn y Supabase |
 
-## Inicio rápido de desarrollo
+## Inicio recomendado: desarrollo y demo unificados
+
+Requisitos: Docker Desktop con Compose v2 y Python 3.11 o posterior.
+
+```powershell
+python dev.py up
+```
+
+Abre **http://localhost:5173**. Vite tiene HMR y los servicios Python tienen
+recarga automática. La primera ejecución importa la configuración existente
+sin sobrescribirla; el archivo autoritativo es `.env.devdemo`, ignorado por Git.
+No se ejecutan migraciones ni seed remoto al arrancar.
+
+```powershell
+python dev.py seed-plan
+python dev.py down
+```
+
+`seed-plan` muestra el plan sin escribir. La escritura remota está protegida
+por confirmación de destino y respaldo. Para datos sintéticos sin Auth remoto:
+`python dev.py seed --local --offline-profiles`. Este comando prepara únicamente
+el PostgreSQL local y sus migraciones; los perfiles offline no son cuentas Auth.
+
+Consulta [la guía completa](./docs/desarrollo-demo.md) para seed autorizado,
+respaldos, pruebas, inventario y explicación de las diferencias anteriores.
+El Compose recomendado es `compose.unified.yaml`; los siguientes procedimientos
+antiguos se conservan como referencia y para volver atrás.
+
+## Desarrollo anterior (referencia)
 
 Requisitos: Docker con Compose v2 para los servicios y npm/Node.js para los
 clientes. Los proyectos Node usan sus propios `package-lock.json`; utiliza

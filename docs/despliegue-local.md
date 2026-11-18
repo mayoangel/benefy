@@ -1,5 +1,8 @@
 # Montaje local tipo producción
 
+> El flujo recomendado de desarrollo y demo es `python dev.py up` desde la raíz.
+> Consulta [el entorno unificado](./desarrollo-demo.md). Esta guía conserva el flujo anterior como referencia.
+
 Guía del montaje de demostración: los mismos servicios que producción,
 ejecutados en local y sin publicar puertos fuera de `127.0.0.1`. No sustituye al
 entorno de desarrollo de [compose.yaml](../compose.yaml).

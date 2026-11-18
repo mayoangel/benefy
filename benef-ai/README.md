@@ -1,5 +1,8 @@
 # Benef AI
 
+> El flujo recomendado de desarrollo y demo es `python dev.py up` desde la raíz.
+> Consulta [el entorno unificado](../docs/desarrollo-demo.md). Esta guía conserva el flujo anterior como referencia.
+
 Microservicio FastAPI preparado para incorporar funciones de inteligencia
 artificial de Benefy. Actualmente contiene únicamente el endpoint de estado;
 no hay agente, LLM, herramientas, memoria ni análisis de negocio implementados.
