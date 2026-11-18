@@ -1,3 +1,4 @@
+import { usePortalConfirmation } from '../components/PortalConfirmation';
 import { PortalPageHeader, PortalTable, PortalForm } from '../components/PortalUI';
 import { useRequestGuard } from '../hooks/useRequestGuard';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
@@ -16,6 +17,7 @@ import { usePlan } from '../hooks/usePlan.ts';
 
 export default function TeamPage() {
   const { context, profile } = useAuth();
+  const { confirm, confirmation } = usePortalConfirmation();
   const { negocioId } = useParams();
   const id = Number(negocioId);
   const membresia = membresiaDelNegocio(context, id);
@@ -125,7 +127,7 @@ export default function TeamPage() {
   }
 
   async function revocar(invitacion: InvitacionResumen) {
-    if (!window.confirm('La invitación dejará de ser válida.')) return;
+    if (!await confirm({ title: '¿Revocar invitación?', action: 'Revocar', message: 'La invitación dejará de ser válida.' })) return;
     setBusy(true);
     setError(null);
     try {
@@ -435,6 +437,7 @@ export default function TeamPage() {
           </p>
         </div>
       ) : null}
+      {confirmation}
     </section>
   );
 }

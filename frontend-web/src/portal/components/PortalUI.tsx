@@ -32,6 +32,10 @@ export const PortalForm = forwardRef<HTMLFormElement, ComponentPropsWithoutRef<'
   return <form {...props} ref={ref} className={`portal-panel portal-form ${className}`}>{children}</form>;
 });
 
+export function PortalFormSection({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
+  return <fieldset className="portal-form-section"><legend>{title}</legend>{description ? <p className="portal-muted">{description}</p> : null}<div className="portal-form-grid">{children}</div></fieldset>;
+}
+
 export function PortalMetric({ label, value, detail, featured = false }: { label: string; value: ReactNode; detail: ReactNode; featured?: boolean }) {
   return <article className={`portal-kpi${featured ? ' is-featured' : ''}`}><span>{label}</span><strong>{value}</strong><small>{detail}</small></article>;
 }

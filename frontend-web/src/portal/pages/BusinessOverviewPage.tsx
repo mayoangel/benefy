@@ -1,4 +1,4 @@
-import { PortalPageHeader } from '../components/PortalUI';
+import { PortalPageHeader, PortalMetric } from '../components/PortalUI';
 import { usePlan } from '../hooks/usePlan';
 import { useRequestGuard } from '../hooks/useRequestGuard';
 import { useCallback, useEffect, useState } from 'react';
@@ -93,43 +93,15 @@ export default function BusinessOverviewPage() {
       {metricas ? (
         <>
           <div className="portal-kpi-grid">
-            <article className="portal-kpi">
-              <span>Visitas válidas</span>
-              <strong>{valor(metricas.visitas_validas)}</strong>
-              <small>{metricas.desde} a {metricas.hasta}</small>
-            </article>
-            <article className="portal-kpi">
-              <span>Clientes únicos</span>
-              <strong>{valor(metricas.clientes_unicos)}</strong>
-              <small>Con al menos una visita</small>
-            </article>
-            <article className="portal-kpi">
-              <span>Cupones canjeados</span>
-              <strong>{valor(metricas.cupones_canjeados)}</strong>
-              <small>{alcanceSucursal ? 'En la sucursal' : 'En el negocio'}</small>
-            </article>
+            <PortalMetric label="Visitas válidas" value={valor(metricas.visitas_validas)} detail={<>{metricas.desde} a {metricas.hasta}</>} featured />
+            <PortalMetric label="Clientes únicos" value={valor(metricas.clientes_unicos)} detail={<>Con al menos una visita</>} />
+            <PortalMetric label="Cupones canjeados" value={valor(metricas.cupones_canjeados)} detail={alcanceSucursal ? 'En la sucursal' : 'En el negocio'} />
             {metricas.puntos_otorgados !== null ? (
               <>
-                <article className="portal-kpi">
-                  <span>Puntos otorgados</span>
-                  <strong>{valor(metricas.puntos_otorgados)}</strong>
-                  <small>En el periodo</small>
-                </article>
-                <article className="portal-kpi">
-                  <span>Puntos consumidos</span>
-                  <strong>{valor(metricas.puntos_consumidos)}</strong>
-                  <small>En el periodo</small>
-                </article>
-                <article className="portal-kpi">
-                  <span>Cupones emitidos</span>
-                  <strong>{valor(metricas.cupones_emitidos)}</strong>
-                  <small>En el periodo</small>
-                </article>
-                <article className="portal-kpi">
-                  <span>Tarjetas completadas</span>
-                  <strong>{valor(metricas.tarjetas_completadas)}</strong>
-                  <small>En el periodo</small>
-                </article>
+                <PortalMetric label="Puntos otorgados" value={valor(metricas.puntos_otorgados)} detail={<>En el periodo</>} />
+                <PortalMetric label="Puntos consumidos" value={valor(metricas.puntos_consumidos)} detail={<>En el periodo</>} />
+                <PortalMetric label="Cupones emitidos" value={valor(metricas.cupones_emitidos)} detail={<>En el periodo</>} />
+                <PortalMetric label="Tarjetas completadas" value={valor(metricas.tarjetas_completadas)} detail={<>En el periodo</>} />
               </>
             ) : null}
           </div>

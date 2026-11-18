@@ -1,4 +1,5 @@
-import { PortalPageHeader, PortalTable, PortalForm } from '../components/PortalUI';
+import { usePortalConfirmation } from '../components/PortalConfirmation';
+import { PortalPageHeader, PortalTable, PortalForm, PortalFormSection } from '../components/PortalUI';
 import { useRequestGuard } from '../hooks/useRequestGuard';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
@@ -32,6 +33,7 @@ const formInicial = {
 
 export default function CardsPage() {
   const { context } = useAuth();
+  const { confirm, confirmation } = usePortalConfirmation();
   const { negocioId } = useParams();
   const id = Number(negocioId);
   const membresia = membresiaDelNegocio(context, id);
@@ -181,11 +183,13 @@ export default function CardsPage() {
   }
 
   async function cambiarEstado(tarjeta: DinamicaResumen) {
-    if (!window.confirm(
-      tarjeta.status
+    if (!await confirm({
+      title: tarjeta.status ? '\u00bfDesactivar tarjeta?' : '\u00bfActivar tarjeta?',
+      action: tarjeta.status ? 'Desactivar' : 'Activar',
+      message: tarjeta.status
         ? 'Se impedirán nuevos ciclos. Los ciclos en curso podrán completarse.'
         : 'Se habilitarán nuevos ciclos para esta tarjeta.',
-    )) return;
+    })) return;
     setBusy(true);
     setError(null);
     setOk(null);
@@ -228,7 +232,7 @@ export default function CardsPage() {
 
       <PortalForm onSubmit={guardar}>
         <h2>{editando ? `Editar ${editando.nombre}` : 'Nueva tarjeta'}</h2>
-        <div className="portal-form-grid">
+        <PortalFormSection title="Datos de la tarjeta">
           <label>
             <span>Nombre de la tarjeta</span>
             <input
@@ -288,10 +292,9 @@ export default function CardsPage() {
               onChange={(event) => setForm({ ...form, descripcion: event.target.value })}
             />
           </label>
-        </div>
+        </PortalFormSection>
 
-        <h3>Recompensa al completar</h3>
-        <div className="portal-form-grid">
+        <PortalFormSection title="Recompensa al completar">
           <label>
             <span>Título del premio</span>
             <input
@@ -353,7 +356,7 @@ export default function CardsPage() {
               onChange={(event) => setForm({ ...form, terminos: event.target.value })}
             />
           </label>
-        </div>
+        </PortalFormSection>
         <div className="portal-form-actions">
           <button className="portal-button" type="submit" disabled={busy}>
             {busy ? 'Guardando...' : editando ? 'Guardar cambios' : 'Crear tarjeta'}
@@ -409,6 +412,7 @@ export default function CardsPage() {
             </PortalTable>
         </div>
       ) : null}
+      {confirmation}
     </section>
   );
 }

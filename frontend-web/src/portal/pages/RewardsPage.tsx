@@ -1,4 +1,5 @@
-import { PortalPageHeader, PortalTable, PortalForm } from '../components/PortalUI';
+import { usePortalConfirmation } from '../components/PortalConfirmation';
+import { PortalPageHeader, PortalIcon, PortalForm } from '../components/PortalUI';
 import { useRequestGuard } from '../hooks/useRequestGuard';
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
@@ -24,6 +25,7 @@ const formInicial = {
 
 export default function RewardsPage() {
   const { context } = useAuth();
+  const { confirm, confirmation } = usePortalConfirmation();
   const { negocioId } = useParams();
   const id = Number(negocioId);
   const membresia = membresiaDelNegocio(context, id);
@@ -133,11 +135,13 @@ export default function RewardsPage() {
   }
 
   async function cambiarEstado(recompensa: RecompensaResumen) {
-    if (!window.confirm(
-      recompensa.status
+    if (!await confirm({
+      title: recompensa.status ? '\u00bfDesactivar recompensa?' : '\u00bfActivar recompensa?',
+      action: recompensa.status ? 'Desactivar' : 'Activar',
+      message: recompensa.status
         ? 'La recompensa dejará de estar disponible, pero los cupones emitidos se conservan.'
         : 'La recompensa volverá a estar disponible según su vigencia.',
-    )) return;
+    })) return;
     setBusy(true);
     setError(null);
     setOk(null);
@@ -284,28 +288,23 @@ export default function RewardsPage() {
         </div>
       ) : null}
       {recompensas.length > 0 ? (
-        <div className="portal-panel">
-          <PortalTable label="Listado de recompensas">
-              <thead>
-                <tr>
-                  <th scope="col">Recompensa</th><th scope="col">Tipo</th><th scope="col">Puntos</th>
-                  <th scope="col">Vigencia</th><th scope="col">Stock</th><th scope="col">Estado</th><th scope="col">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
+        <div className="portal-reward-grid">
                 {recompensas.map((recompensa) => (
-                  <tr key={recompensa.id}>
-                    <td>{recompensa.titulo}</td>
-                    <td>{recompensa.tipo}</td>
-                    <td>{recompensa.costo_desbloqueo}</td>
-                    <td>{recompensa.vigencia_dias ?? 0} días</td>
-                    <td>{recompensa.cantidad_disponible ?? 'Ilimitado'}</td>
-                    <td>
+                  <article className="portal-panel portal-reward" key={recompensa.id} aria-labelledby={`reward-${recompensa.id}`}>
+                    <div className="portal-reward-head">
+                      <span className="portal-reward-icon"><PortalIcon name="recompensas" /></span>
                       <span className={recompensa.status ? 'portal-badge is-on' : 'portal-badge'}>
                         {recompensa.status ? 'Activa' : 'Inactiva'}
                       </span>
-                    </td>
-                    <td>
+                    </div>
+                    <h2 id={`reward-${recompensa.id}`}>{recompensa.titulo}</h2>
+                    {recompensa.descripcion ? <p className="portal-muted">{recompensa.descripcion}</p> : null}
+                    <dl className="portal-reward-details">
+                      <div className="portal-reward-cost"><dt>Puntos</dt><dd>{recompensa.costo_desbloqueo}</dd></div>
+                      <div><dt>Tipo</dt><dd>{recompensa.tipo === 'gratis' ? 'Gratis' : recompensa.tipo === 'descuento' ? 'Descuento' : recompensa.tipo}</dd></div>
+                      <div><dt>Vigencia</dt><dd>{recompensa.vigencia_dias ?? 0} días</dd></div>
+                      <div><dt>Disponibles</dt><dd>{recompensa.cantidad_disponible ?? 'Ilimitado'}</dd></div>
+                    </dl>
                       <div className="portal-row-actions">
                         <button type="button" onClick={() => editar(recompensa)}>
                           Editar
@@ -318,13 +317,11 @@ export default function RewardsPage() {
                           {recompensa.status ? 'Desactivar' : 'Activar'}
                         </button>
                       </div>
-                    </td>
-                  </tr>
+                  </article>
                 ))}
-              </tbody>
-            </PortalTable>
         </div>
       ) : null}
+      {confirmation}
     </section>
   );
 }

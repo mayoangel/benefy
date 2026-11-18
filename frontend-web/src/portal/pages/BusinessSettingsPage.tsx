@@ -1,4 +1,4 @@
-import { PortalPageHeader, PortalForm } from '../components/PortalUI';
+import { PortalPageHeader, PortalForm, PortalFormSection } from '../components/PortalUI';
 import { useRequestGuard } from '../hooks/useRequestGuard';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
@@ -95,8 +95,8 @@ export default function BusinessSettingsPage() {
       {ok ? <div className="portal-note" role="status">{ok}</div> : null}
 
       <PortalForm onSubmit={guardar}>
-        <div className="portal-form-grid">
-          <label>
+        <PortalFormSection title="Identidad del negocio" description="El nombre y la descripción que conocen tus clientes.">
+<label>
             <span>Nombre comercial</span>
             <input
               value={negocio.nombre}
@@ -104,38 +104,7 @@ export default function BusinessSettingsPage() {
               required
             />
           </label>
-          <label>
-            <span>Correo del negocio</span>
-            <input
-              type="email"
-              value={negocio.correo}
-              onChange={(event) => actualizar('correo', event.target.value)}
-              required
-            />
-          </label>
-          <label>
-            <span>Teléfono</span>
-            <input
-              value={negocio.telefono ?? ''}
-              onChange={(event) => actualizar('telefono', event.target.value)}
-            />
-          </label>
-          <label>
-            <span>Zona horaria</span>
-            <input
-              value={negocio.zona_horaria}
-              onChange={(event) => actualizar('zona_horaria', event.target.value)}
-              required
-            />
-          </label>
-          <label className="portal-form-wide">
-            <span>Dirección</span>
-            <input
-              value={negocio.direccion}
-              onChange={(event) => actualizar('direccion', event.target.value)}
-            />
-          </label>
-          <label className="portal-form-wide">
+<label className="portal-form-wide">
             <span>Descripción</span>
             <textarea
               rows={3}
@@ -143,21 +112,57 @@ export default function BusinessSettingsPage() {
               onChange={(event) => actualizar('descripcion', event.target.value)}
             />
           </label>
-          <label>
+        </PortalFormSection>
+        <PortalFormSection title="Ubicación y contacto" description="Mantén tus datos de contacto y zona horaria actualizados.">
+<label>
+            <span>Correo del negocio</span>
+            <input
+              type="email" autoComplete="section-business email"
+              value={negocio.correo}
+              onChange={(event) => actualizar('correo', event.target.value)}
+              required
+            />
+          </label>
+<label>
+            <span>Teléfono</span>
+            <input
+              inputMode="tel" autoComplete="section-business tel"
+              value={negocio.telefono ?? ''}
+              onChange={(event) => actualizar('telefono', event.target.value)}
+            />
+          </label>
+<label>
+            <span>Zona horaria</span>
+            <input
+              value={negocio.zona_horaria}
+              onChange={(event) => actualizar('zona_horaria', event.target.value)}
+              required
+            />
+          </label>
+<label className="portal-form-wide">
+            <span>Dirección</span>
+            <input
+              value={negocio.direccion}
+              onChange={(event) => actualizar('direccion', event.target.value)}
+            />
+          </label>
+        </PortalFormSection>
+        <PortalFormSection title="Recursos de marca" description="Enlaces a las imágenes de tu negocio.">
+<label>
             <span>URL del logo</span>
             <input
               value={negocio.logo_url ?? ''}
               onChange={(event) => actualizar('logo_url', event.target.value)}
             />
           </label>
-          <label>
+<label>
             <span>URL del banner</span>
             <input
               value={negocio.banner_url ?? ''}
               onChange={(event) => actualizar('banner_url', event.target.value)}
             />
           </label>
-        </div>
+        </PortalFormSection>
         <div className="portal-form-actions">
           <span className={negocio.status ? 'portal-badge is-on' : 'portal-badge'}>
             {negocio.status ? 'Negocio activo' : 'Negocio inactivo'}
