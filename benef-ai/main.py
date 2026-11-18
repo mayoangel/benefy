@@ -6,6 +6,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 from fastapi import FastAPI
 
+from queries import router as queries_router
+
 # Cargar variables de entorno desde benef-ai/.env (si existe).
 if os.getenv("BENEFY_LOAD_DOTENV", "1") != "0":
     load_dotenv(Path(__file__).resolve().parent / ".env")
@@ -17,6 +19,7 @@ app = FastAPI(
     description="Microservicio de inteligencia artificial de Benefy.",
     version="0.1.0",
 )
+app.include_router(queries_router)
 
 
 @app.get("/")
