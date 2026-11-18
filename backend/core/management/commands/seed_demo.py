@@ -53,6 +53,9 @@ class Command(BaseCommand):
     help = 'Muestra un plan; --apply añade datos aislados sin borrar ni reasignar identidades.'
 
     def add_arguments(self, parser):
+        parser.add_argument('--dataset', choices=['legacy', 'showcase'], default='legacy')
+        parser.add_argument('--reset', action='store_true')
+        parser.add_argument('--expected-project')
         parser.add_argument('--apply', action='store_true')
         parser.add_argument('--offline-profiles', action='store_true')
         parser.add_argument('--allow-remote', action='store_true')
@@ -61,6 +64,11 @@ class Command(BaseCommand):
         parser.add_argument('--target-only', action='store_true')
 
     def handle(self, *args, **options):
+        if options['dataset'] == 'showcase':
+            from core.services.showcase_runner import run_showcase
+            return run_showcase(options, self.stdout)
+        if options['reset']:
+            raise CommandError('El reinicio solo existe en el dataset showcase y exige su protección específica.')
         target = target_fingerprint()
         if options['target_only']:
             self.stdout.write(target)

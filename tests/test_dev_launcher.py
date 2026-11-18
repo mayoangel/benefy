@@ -61,6 +61,13 @@ class LauncherTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'proyectos diferentes'):
                 dev.compose_environment()
 
+    def test_showcase_shortcuts_refuse_any_other_project(self):
+        dev = self.launcher()
+        self.assertTrue(hasattr(dev, 'validated_showcase_project'), 'Falta la protección del comando de reinicio')
+        with self.assertRaises(ValueError):
+            dev.validated_showcase_project({'SUPABASE_URL': 'https://other.supabase.co',
+                'DB_HOST': 'db.other.supabase.co', 'DB_USER': 'postgres'})
+
 
 if __name__ == '__main__':
     unittest.main()

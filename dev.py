@@ -15,7 +15,7 @@ CONFIG = ROOT / '.env.devdemo'
 CONFIG_KEYS = ('SECRET_KEY', 'DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASSWORD',
                'DB_SSLMODE', 'SUPABASE_URL', 'SUPABASE_PUBLISHABLE_KEY',
                'CANJE_VALIDACION_SEGUNDOS', 'BENEFY_DB_MODE', 'LOCAL_DB_PASSWORD',
-               'SUPABASE_SEED_ADMIN_KEY', 'BENEFY_DEMO_PASSWORD')
+               'SUPABASE_SEED_ADMIN_KEY', 'BENEFY_DEMO_PASSWORD', 'BENEFY_SHOWCASE_PASSWORDS')
 
 
 def read_env(path):
@@ -120,15 +120,56 @@ def compose(arguments, env, local=False, capture=False):
                           capture_output=capture, text=True)
 
 
+def validated_showcase_project(env):
+    approved = 'rmwwrgahhuztylqkduya'
+    auth = (urlsplit(env.get('SUPABASE_URL', '')).hostname or '').split('.')[0]
+    host = env.get('DB_HOST', '')
+    user = env.get('DB_USER', '')
+    database = host.split('.')[1] if host.startswith('db.') and host.endswith('.supabase.co') else (
+        user.split('.', 1)[1] if host.endswith('.pooler.supabase.com') and '.' in user else None)
+    if auth != approved or database != approved:
+        raise ValueError('El comando de demostración no está autorizado para este proyecto.')
+    return approved
+
+
+def create_backup(run, local=False):
+    # pg_dump no modifica datos; el recibo liga contenido y destino al seed.
+    target = run(['run', '--rm', '--no-deps', 'backend', 'python', 'manage.py', 'seed_demo', '--target-only'], capture=True).stdout.strip().splitlines()[-1]
+    filename = datetime.now(timezone.utc).strftime('benefy-%Y%m%d-%H%M%S-%f.dump')
+    run(['run', '--rm', '--no-deps', 'backup', '--format=custom', '--no-owner', '--no-acl',
+         '--schema=public'] + ([] if local else ['--schema=auth']) + ['--file=/backups/' + filename])
+    path = ROOT / 'backups' / filename
+    path.chmod(0o600)
+    with path.open('rb') as stream:
+        digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+    archive = '/backups/' + filename
+    listing = run(['run', '--rm', '--no-deps', '--entrypoint', 'pg_restore', 'backup', '--list', archive], capture=True).stdout
+    required = ['TABLE DATA public core_usuario', 'TABLE DATA public core_negocio'] + ([] if local else ['TABLE DATA auth users'])
+    if not all(name in listing for name in required):
+        raise ValueError('El respaldo no contiene todas las tablas necesarias.')
+    run(['run', '--rm', '--no-deps', '--entrypoint', 'pg_restore', 'backup', '--exit-on-error', '--file=/dev/null', archive], capture=True)
+    receipt = {'archive_verified': True, 'target': target, 'sha256': digest, 'file': filename,
+               'created_at': datetime.now(timezone.utc).isoformat()}
+    receipt_path = path.with_suffix('.json')
+    with receipt_path.open('x', encoding='utf-8') as stream:
+        json.dump(receipt, stream)
+    receipt_path.chmod(0o600)
+    print('Respaldo creado en backups; conserva el archivo .dump y su recibo .json.')
+    return receipt_path, target
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=['init', 'up', 'down', 'status', 'check', 'seed', 'seed-plan', 'migrate-plan', 'migrate-local', 'test-backend', 'backup'])
+    parser.add_argument('action', choices=['init', 'up', 'down', 'status', 'check', 'seed', 'seed-plan', 'migrate-plan', 'migrate-local', 'test-backend', 'backup', 'demo-init', 'demo-reset'])
     parser.add_argument('--from', dest='source')
     parser.add_argument('--local', action='store_true', help='PostgreSQL aislado, no Supabase DB')
     parser.add_argument('--offline-profiles', action='store_true')
     parser.add_argument('--allow-remote', action='store_true')
     parser.add_argument('--expected-target')
     parser.add_argument('--backup-receipt')
+    parser.add_argument('--dataset', choices=['legacy', 'showcase'], default='showcase')
+    parser.add_argument('--reset', action='store_true', help='Reemplaza solo el dataset del proyecto demo verificado; requiere respaldo.')
+    parser.add_argument('--expected-project')
     args = parser.parse_args()
     initialize(args.source)
     if args.action == 'init':
@@ -169,8 +210,12 @@ def main():
         if args.action == 'seed' and args.local:
             run(['up', '-d', '--wait', 'postgres'])
             run(['run', '--rm', '--no-deps', 'backend', 'python', 'manage.py', 'migrate', '--noinput'])
-        command = ['run', '--rm', '--no-deps', '-e', 'SUPABASE_SEED_ADMIN_KEY', '-e', 'BENEFY_DEMO_PASSWORD',
-                   'backend', 'python', 'manage.py', 'seed_demo']
+        command = ['run', '--rm', '--no-deps', '-e', 'SUPABASE_SEED_ADMIN_KEY', '-e', 'BENEFY_DEMO_PASSWORD', '-e', 'BENEFY_SHOWCASE_PASSWORDS',
+                   'backend', 'python', 'manage.py', 'seed_demo', '--dataset', args.dataset]
+        if args.reset:
+            command += ['--reset']
+        if args.expected_project:
+            command += ['--expected-project', args.expected_project]
         if args.action == 'seed':
             command += ['--apply']
         if args.offline_profiles:
@@ -182,23 +227,20 @@ def main():
         if args.backup_receipt:
             command += ['--backup-receipt', '/backups/' + Path(args.backup_receipt).name]
         run(command)
+    elif args.action in ('demo-init', 'demo-reset'):
+        if args.local:
+            raise ValueError('Los comandos demo actúan solo sobre el Supabase autorizado.')
+        project = validated_showcase_project(env)
+        receipt, target = create_backup(run)
+        command = ['run', '--rm', '--no-deps', '-e', 'SUPABASE_SEED_ADMIN_KEY', '-e', 'BENEFY_SHOWCASE_PASSWORDS',
+                   'backend', 'python', 'manage.py', 'seed_demo', '--dataset', 'showcase', '--apply',
+                   '--allow-remote', '--expected-project', project, '--expected-target', target,
+                   '--backup-receipt', '/backups/' + receipt.name]
+        if args.action == 'demo-reset':
+            command.append('--reset')
+        run(command)
     elif args.action == 'backup':
-        # pg_dump no modifica datos; el recibo liga contenido y destino al seed.
-        target = run(['run', '--rm', '--no-deps', 'backend', 'python', 'manage.py', 'seed_demo', '--target-only'], capture=True).stdout.strip().splitlines()[-1]
-        filename = datetime.now(timezone.utc).strftime('benefy-%Y%m%d-%H%M%S-%f.dump')
-        run(['run', '--rm', '--no-deps', 'backup', '--format=custom', '--no-owner', '--no-acl',
-             '--schema=public'] + ([] if args.local else ['--schema=auth']) + ['--file=/backups/' + filename])
-        path = ROOT / 'backups' / filename
-        path.chmod(0o600)
-        with path.open('rb') as stream:
-            digest = hashlib.file_digest(stream, 'sha256').hexdigest()
-        receipt = {'target': target, 'sha256': digest, 'file': filename,
-                   'created_at': datetime.now(timezone.utc).isoformat()}
-        receipt_path = path.with_suffix('.json')
-        with receipt_path.open('x', encoding='utf-8') as stream:
-            json.dump(receipt, stream)
-        receipt_path.chmod(0o600)
-        print('Respaldo creado en backups; conserva el archivo .dump y su recibo .json.')
+        create_backup(run, args.local)
 
 
 if __name__ == '__main__':
