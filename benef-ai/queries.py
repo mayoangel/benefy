@@ -1,5 +1,6 @@
 import os
 from collections import Counter
+from contextvars import ContextVar, Token
 from datetime import date
 from typing import Any, Literal
 
@@ -12,6 +13,10 @@ from pydantic import BaseModel, Field, PositiveInt
 BACKEND_TIMEOUT_SECONDS = 10 #Tiempo de espera
 bearer_scheme = HTTPBearer(auto_error=False) #Para autenticación
 router = APIRouter(prefix="/consultas", tags=["Consultas de negocio"])
+_chat_business_context: ContextVar[int | None] = ContextVar(
+    "benef_ai_chat_business_context",
+    default=None,
+)
 
 
 class NegocioConsulta(BaseModel):
@@ -114,44 +119,50 @@ def _backend_get(
     params: dict[str, Any] | None = None,
     *,
     negocio_id: int,
-    allowed_roles: tuple[str, ...] | None = None,
 ) -> Any:
-    context_status, context = _backend_request(
-        "/mi/contexto/", access_token,
-    )
-    if context_status >= 400:
-        return JSONResponse(status_code=context_status, content=context)
-    if not isinstance(context, dict):
+    if _chat_business_context.get() != negocio_id:
+        access_error = validar_acceso_negocio(access_token, negocio_id)
+        if access_error is not None:
+            return access_error
+    status_code, payload = _backend_request(path, access_token, params)
+    if status_code >= 400:
+        return JSONResponse(status_code=status_code, content=payload)
+    return payload
+
+
+def establecer_acceso_chat_validado(negocio_id: int) -> Token[int | None]:
+    return _chat_business_context.set(negocio_id)
+
+
+def restaurar_acceso_chat(context_token: Token[int | None]) -> None:
+    _chat_business_context.reset(context_token)
+
+
+def validar_acceso_negocio(access_token: str, negocio_id: int) -> JSONResponse | None:
+    status_code, context = _backend_request("/mi/contexto/", access_token)
+    if status_code >= 400:
+        return JSONResponse(status_code=status_code, content=context)
+    if not isinstance(context, dict) or not isinstance(context.get("negocios"), list):
         raise HTTPException(status_code=502, detail="El backend devolvió un contexto inválido.")
     if context.get("es_admin_sistema") is True:
         raise HTTPException(
             status_code=403,
             detail="Benef-AI está disponible únicamente para usuarios de negocio.",
         )
-
-    roles = {
-        membresia.get("rol_comercio")
-        for membresia in context.get("membresias", [])
-        if isinstance(membresia, dict)
-        and membresia.get("status") is True
-        and isinstance(membresia.get("negocio"), dict)
-        and membresia["negocio"].get("id") == negocio_id
-    }
-    if not roles:
+    if not any(
+        isinstance(negocio, dict) and negocio.get("id") == negocio_id
+        for negocio in context["negocios"]
+    ):
         raise HTTPException(
             status_code=403,
-            detail="No tienes una membresía activa en este negocio.",
+            detail="No tienes acceso a este negocio.",
         )
-    if allowed_roles and not roles.intersection(allowed_roles):
-        raise HTTPException(
-            status_code=403,
-            detail="Tu rol no puede consultar esta información.",
-        )
+    return None
 
-    status_code, payload = _backend_request(path, access_token, params)
-    if status_code >= 400:
-        return JSONResponse(status_code=status_code, content=payload)
-    return payload
+
+def validar_acceso_chat(access_token: str, negocio_id: int) -> JSONResponse | None:
+    return validar_acceso_negocio(access_token, negocio_id)
+
 
 #Consultas por rango de fecha
 def _validar_fechas(desde: date | None, hasta: date | None) -> None:
@@ -294,7 +305,8 @@ def consultar_programas(
         }
 
     payload = _backend_get(
-        "/dinamicas/listar/", access_token, negocio_id=consulta.negocio_id,
+        "/dinamicas/listar/", access_token,
+        negocio_id=consulta.negocio_id,
     )
     if isinstance(payload, JSONResponse):
         return payload
@@ -314,12 +326,34 @@ def consultar_recompensas(
     access_token: str = Security(get_bearer_token),
 ) -> Any:
     payload = _backend_get(
-        "/recompensas/listar/", access_token, negocio_id=consulta.negocio_id,
+        "/recompensas/listar/", access_token,
+        negocio_id=consulta.negocio_id,
     )
     if isinstance(payload, JSONResponse):
         return payload
     if not isinstance(payload, list):
         raise HTTPException(status_code=502, detail="El backend devolvió recompensas inválidas.")
+    alianzas_del_negocio = {
+        fila.get("alianza")
+        for fila in payload
+        if isinstance(fila, dict) and fila.get("alianza") is not None
+    }
+    if alianzas_del_negocio:
+        payload_alianzas = _backend_get(
+            "/alianzas/listar/", access_token,
+            negocio_id=consulta.negocio_id,
+        )
+        if isinstance(payload_alianzas, JSONResponse):
+            return payload_alianzas
+        if not isinstance(payload_alianzas, list):
+            raise HTTPException(status_code=502, detail="El backend devolvió alianzas inválidas.")
+        alianzas_del_negocio = {
+            alianza.get("id")
+            for alianza in payload_alianzas
+            if isinstance(alianza, dict)
+            and alianza.get("id") in alianzas_del_negocio
+            and consulta.negocio_id in (alianza.get("negocio1"), alianza.get("negocio2"))
+        }
     campos = (
         "id", "titulo", "descripcion", "tipo", "descuento", "costo_desbloqueo",
         "terminos_condiciones", "status", "es_meta", "fecha_expiracion",
@@ -329,7 +363,10 @@ def consultar_recompensas(
         {campo: fila.get(campo) for campo in campos}
         for fila in payload
         if isinstance(fila, dict)
-        and fila.get("negocio") == consulta.negocio_id
+        and (
+            fila.get("negocio") == consulta.negocio_id
+            or fila.get("alianza") in alianzas_del_negocio
+        )
         and (not consulta.solo_activas or fila.get("status") is True)
     ]
 
@@ -370,7 +407,6 @@ def consultar_equipo(
     payload = _backend_get(
         "/usuarios-negocio/listar/", access_token,
         negocio_id=consulta.negocio_id,
-        allowed_roles=("dueno", "supervisor"),
     )
     if isinstance(payload, JSONResponse):
         return payload
@@ -381,7 +417,8 @@ def consultar_equipo(
         if isinstance(fila, dict) and fila.get("negocio") == consulta.negocio_id
     ]
     return {
-        "total": len(miembros),
+        "miembros_visibles": len(miembros),
+        "alcance": "Membresías visibles según el sistema; no necesariamente el equipo completo.",
         "por_rol": dict(Counter(fila.get("rol_comercio", "desconocido") for fila in miembros)),
         "activas": sum(fila.get("status") is True for fila in miembros),
         "inactivas": sum(fila.get("status") is False for fila in miembros),
@@ -391,23 +428,33 @@ def consultar_equipo(
         )),
     }
 
-#Consulta de conteo de clientes
+#Consulta de clientes únicos por periodo
+class ClientesConsulta(FiltrosOperacion):
+    pass
+
+
 @router.post("/clientes")
 def consultar_clientes(
-    consulta: NegocioConsulta,
+    consulta: ClientesConsulta,
     access_token: str = Security(get_bearer_token),
 ) -> Any:
+    params = _filtros_paginados(consulta)
+    params.pop("page")
+    params.pop("page_size")
     payload = _backend_get(
-        f"/negocios/{consulta.negocio_id}/clientes/",
-        access_token,
-        {"page": 1, "page_size": 1},
+        f"/negocios/{consulta.negocio_id}/metricas/", access_token, params,
         negocio_id=consulta.negocio_id,
     )
     if isinstance(payload, JSONResponse):
         return payload
-    if not isinstance(payload, dict) or not isinstance(payload.get("count"), int):
-        raise HTTPException(status_code=502, detail="El backend devolvió un conteo inválido.")
-    return {"clientes_unicos": payload["count"]}
+    if not isinstance(payload, dict) or not isinstance(payload.get("clientes_unicos"), int):
+        raise HTTPException(status_code=502, detail="El backend devolvió métricas inválidas.")
+    return {
+        "clientes_unicos": payload["clientes_unicos"],
+        "desde": payload.get("desde"),
+        "hasta": payload.get("hasta"),
+        "alcance": payload.get("alcance"),
+    }
 
 #Consulta de sucursales
 @router.post("/sucursales")
