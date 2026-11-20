@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import Icon from './Icon.tsx';
 import Brand from './Brand.tsx';
 
 const links: [string, string][] = [
-  ['Inicio', '/'],
-  ['Sobre nosotros', '/about'],
-  ['Precios', '/precios'],
+  ['Producto', '/#producto'],
+  ['Cómo funciona', '/#como-funciona'],
+  ['Casos de uso', '/#casos'],
+  ['Planes', '/#planes'],
 ];
 
 export default function Header() {
@@ -22,21 +23,20 @@ export default function Header() {
           aria-label="Navegación principal"
         >
           {links.map(([label, href]) => (
-            <NavLink
-              end={href === '/'}
+            <Link
               key={label}
               to={href}
-              className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+              className="nav-link"
               onClick={() => setOpen(false)}
             >
               {label}
-            </NavLink>
+            </Link>
           ))}
         </nav>
         <div className="header-actions">
           <NavLink className="login" to="/login">Iniciar sesión</NavLink>
           <NavLink className="button button-small" to="/registro">
-            Comenzar gratis
+            Crear negocio
           </NavLink>
           <NavLink className="account" to="/login" aria-label="Cuenta">
             <Icon name="person" />

@@ -10,7 +10,7 @@ import {
   faEyeSlash,
   faLock,
 } from '@fortawesome/free-solid-svg-icons';
-import logo from '../assets/LogoR.png';
+import logo from '../assets/logo_reduced.png';
 import AuthLayout from '../components/AuthLayout.tsx';
 import { useAuth } from '../auth/AuthProvider.tsx';
 import { portalDestination } from '../lib/portal.ts';

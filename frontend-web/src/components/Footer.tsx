@@ -5,27 +5,27 @@ type FooterColumn = [string, [string, string][]];
 
 const columns: FooterColumn[] = [
   [
-    'Soluciones',
+    'Producto',
     [
-      ['Planes corporativos', '/precios'],
-      ['Programa de partners', '/about#valores'],
-      ['Vouchers y beneficios', '/precios'],
+      ['Cómo funciona', '/#como-funciona'],
+      ['Funciones', '/#producto'],
+      ['Planes', '/#planes'],
     ],
   ],
   [
-    'Compañía',
+    'Para tu negocio',
+    [
+      ['Casos de uso', '/#casos'],
+      ['Crear una cuenta', '/registro'],
+      ['Iniciar sesión', '/login'],
+    ],
+  ],
+  [
+    'Benefy',
     [
       ['Sobre nosotros', '/about'],
-      ['Inicio', '/'],
-      ['Soporte B2B', '/precios'],
-    ],
-  ],
-  [
-    'Legal & seguridad',
-    [
-      ['Términos de servicio', '/'],
-      ['Política de privacidad', '/'],
-      ['Cumplimiento fiscal', '/precios'],
+      ['Preguntas frecuentes', '/#preguntas'],
+      ['Portal de negocios', '/login'],
     ],
   ],
 ];
@@ -36,12 +36,12 @@ export default function Footer() {
       <div className="container">
         <div className="footer-grid">
           <div className="footer-brand">
-            <Brand />
+            <Brand footer />
             <p>
-              Recompensas que conectan comercios y comunidades. Tecnología
-              cercana para crecer en compañía.
+              Programas de puntos, sellos y cupones con control por negocio,
+              sucursal y equipo.
             </p>
-            <Link to="/precios">Conoce los planes ↗</Link>
+            <Link to="/#producto">Conoce el producto</Link>
           </div>
           {columns.map(([title, links]) => (
             <div className="footer-column" key={title}>
@@ -55,11 +55,8 @@ export default function Footer() {
           ))}
         </div>
         <div className="footer-bottom">
-          <span>© 2026 Benefy Technologies. Todos los derechos reservados.</span>
-          <span>
-            Soporte operacional y contacto corporativo pendiente de confirmación
-            oficial.
-          </span>
+          <span>© 2026 Benefy. Plataforma de fidelización para negocios.</span>
+          <span>Hecho para operar la lealtad desde la primera visita.</span>
         </div>
       </div>
     </footer>

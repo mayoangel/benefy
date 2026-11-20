@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import Icon from '../components/Icon.tsx';
 import type { IconName } from '../components/Icon.tsx';
-import logo from '../assets/LogoR.png';
+import logo from '../assets/logo_reduced.png';
 import useReveal from '../hooks/useReveal.ts';
 
 

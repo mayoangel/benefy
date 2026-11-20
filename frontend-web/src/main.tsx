@@ -7,6 +7,7 @@ import { AuthProvider } from './auth/AuthProvider.tsx';
 import './styles/tokens.css';
 import './styles/site.css';
 import './styles/portal.css';
+import './styles/landing.css';
 
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

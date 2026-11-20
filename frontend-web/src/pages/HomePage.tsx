@@ -1,235 +1,192 @@
 import { useEffect, useState } from 'react';
-import Icon from '../components/Icon.tsx';
-import logo from '../assets/LogoR.png';
 import { Link } from 'react-router-dom';
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faRightLong,faUserCheck,faUserLock,faCheck,faQrcode,faMugHot,faHandshake, IconDefinition,
-  faStamp,faRankingStar,faTicket, faDumbbell,faStore, faUtensils,
-  faListCheck, faSquarePlus, faCircleCheck, faMobileScreenButton, faShieldHalved,
-  faNetworkWired
-} from "@fortawesome/free-solid-svg-icons";
-import useReveal from '../hooks/useReveal.ts';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+  faBagShopping,
+  faBuilding,
+  faChartColumn,
+  faCheck,
+  faCircleCheck,
+  faGift,
+  faMugHot,
+  faQrcode,
+  faScissors,
+  faStamp,
+  faStore,
+  faTicket,
+  faUsers,
+  faUtensils,
+} from '@fortawesome/free-solid-svg-icons';
 
+import Icon from '../components/Icon.tsx';
+import PlansSection from '../components/PlansSection.tsx';
+import couponsAsset from '../assets/coupons.png';
+import logoMark from '../assets/logo_no_name.png';
+import pointsAsset from '../assets/points.png';
 
-type Feature = {
-  icon: IconDefinition;
-  title: string;
-  copy: string;
-  detail: {
-    icon?: IconDefinition;
-    label: string;
-    copy?: string;
-    value?: string;
-    progress?: boolean;
-  };
-  benefits?: {
-    icon: IconDefinition;
-    label: string;
-  }[];
-  exclusive?: boolean;
-};
-
-type Sector = {
-  icon: IconDefinition;
-  title: string;
-  copy: string;
-  example: string;
-};
-
-type Step = {
-  icon: IconDefinition;
-  title: string;
-  copy: string;
-};
-
-const faqs: [string, string][] = [
-  [
-    '¿Mis clientes tienen que descargar una app?',
-    'No. Pueden usar su celular con un toque NFC o escaneando un código QR, sin descargas obligatorias.',
-  ],
-  [
-    '¿Qué pasa con los datos de mis clientes?',
-    'No los vendemos ni los compartimos con otros comercios. Benefy valida el beneficio sin necesitar saber quién es la persona.',
-  ],
-  [
-    '¿Cuánto tarda empezar?',
-    'Puedes crear tu programa y colocar tu QR el mismo día; no necesitas instalar equipo adicional.',
-  ],
-  [
-    '¿Puedo aliarme con negocios de mi zona?',
-    'Sí. La red de alianzas cruzadas conecta comercios vecinos y la compensación entre ellos se liquida de forma automática.',
-  ],
-  [
-    '¿Puedo cancelar cuando quiera?',
-    'Sí, sin costo de instalación y sin permanencia mínima.',
-  ],
-];
-
-const features: Feature[] = [
+const features = [
   {
+    title: 'Puntos por visita',
+    copy: 'Define cuántos puntos entrega cada visita, su vigencia y el costo de cada recompensa. El consumo usa primero los puntos más antiguos.',
+    image: pointsAsset,
+    icon: null,
+  },
+  {
+    title: 'Tarjetas de sellos',
+    copy: 'Configura una meta, enlaza la recompensa y decide si la tarjeta vuelve a empezar cuando el cliente la completa.',
+    image: null,
     icon: faStamp,
-    title: 'Tarjetas de sellos digitales dinámicas',
-    copy: 'Crea programas de sellos atractivos que viven directamente en Apple Wallet o Google Wallet. Configura reglas automáticas de progreso, sellos dobles en días de baja demanda y notificaciones geolocalizadas al pasar cerca de tu tienda.',
-    detail: {
-      icon: faMobileScreenButton,
-      label: 'Compatibilidad Universal',
-      copy: 'Sin necesidad de descargar apps pesadas obligatorias',
-      value: '1-Tap Add',
-    },
   },
   {
-    icon: faRankingStar,
-    title: 'Acumulación de puntos inteligente',
-    copy: 'Premia el ticket de compra o la frecuencia. Establece niveles (Plata, Oro, VIP) que desbloquean beneficios exclusivos conforme tus clientes aumentan su valor en el tiempo.',
-    detail: {
-      label: 'Retención mediana de clientes',
-      value: '68%',
-      progress: true,
-    },
+    title: 'Cupones y canjes',
+    copy: 'Entrega beneficios gratis, descuentos porcentuales o montos fijos con vigencia, disponibilidad y un canje único por cupón.',
+    image: couponsAsset,
+    icon: null,
   },
   {
-    icon: faTicket,
-    title: 'Cupones temporales automatizados',
-    copy: 'Genera incentivos automáticos: regalos de cumpleaños, cupones "Te echamos de menos" tras 30 días sin visitas, y promociones flash para llenar horarios valle.',
-    detail: {
-      icon: faListCheck,
-      label: 'Automatizaciones programadas listas en 1 clic',
-    },
+    title: 'Negocio y sucursales',
+    copy: 'Organiza la operación por sucursal, conserva un QR propio para cada ubicación y consulta actividad con el alcance correcto.',
+    image: null,
+    icon: faBuilding,
   },
   {
-    icon: faHandshake,
-    title: 'Red de alianzas cruzadas',
-    copy: 'Conecta tu comercio con negocios complementarios de tu barrio o zona sin ceder tus datos ni clientes. No compartimos ni vendemos los datos de tus clientes; solo validamos el beneficio.',
-    detail: {
-      label: 'Bases de datos no compartidas',
-    },
-    benefits: [
-      { icon: faShieldHalved, label: 'Bases de datos no compartidas' },
-      { icon: faNetworkWired, label: 'Compensación mutua transparente' },
-    ],
-    exclusive: true,
+    title: 'Equipo con alcance claro',
+    copy: 'El dueño administra el negocio; supervisores y empleados operan desde la sucursal a la que fueron asignados.',
+    image: null,
+    icon: faUsers,
+  },
+  {
+    title: 'Seguimiento operativo',
+    copy: 'Revisa visitas válidas, clientes únicos, puntos, cupones, tarjetas completadas, canjes y recompensas más utilizadas.',
+    image: null,
+    icon: faChartColumn,
   },
 ];
 
-const sectors: Sector[] = [
+const steps = [
+  {
+    icon: faStore,
+    title: 'Configura el negocio',
+    copy: 'Registra tu negocio, sucursales y equipo. Cada negocio nuevo recibe el plan Free automáticamente.',
+  },
+  {
+    icon: faGift,
+    title: 'Diseña la recompensa',
+    copy: 'Crea un programa de puntos o una tarjeta de sellos y enlaza beneficios con reglas visibles para tu cliente.',
+  },
+  {
+    icon: faQrcode,
+    title: 'Registra la visita',
+    copy: 'La visita se identifica con el QR del negocio o de la sucursal y actualiza el progreso correspondiente.',
+  },
+  {
+    icon: faCircleCheck,
+    title: 'Canjea y da seguimiento',
+    copy: 'El cliente usa su cupón, el equipo valida el canje y el portal conserva el registro para medir la actividad.',
+  },
+];
+
+const cases = [
   {
     icon: faMugHot,
-    title: 'Cafeterías & Bistrós',
-    copy: 'Sellos automáticos de cafés diarios, upgrades de panadería en horas valle y promociones combo matutinas.',
-    example: 'Tarjeta 10 sellos con café de especialidad de regalo.',
-  },
-  {
-    icon: faDumbbell,
-    title: 'Gimnasios & Fitness',
-    copy: 'Incentiva la constancia de asistencia semanal, entrenamientos personales y bonos de nutrición deportiva.',
-    example: 'Sellos por asistencia consecutiva canjeables por sesiones pro.',
+    title: 'Cafeterías y panaderías',
+    copy: 'Una tarjeta de visitas para el café habitual y puntos para recompensas adicionales.',
+    example: 'Ejemplo: completa 7 sellos y recibe una bebida.',
   },
   {
     icon: faUtensils,
     title: 'Restaurantes',
-    copy: 'Fideliza a clientes de menú diario corporativo y premia mesas de fin de semana con postres o maridajes cortesía.',
-    example: 'Puntos acumulables en cuenta final para descuento en cenas.',
+    copy: 'Puntos por visita y cupones con vigencia para convertir una recompensa en una próxima ocasión de consumo.',
+    example: 'Ejemplo: 20% de descuento con 120 puntos.',
   },
   {
-    icon: faStore,
-    title: 'Retail & Especialidad',
-    copy: 'Boutiques, librerías, barberías y estéticas. Premia compras repetidas y activa ventas cruzadas comunitarias.',
-    example: 'Cupones de cumpleaños automáticos y acceso a preventas.',
+    icon: faScissors,
+    title: 'Belleza y bienestar',
+    copy: 'Reconoce la frecuencia de citas y administra el programa por sucursal y por equipo operativo.',
+    example: 'Ejemplo: un servicio de cortesía al completar la tarjeta.',
+  },
+  {
+    icon: faBagShopping,
+    title: 'Comercio especializado',
+    copy: 'Combina recompensas con stock, descuentos fijos o porcentuales y un historial claro de canjes.',
+    example: 'Ejemplo: cupón de $100 MXN para la siguiente visita.',
   },
 ];
 
-const steps: Step[] = [
-  {
-    icon: faSquarePlus,
-    title: 'Crea tu programa',
-    copy: 'Elige sellos, puntos o beneficios para tu comunidad.',
-  },
-  {
-    icon: faQrcode,
-    title: 'Coloca tu QR',
-    copy: 'Ponlo en la barra, mesa o mostrador.',
-  },
-  {
-    icon: faCircleCheck,
-    title: 'Valida en segundos',
-    copy: 'Valida cada visita con NFC o QR dinámico desde la terminal o el celular.',
-  },
-  {
-    icon: faHandshake,
-    title: 'Mide y conecta',
-    copy: 'Revisa tus resultados y crea alianzas locales.',
-  },
+const faqs: [string, string][] = [
+  [
+    '¿Qué incluye realmente el plan Free?',
+    'Incluye 1 sucursal, 1 programa de puntos, 2 tarjetas de sellos, 5 recompensas, 1 supervisor y 3 empleados activos. Clientes, visitas y cupones no tienen límite de plan.',
+  ],
+  [
+    '¿Qué cambia hoy al pasar a Premium?',
+    'Premium amplía la capacidad a 5 sucursales, 10 tarjetas, 30 recompensas, 5 supervisores y 20 empleados. Las funciones avanzadas configuradas para fases futuras todavía no se anuncian como disponibles.',
+  ],
+  [
+    '¿Premium se puede comprar en línea?',
+    'Todavía no. El sistema contempla precios y suscripciones, pero Stripe, cobro y facturación no están implementados. La activación actual se realiza manualmente con el equipo de Benefy.',
+  ],
+  [
+    '¿Cómo se acumulan y vencen los puntos?',
+    'El negocio define los puntos por visita y puede configurar días de vigencia. Al canjear una recompensa, Benefy consume primero los lotes de puntos más antiguos.',
+  ],
+  [
+    '¿Qué ocurre si un negocio baja de Premium a Free?',
+    'No se elimina información. Los recursos que superen el límite se conservan y pueden consultarse, pero no se permiten nuevas altas en esas categorías hasta regularizar el uso.',
+  ],
+  [
+    '¿Todos los integrantes del equipo ven lo mismo?',
+    'No. El dueño administra el negocio completo. Supervisores y empleados trabajan con el alcance de su sucursal; el portal adapta navegación y permisos a cada rol.',
+  ],
 ];
 
-function HomeHero() {
+function Hero() {
   return (
-    <section className="home-hero" aria-labelledby="home-hero-title">
-      <div className="container home-hero-grid">
-        <div>
-          <div className="eyebrow">
-            <i />
-            Fidelización local, hecha simple
-          </div>
-          <h1 id="home-hero-title">
-            Convierte visitas ocasionales en{' '}
-            <em>relaciones duraderas</em> y alianzas estratégicas.
-          </h1>
+    <section className="landing-hero" aria-labelledby="landing-title">
+      <div className="container landing-hero-grid">
+        <div className="landing-hero-copy">
+          <span className="landing-kicker landing-kicker-light">Lealtad que tu negocio puede operar</span>
+          <h1 id="landing-title">Premia cada visita y controla tu programa desde un solo lugar.</h1>
           <p>
-            La plataforma de beneficios que ayuda a los comercios a premiar la
-            lealtad y crecer en comunidad, sin fricción tecnológica.
+            Benefy reúne puntos, tarjetas de sellos, recompensas, cupones y canjes
+            en una plataforma con control por negocio, sucursal y equipo.
           </p>
-          <div className="home-actions">
-            <Link className="button button-small" to="/precios">
-              Comenzar gratis <FontAwesomeIcon icon={faRightLong} aria-hidden="true" />
-            </Link>
-            <Link className="button home-outline" to="/about">
-              Conoce Benefy
-            </Link>
+          <div className="landing-actions">
+            <Link className="landing-button landing-button-mint" to="/registro">Crear mi negocio gratis</Link>
+            <Link className="landing-text-link" to="/#como-funciona">Ver cómo funciona</Link>
           </div>
-          <div className="home-trust">
-            <span>
-              <FontAwesomeIcon icon={faUserCheck} aria-hidden="true" />
-              Sin comisiones por canje
-            </span>
-            <span>
-              <FontAwesomeIcon icon={faUserLock} aria-hidden="true" />
-              Privacidad protegida
-            </span>
-          </div>
+          <ul className="landing-hero-facts" aria-label="Capacidades principales">
+            <li><FontAwesomeIcon icon={faCheck} /> Plan Free permanente</li>
+            <li><FontAwesomeIcon icon={faCheck} /> QR por negocio y sucursal</li>
+            <li><FontAwesomeIcon icon={faCheck} /> Roles de operación</li>
+          </ul>
         </div>
 
-        <div className="home-visual">
-          <div className="home-orbit" />
-          <div className="home-card">
-            <div className="home-card-top">
-              <span className="brand-mark small">
-                <img className="brand-mark-image" src={logo} alt="" width="500" height="331" />
-              </span>
-              <b>Benefy</b>
-              <span className="home-card-status">
-                <small>BENEFICIO ACTIVO</small>
-                <span className="home-card-partner">
-                  <FontAwesomeIcon icon={faMugHot} aria-hidden="true" />
-                  Café Blend
-                </span>
-              </span>
-            </div>
-            <span className="home-card-label">TU PRÓXIMA RECOMPENSA</span>
-            <strong>
-              Un café
-              <br />
-              va por <em>nosotros.</em>
-            </strong>
-            <div className="home-progress">
-              <i />
-              <i />
-              <i />
-              <i />
-              <b>
-                <FontAwesomeIcon icon={faCheck} aria-hidden="true" />
-              </b>
-            </div>
-            <small>4 de 5 visitas completadas</small>
+        <div className="landing-product-preview" aria-label="Vista ilustrativa del portal de Benefy">
+          <div className="preview-toolbar">
+            <span className="preview-brand"><img src={logoMark} alt="" width="488" height="319" decoding="async" /> Benefy</span>
+            <span>Vista del portal</span>
+          </div>
+          <div className="preview-heading">
+            <div><small>Resumen del negocio</small><strong>Café Nómada</strong></div>
+            <span>Datos de ejemplo</span>
+          </div>
+          <div className="preview-metrics">
+            <div><span>Visitas válidas</span><strong>1,248</strong><small>Últimos 30 días</small></div>
+            <div><span>Clientes únicos</span><strong>386</strong><small>Con al menos una visita</small></div>
+            <div><span>Cupones canjeados</span><strong>58</strong><small>En el negocio</small></div>
+          </div>
+          <div className="preview-programs">
+            <article>
+              <img src={pointsAsset} alt="" width="2048" height="2048" decoding="async" />
+              <div><span>Programa de puntos</span><strong>10 puntos por visita</strong></div>
+              <small>Activo</small>
+            </article>
+            <article>
+              <span className="preview-stamp"><FontAwesomeIcon icon={faStamp} /></span>
+              <div><span>Tarjeta de sellos</span><strong>Tu café de siempre</strong></div>
+              <small>6 / 7</small>
+            </article>
           </div>
         </div>
       </div>
@@ -237,114 +194,46 @@ function HomeHero() {
   );
 }
 
-function Features() {
+function ValueProposition() {
   return (
-    <section className="home-section home-features-section container" aria-labelledby="home-features-title">
-              <div className="home-section-heading center">
-                <span className="features-badge">Diseñado para comercios modernos</span>
-                <h2 id="home-features-title">Todo lo que necesitas para fidelizar sin fricción tecnológica</h2>
-                <p>
-                  Elimina las tarjetas de papel olvidadas y los caros lectores
-                  adicionales. Benefy valida cada beneficio con NFC o QR dinámico
-                  desde la terminal o el celular.
-                </p>
-              </div>
-            <div className="home-feature-grid">
-              {features.map((feature, index) => (
-                <article
-                  className={`home-feature home-feature-${index + 1}`}
-                  key={feature.title}
-                >
-                  <span>
-                    <FontAwesomeIcon icon={feature.icon} aria-hidden="true" />
-                  </span>
-                  <h3>
-                    {feature.title}
-                    {feature.exclusive && (
-                      <small className="home-feature-exclusive">Exclusivo</small>
-                    )}
-                  </h3>
-                  <p>{feature.copy}</p>
-                  {feature.benefits ? (
-                    <div className="feature-detail feature-alliance">
-                      {feature.benefits.map((benefit) => (
-                        <span key={benefit.label}>
-                          <FontAwesomeIcon icon={benefit.icon} aria-hidden="true" />
-                          {benefit.label}
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <div
-                      className={`feature-detail${
-                        feature.detail.progress ? ' feature-points' : ''
-                      }`}
-                    >
-                      {feature.detail.icon && (
-                        <FontAwesomeIcon icon={feature.detail.icon} aria-hidden="true" />
-                      )}
-                      <span>
-                        <b>{feature.detail.label}</b>
-                        {feature.detail.copy && <small>{feature.detail.copy}</small>}
-                      </span>
-                      {feature.detail.progress ? (
-                        <>
-                          {feature.detail.value && (
-                            <strong>{feature.detail.value}</strong>
-                          )}
-                          <i>
-                            <span />
-                          </i>
-                        </>
-                      ) : (
-                        feature.detail.value && (
-                          <strong>{feature.detail.value}</strong>
-                        )
-                      )}
-                    </div>
-                  )}
-                </article>
-        ))}
+    <section className="landing-value" aria-labelledby="value-title">
+      <div className="container landing-value-grid">
+        <div className="landing-section-head landing-value-head">
+          <span className="landing-kicker">Una operación conectada</span>
+          <h2 id="value-title">Del programa de lealtad al canje, sin perder el contexto.</h2>
+        </div>
+        <div className="landing-value-points">
+          <article><span>01</span><h3>Reglas configurables</h3><p>Metas, conversión, vigencia, stock y condiciones viven en el programa.</p></article>
+          <article><span>02</span><h3>Operación por sucursal</h3><p>Visitas, canjes y personal conservan el lugar donde ocurrió cada acción.</p></article>
+          <article><span>03</span><h3>Actividad trazable</h3><p>El portal reúne clientes, puntos, cupones y resultados por periodo.</p></article>
+        </div>
       </div>
     </section>
   );
 }
 
-function Sectors() {
+function ProductFeatures() {
   return (
-    <section className="home-sectors" aria-labelledby="home-sectors-title">
-      <div className="container sectors-layout">
-        <div>
-          <div className="kicker">
-            PARA CADA COMUNIDAD
-          </div>
-          <h2 id="home-sectors-title">
-            Diseñado a la medida de tu <em>sector comercial.</em>
-          </h2>
-          <p>
-            Una experiencia flexible que se adapta a cómo tus clientes viven
-            cada visita.
-          </p>
-          <Link className="sector-link" to="/precios">
-            Encuentra tu plan <FontAwesomeIcon icon={faRightLong} aria-hidden="true" />
-          </Link>
+    <section className="landing-section landing-features" id="producto" aria-labelledby="features-title">
+      <div className="container">
+        <div className="landing-section-head">
+          <span className="landing-kicker">El producto de hoy</span>
+          <h2 id="features-title">Funciones que ya forman parte de la operación.</h2>
+          <p>Cada módulo responde a un flujo real del sistema, desde crear la dinámica hasta consultar lo que ocurrió en cada sucursal.</p>
         </div>
-        <div className="sector-grid">
-          {sectors.map((sector, index) => (
-            <div
-              className={`sector-card sector-${index + 1}`}
-              key={sector.title}
-            >
-              <span>
-                <FontAwesomeIcon icon={sector.icon} aria-hidden="true" />
+        <div className="landing-feature-grid">
+          {features.map((feature, index) => (
+            <article className={`landing-feature landing-feature-${index + 1}`} key={feature.title}>
+              <span className="landing-feature-icon" aria-hidden="true">
+                {feature.image ? (
+                  <img src={feature.image} alt="" width="2048" height="2048" loading="lazy" decoding="async" />
+                ) : (
+                  <FontAwesomeIcon icon={feature.icon!} />
+                )}
               </span>
-              <h3>{sector.title}</h3>
-              <p>{sector.copy}</p>
-              <small>
-                <strong>Caso habitual:</strong>
-                {sector.example}
-              </small>
-            </div>
+              <h3>{feature.title}</h3>
+              <p>{feature.copy}</p>
+            </article>
           ))}
         </div>
       </div>
@@ -354,93 +243,107 @@ function Sectors() {
 
 function HowItWorks() {
   return (
-    <section className="home-section container" aria-labelledby="home-how-title">
-      <div className="home-section-heading center">
-        <div className="kicker">
-          FÁCIL EN TU MOSTRADOR
+    <section className="landing-section landing-how" id="como-funciona" aria-labelledby="how-title">
+      <div className="container">
+        <div className="landing-section-head landing-section-head-light">
+          <span className="landing-kicker landing-kicker-light">Cómo funciona</span>
+          <h2 id="how-title">Un flujo claro para el negocio y para el cliente.</h2>
+          <p>La configuración, la visita, el beneficio y el seguimiento comparten la misma lógica.</p>
         </div>
-        <h2 id="home-how-title">¿Cómo funciona Benefy?</h2>
-        <p>
-          De la primera visita a una comunidad que regresa, en unos pocos pasos.
-        </p>
+        <div className="landing-steps">
+          {steps.map((step, index) => (
+            <article key={step.title}>
+              <div className="landing-step-top"><span><FontAwesomeIcon icon={step.icon} /></span><small>0{index + 1}</small></div>
+              <h3>{step.title}</h3>
+              <p>{step.copy}</p>
+            </article>
+          ))}
+        </div>
+        <div className="landing-customer-flow">
+          <div>
+            <span className="landing-kicker landing-kicker-light">Experiencia del cliente</span>
+            <h3>Saldo, progreso y beneficios con un historial común.</h3>
+          </div>
+          <div className="customer-flow-items">
+            <span><FontAwesomeIcon icon={faQrcode} /> Registra la visita</span>
+            <span><img src={pointsAsset} alt="" width="2048" height="2048" loading="lazy" decoding="async" /> Acumula puntos o sellos</span>
+            <span><img src={couponsAsset} alt="" width="2048" height="2048" loading="lazy" decoding="async" /> Obtiene un cupón</span>
+            <span><FontAwesomeIcon icon={faTicket} /> Inicia el canje</span>
+          </div>
+        </div>
       </div>
-      <div className="how-grid">
-        {steps.map((step, index) => (
-          <article className="how-step" key={step.title}>
-            <span className="how-icon">
-              <FontAwesomeIcon icon={step.icon} aria-hidden="true" />
-            </span>
-            <small>PASO 0{index + 1}</small>
-            <h3>{step.title}</h3>
-            <p>{step.copy}</p>
-            {index < steps.length - 1 && (
-              <span className="how-arrow">
-                <FontAwesomeIcon icon={faRightLong} aria-hidden="true" />
-              </span>
-            )}
-          </article>
-        ))}
+    </section>
+  );
+}
+
+function UseCases() {
+  return (
+    <section className="landing-section landing-cases" id="casos" aria-labelledby="cases-title">
+      <div className="container">
+        <div className="landing-section-head landing-cases-head">
+          <span className="landing-kicker">Casos de uso</span>
+          <h2 id="cases-title">La misma base, configurada para hábitos distintos.</h2>
+          <p>Estos ejemplos muestran cómo combinar las capacidades existentes de Benefy según la frecuencia de visita.</p>
+        </div>
+        <div className="landing-case-grid">
+          {cases.map((item) => (
+            <article key={item.title}>
+              <span><FontAwesomeIcon icon={item.icon} /></span>
+              <h3>{item.title}</h3>
+              <p>{item.copy}</p>
+              <small>{item.example}</small>
+            </article>
+          ))}
+        </div>
       </div>
     </section>
   );
 }
 
 function FAQ() {
-  const [open, setOpen] = useState<number | null>(null);
+  const [open, setOpen] = useState<number | null>(0);
 
   return (
-    <section className="faq-section home-faq container" aria-labelledby="home-faq-title">
-      <div className="faq-heading">
-        <span className="kicker">PREGUNTAS FRECUENTES</span>
-        <h2 id="home-faq-title">Lo que todos nos preguntan antes de empezar</h2>
-      </div>
-      <div className="faq-list">
-        {faqs.map(([question, answer], index) => {
-          const panelId = `home-faq-answer-${index}`;
-          const isOpen = open === index;
-
-          return (
-            <article className={`faq-item${isOpen ? ' faq-open' : ''}`} key={question}>
-              <button
-                aria-controls={panelId}
-                aria-expanded={isOpen}
-                onClick={() => setOpen(isOpen ? null : index)}
-              >
-                <span>{question}</span>
-                <Icon name={isOpen ? 'expand_less' : 'expand_more'} />
-              </button>
-              {isOpen && <p id={panelId}>{answer}</p>}
-            </article>
-          );
-        })}
+    <section className="landing-section landing-faq" id="preguntas" aria-labelledby="faq-title">
+      <div className="container landing-faq-layout">
+        <div className="landing-section-head landing-faq-head">
+          <span className="landing-kicker">Sin letra pequeña</span>
+          <h2 id="faq-title">Preguntas sobre el producto actual.</h2>
+          <p>Respuestas alineadas con lo que está implementado hoy y con los límites reales del sistema.</p>
+        </div>
+        <div className="landing-faq-list">
+          {faqs.map(([question, answer], index) => {
+            const isOpen = open === index;
+            const panelId = `landing-faq-${index}`;
+            return (
+              <article className={isOpen ? 'is-open' : ''} key={question}>
+                <button type="button" aria-expanded={isOpen} aria-controls={panelId} onClick={() => setOpen(isOpen ? null : index)}>
+                  <span>{question}</span>
+                  <Icon name={isOpen ? 'expand_less' : 'expand_more'} />
+                </button>
+                {isOpen && <p id={panelId}>{answer}</p>}
+              </article>
+            );
+          })}
+        </div>
       </div>
     </section>
   );
 }
 
-function HomeCTA() {
+function FinalCTA() {
   return (
-    <section className="container home-cta" aria-labelledby="home-cta-title">
-      <div>
-        <span className="cta-kicker">
-          <i />
-          CRECE EN COMUNIDAD
-        </span>
-        <h2 id="home-cta-title">
-          Transforma cada visita en fidelidad y{' '}
-          <em>mayores ingresos.</em>
-        </h2>
-        <p>
-          Conecta con tus clientes y con los comercios que dan vida a tu barrio.
-        </p>
-      </div>
-      <div className="home-cta-actions">
-        <Link className="button button-light" to="/precios">
-          Ver planes Benefy <FontAwesomeIcon icon={faRightLong} aria-hidden="true" />
-        </Link>
-        <Link className="cta-secondary" to="/about">
-          Hablar con el equipo
-        </Link>
+    <section className="landing-final-cta" aria-labelledby="final-cta-title">
+      <div className="container landing-final-cta-inner">
+        <div>
+          <span className="landing-kicker landing-kicker-light">Tu primer programa empieza en Free</span>
+          <h2 id="final-cta-title">Configura una lealtad que tu equipo sí pueda operar.</h2>
+          <p>Crea el negocio, define la recompensa y empieza con los límites reales del plan gratuito.</p>
+        </div>
+        <div className="landing-actions">
+          <Link className="landing-button landing-button-mint" to="/registro">Crear mi cuenta</Link>
+          <Link className="landing-text-link landing-text-link-light" to="/login">Ya tengo una cuenta</Link>
+        </div>
       </div>
     </section>
   );
@@ -449,16 +352,13 @@ function HomeCTA() {
 export default function HomePage() {
   useEffect(() => {
     const previousTitle = document.title;
-    const description = 'Benefy ayuda a comercios locales a fidelizar clientes y crecer con alianzas inteligentes, usando beneficios con NFC y QR dinámico.';
-    const title = 'Benefy | Fidelización local hecha simple';
+    const title = 'Benefy | Puntos, sellos y cupones para tu negocio';
+    const description = 'Benefy permite operar programas de puntos, tarjetas de sellos, recompensas, cupones y canjes con control por sucursal y equipo.';
     const managedMeta: HTMLMetaElement[] = [];
 
     document.title = title;
-
     const setMeta = (attribute: 'name' | 'property', key: string, content: string) => {
-      let meta = document.head.querySelector<HTMLMetaElement>(
-        `meta[${attribute}="${key}"]`,
-      );
+      let meta = document.head.querySelector<HTMLMetaElement>(`meta[${attribute}="${key}"]`);
       if (!meta) {
         meta = document.createElement('meta');
         meta.setAttribute(attribute, key);
@@ -479,18 +379,16 @@ export default function HomePage() {
     };
   }, []);
 
-  useReveal(
-    '.home-page > section:not(.home-hero), .how-step, .home-feature, .sector-card',
-  );
-
   return (
-    <main className="home-page">
-      <HomeHero />
-      <Features />
-      <Sectors />
+    <main className="landing-page">
+      <Hero />
+      <ValueProposition />
+      <ProductFeatures />
       <HowItWorks />
+      <UseCases />
+      <PlansSection />
       <FAQ />
-      <HomeCTA />
+      <FinalCTA />
     </main>
   );
 }
