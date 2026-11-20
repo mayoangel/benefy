@@ -4,6 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCircleInfo, faLock, faRotate } from '@fortawesome/free-solid-svg-icons';
 
 import PlansSection from '../components/PlansSection.tsx';
+import { LandingMotionProvider, Reveal } from '../components/LandingMotion.tsx';
 
 const comparison = [
   ['Sucursales activas', '1', '5'],
@@ -23,14 +24,15 @@ export default function PricingPage() {
   }, []);
 
   return (
-    <main className="pricing-real-page">
+    <LandingMotionProvider>
+      <main className="pricing-real-page">
       <PlansSection
         headingLevel="h1"
         intro="Los límites de esta página provienen del catálogo real del backend. Premium se muestra con un precio de referencia porque el cobro aún no está definido."
       />
 
       <section className="landing-section pricing-real-comparison" aria-labelledby="pricing-comparison-title">
-        <div className="container pricing-real-grid">
+        <Reveal className="container pricing-real-grid">
           <div className="landing-section-head">
             <span className="landing-kicker">Comparación operativa</span>
             <h2 id="pricing-comparison-title">La diferencia actual está en la capacidad.</h2>
@@ -56,11 +58,11 @@ export default function PricingPage() {
               </tbody>
             </table>
           </div>
-        </div>
+        </Reveal>
       </section>
 
       <section className="pricing-real-cta" id="contacto" aria-labelledby="pricing-contact-title">
-        <div className="container pricing-real-cta-inner">
+        <Reveal className="container pricing-real-cta-inner">
           <div>
             <span className="landing-kicker landing-kicker-light">Activación transparente</span>
             <h2 id="pricing-contact-title">Free está listo al registrar tu negocio.</h2>
@@ -73,8 +75,9 @@ export default function PricingPage() {
             <Link className="landing-button landing-button-mint" to="/registro">Crear negocio con Free</Link>
             <Link className="landing-text-link landing-text-link-light" to="/login">Entrar al portal</Link>
           </div>
-        </div>
+        </Reveal>
       </section>
-    </main>
+      </main>
+    </LandingMotionProvider>
   );
 }

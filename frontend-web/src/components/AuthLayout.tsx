@@ -1,8 +1,11 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faArrowLeft, faUser } from '@fortawesome/free-solid-svg-icons';
+import { faArrowLeft, faCheck, faUser } from '@fortawesome/free-solid-svg-icons';
 import logo from '../assets/logo_reduced.png';
+import logoMark from '../assets/logo_no_name.png';
+import pointsAsset from '../assets/points.png';
+import couponsAsset from '../assets/coupons.png';
 
 type AuthLayoutProps = {
   children: ReactNode;
@@ -14,13 +17,13 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       <header className="auth-header">
         <div className="auth-header-inner">
           <div className="auth-brand">
-            <img className="auth-brand-logo" src={logo} alt="Benefy" width="500" height="331" />
+            <img className="auth-brand-logo" src={logo} alt="" width="1080" height="1080" />
             <span className="auth-brand-name">Benefy</span>
-            <span className="auth-badge">B2B Portal</span>
+            <span className="auth-badge">Portal de negocios</span>
           </div>
           <nav className="auth-nav" aria-label="Portal">
             <Link to="/">Volver al sitio</Link>
-            <Link to="/precios">Centro de Ayuda / Soporte</Link>
+            <Link to="/precios">Conocer planes</Link>
             <span className="auth-avatar" aria-hidden="true">
               <FontAwesomeIcon icon={faUser} />
             </span>
@@ -28,7 +31,29 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         </div>
       </header>
 
-      <main className="auth-main">{children}</main>
+      <main className="auth-main">
+        <aside className="auth-context" aria-label="Capacidades del portal de Benefy">
+          <div className="auth-context-brand">
+            <img src={logoMark} alt="" width="488" height="319" decoding="async" />
+            <span>Benefy para negocios</span>
+          </div>
+          <div>
+            <span className="landing-kicker landing-kicker-light">Tu operación conectada</span>
+            <h2>Puntos, sellos y canjes con el contexto de cada sucursal.</h2>
+            <p>Accede al portal para configurar el programa, invitar a tu equipo y revisar la actividad del negocio.</p>
+          </div>
+          <ul>
+            <li><FontAwesomeIcon icon={faCheck} /> Plan Free asignado automáticamente</li>
+            <li><FontAwesomeIcon icon={faCheck} /> Roles con alcance por sucursal</li>
+            <li><FontAwesomeIcon icon={faCheck} /> Métricas operativas por periodo</li>
+          </ul>
+          <div className="auth-context-programs" aria-hidden="true">
+            <span><img src={pointsAsset} alt="" width="2048" height="2048" />Puntos</span>
+            <span><img src={couponsAsset} alt="" width="2048" height="2048" />Cupones</span>
+          </div>
+        </aside>
+        <div className="auth-content">{children}</div>
+      </main>
 
       <footer className="auth-footer">
         <div className="auth-footer-inner">
@@ -37,11 +62,11 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
             Volver al sitio web
           </Link>
           <div className="auth-footer-links">
-            <Link to="/">Términos de Servicio</Link>
+            <Link to="/">Inicio</Link>
             <span aria-hidden="true">•</span>
-            <Link to="/">Privacidad</Link>
+            <Link to="/precios">Planes</Link>
             <span aria-hidden="true">•</span>
-            <span className="auth-copy">© 2025 Benefy Technologies</span>
+            <span className="auth-copy">© 2026 Benefy</span>
           </div>
         </div>
       </footer>

@@ -25,8 +25,8 @@ export default function AccessDeniedPage() {
           <span className="auth-pill"><i />Portal de negocios</span>
           <h1>Tu cuenta no tiene un negocio asociado</h1>
           <p>
-            El portal web está diseñado para negocios y administradores. Si eres consumidor,
-            puedes usar la aplicación móvil de Benefy.
+            El portal web está diseñado para dueños, supervisores y empleados de un negocio.
+            La experiencia móvil del cliente todavía se encuentra en integración.
           </p>
         </div>
         <div className="auth-note">

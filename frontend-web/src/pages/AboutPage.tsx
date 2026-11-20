@@ -1,632 +1,248 @@
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import Icon from '../components/Icon.tsx';
-import type { IconName } from '../components/Icon.tsx';
-import logo from '../assets/logo_reduced.png';
-import useReveal from '../hooks/useReveal.ts';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+  faBuilding,
+  faChartColumn,
+  faCheck,
+  faCircleUser,
+  faGift,
+  faLocationDot,
+  faShieldHalved,
+  faStamp,
+  faStore,
+  faTicket,
+  faUsers,
+} from '@fortawesome/free-solid-svg-icons';
 
+import { LandingMotionProvider, Reveal } from '../components/LandingMotion.tsx';
+import couponsAsset from '../assets/coupons.png';
+import logoMark from '../assets/logo_no_name.png';
+import pointsAsset from '../assets/points.png';
 
-
-type Metric = {
-  label: string;
-  value: string;
-  note: string;
-};
-
-const metrics: Metric[] = [
-  { label: 'Comercios activos', value: '1,400+', note: 'En 18 ciudades' },
-  { label: 'Tickets canjeados', value: '3.2M', note: '+142% vs. 2024' },
-  { label: 'Retención mediana', value: '68%', note: 'Clientes que regresan' },
-  { label: 'Privacidad', value: '100%', note: 'Sin venta de datos' },
-];
-
-function BrandMark() {
-  return (
-    <span className="brand-mark">
-      <img className="brand-mark-image" src={logo} alt="" width="500" height="331" />
-    </span>
-  );
-}
-
-function Hero() {
-  return (
-    <section className="hero container" id="inicio" aria-labelledby="hero-title">
-      <div className="glow glow-mint" />
-      <div className="glow glow-blue" />
-      <div className="eyebrow">
-        <i />
-        Propósito &amp; visión corporativa
-      </div>
-      <h1 id="hero-title">
-        Nuestra misión: redefinir la fidelización local a través de{' '}
-        <em>alianzas inteligentes.</em>
-      </h1>
-      <p className="hero-lede">
-        Empoderamos a comercios independientes y medianos con la infraestructura
-        de fidelización que antes era exclusiva de las grandes corporaciones.
-        Creamos ecosistemas colaborativos donde cada transacción fortalece al
-        comercio local con tecnología ágil, accesible y sin fricción.
-      </p>
-      <div className="metrics">
-        {metrics.map((metric) => (
-          <article className="metric" key={metric.label}>
-            <span>{metric.label}</span>
-            <b>{metric.value}</b>
-            <small>{metric.note}</small>
-          </article>
-        ))}
-      </div>
-      <a className="scroll-cue" href="#historia">
-       
-        Conoce nuestra historia
-          <Icon name="arrowDown" />
-      
-      </a>
-    </section>
-  );
-}
-
-function Ticket() {
-  return (
-    <div className="ticket-scene">
-      <div className="orbit orbit-one" />
-      <div className="orbit orbit-two" />
-
-      <article className="ticket">
-        <div className="ticket-top">
-          <span className="ticket-brand">
-            <BrandMark />
-            Benefy
-          </span>
-          <span className="ticket-status">
-            <i />
-            ACTIVO
-          </span>
-        </div>
-
-        <div className="ticket-body">
-          <small className="ticket-code-label">ALLIANCE TOKEN · #BFY-8941</small>
-          <span className="ticket-kicker">BENEFICIO ALIADO</span>
-          <b className="ticket-amount">
-            15<small>%</small>
-            <em>de descuento</em>
-          </b>
-          <p className="ticket-partners">
-            <span>Café Blend</span>
-            <i>×</i>
-            <span>Trattoria Roma Norte</span>
-          </p>
-
-          <div className="ticket-stamps">
-            <div className="stamps-label">
-              <span>Tu progreso</span>
-              <b>4 / 5 visitas</b>
-            </div>
-            <div className="stamps-row">
-              <i className="on" />
-              <i className="on" />
-              <i className="on" />
-              <i className="on" />
-              <i className="gift">
-                <Icon name="bolt" />
-              </i>
-            </div>
-          </div>
-        </div>
-
-        <div className="ticket-cut">
-          <i />
-          <i />
-        </div>
-
-        <div className="ticket-foot">
-          <span>
-            <Icon name="verifiedUser" />
-            Validado vía terminal POS
-          </span>
-          <span className="barcode" aria-hidden="true">
-            ||| || |||| | ||| ||
-          </span>
-        </div>
-      </article>
-
-      <div className="float-card float-top">
-        <span className="float-icon">
-          <Icon name="bolt" />
-        </span>
-        <span className="float-copy">
-          <b>Canje instantáneo</b>
-          <small>Sin descargas obligatorias</small>
-        </span>
-      </div>
-
-      <div
-        className="float-card float-bottom"
-        title="Validamos el beneficio sin guardar ni vender datos personales"
-      >
-        <span className="float-icon mint">
-          <Icon name="lock" />
-        </span>
-        <span className="float-copy">
-          <b>Zero-Knowledge</b>
-          <small>Privacidad protegida</small>
-        </span>
-      </div>
-
-      <div className="scene-caption">
-        <span className="scene-icon">
-          <Icon name="store" />
-        </span>
-        <span className="scene-copy">
-          <b>Una red que multiplica</b>
-          <small>Comercios conectados en vivo</small>
-        </span>
-        <i aria-hidden="true" />
-      </div>
-    </div>
-  );
-}
-
-function Story() {
-  return (
-    <section className="story container" id="historia" aria-labelledby="story-title">
-      <div className="story-copy">
-        <div className="kicker">
-          <span>01</span>
-          EL ORIGEN DE BENEFY
-        </div>
-        <h2 id="story-title">
-          De la tarjeta de cartón perdida al <em>pasaporte digital.</em>
-        </h2>
-        <p className="lead">
-          Durante décadas, la fidelización estuvo atrapada entre tarjetas de
-          cartón olvidadas y programas bancarios reservados para grandes
-          corporaciones.
-        </p>
-        <p>
-          Benefy nació para cerrar esa brecha. Creamos una plataforma donde una
-          cafetería local, una librería independiente y un restaurante
-          familiar pueden formar redes de incentivos cruzados y activar
-          recompensas con NFC o códigos QR dinámicos.
-        </p>
-        <p>
-          Todo parte de una premisa no negociable: los clientes reciben
-          beneficios tangibles sin que su información personal se empaquete ni
-          se venda.
-        </p>
-        <div className="privacy-note">
-          <Icon name="lock" />
-          <p>
-            <strong>En palabras simples:</strong> no guardamos ni vendemos los
-            datos personales de tus clientes. Benefy valida el beneficio sin
-            necesitar saber quién es la persona.
-          </p>
-        </div>
-        <div className="tags">
-          <span>
-            <Icon name="bolt" />
-            NFC &amp; QR dinámico
-          </span>
-          <span>
-            <Icon name="lock" />
-            Privacidad criptográfica
-          </span>
-        </div>
-      </div>
-      <Ticket />
-    </section>
-  );
-}
-
-const values: {
-  icon: IconName;
-  tag: string;
-  title: string;
-  copy: string;
-  detail: string;
-}[] = [
+const principles = [
   {
-    icon: 'storefront',
-    tag: 'Autonomía',
-    title: 'Comercio local primero',
-    copy: 'Ponemos tecnología de nivel empresarial y herramientas de retención al alcance de los negocios de barrio.',
-    detail: 'ROI medible desde el día uno',
+    icon: faStore,
+    title: 'Operación antes que promesas',
+    copy: 'Cada función debe ser utilizable en mostrador y conservar el contexto del negocio donde ocurrió.',
   },
   {
-    icon: 'shield_lock',
-    tag: 'Confianza',
-    title: 'Privacidad inquebrantable',
-    copy: 'Respetamos los datos de cada cliente. Sin rastreo invasivo de ubicación ni venta de perfiles.',
-    detail: 'Cifrado de extremo a extremo',
+    icon: faLocationDot,
+    title: 'Alcance por sucursal',
+    copy: 'Visitas, canjes y equipo se organizan con permisos y datos vinculados a cada ubicación.',
   },
   {
-    icon: 'handshake',
-    tag: 'Sinergia',
-    title: 'Crecimiento colaborativo',
-    copy: 'Los comercios vecinos se recomiendan entre sí y multiplican su alcance sin depender de anuncios caros.',
-    detail: 'Redes de múltiples comercios',
-  },
-  {
-    icon: 'speed',
-    tag: 'Eficiencia',
-    title: 'Simplicidad operativa',
-    copy: 'La validación es ágil para cajeros y meseros, incluso cuando el negocio está en hora pico.',
-    detail: 'Menos de 2 s por validación',
+    icon: faShieldHalved,
+    title: 'Reglas visibles y auditables',
+    copy: 'Puntos, vigencias, stock, cambios de plan y ajustes mantienen reglas explícitas en el sistema.',
   },
 ];
 
-function Values() {
+const roles = [
+  ['Dueño', 'Administra el negocio completo, programas, recompensas, equipo y sucursales.'],
+  ['Supervisor', 'Consulta y opera la actividad de la sucursal a la que fue asignado.'],
+  ['Empleado', 'Registra visitas y valida canjes dentro del alcance de su sucursal.'],
+  ['Cliente', 'Acumula progreso, obtiene cupones y conserva saldo e historial.'],
+];
+
+function AboutHero() {
   return (
-    <section className="band values" id="valores" aria-labelledby="values-title">
-      <div className="container">
-        <div className="center-heading">
-          <div className="kicker">
-            <span>02</span>
-            LO QUE NOS GUÍA
-          </div>
-          <h2 id="values-title">
-            Pilares <em>innegociables</em>
-          </h2>
+    <section className="about-real-hero" aria-labelledby="about-real-title">
+      <div className="container about-real-hero-grid">
+        <Reveal className="about-real-hero-copy" mode="load">
+          <span className="landing-kicker landing-kicker-light">Qué es Benefy</span>
+          <h1 id="about-real-title">Lealtad diseñada para funcionar en la operación diaria.</h1>
           <p>
-            Construimos software pensado para las personas que están en la
-            primera línea del servicio.
+            Benefy conecta la configuración del programa, la actividad de cada
+            sucursal y la experiencia del cliente en un mismo sistema de puntos,
+            sellos, recompensas, cupones y canjes.
           </p>
-        </div>
-        <div className="value-grid">
-          {values.map((value, index) => (
-            <article className="value-card" key={value.title}>
-              <div className="value-top">
-                <span className="value-icon">
-                  <Icon name={value.icon} />
-                </span>
-                <small>0{index + 1}</small>
-              </div>
-              <span className="value-tag">{value.tag}</span>
-              <h3>{value.title}</h3>
-              <p>{value.copy}</p>
-              <div className="value-detail">
-                <Icon name="arrowOutward" />
-                {value.detail}
+          <div className="landing-actions">
+            <Link className="landing-button landing-button-mint" to="/#producto">Conocer el producto</Link>
+            <Link className="landing-text-link" to="/#como-funciona">Ver el flujo completo</Link>
+          </div>
+        </Reveal>
+
+        <Reveal className="about-real-visual" mode="load" delay={0.12}>
+          <div className="about-real-visual-head">
+            <span><img src={logoMark} alt="" width="488" height="319" decoding="async" /> Benefy</span>
+            <small>Un sistema · dos experiencias</small>
+          </div>
+          <div className="about-real-visual-grid">
+            <article className="about-real-visual-main">
+              <span>Portal para negocios</span>
+              <strong>Configura, opera y revisa actividad.</strong>
+              <div>
+                <small><FontAwesomeIcon icon={faBuilding} /> Sucursales</small>
+                <small><FontAwesomeIcon icon={faUsers} /> Equipo</small>
+                <small><FontAwesomeIcon icon={faChartColumn} /> Métricas</small>
               </div>
             </article>
-          ))}
-        </div>
+            <article>
+              <img src={pointsAsset} alt="" width="2048" height="2048" decoding="async" />
+              <span>Puntos</span>
+              <strong>Saldo y vigencia</strong>
+            </article>
+            <article>
+              <span className="about-real-stamp"><FontAwesomeIcon icon={faStamp} /></span>
+              <span>Sellos</span>
+              <strong>Meta y recompensa</strong>
+            </article>
+            <article>
+              <img src={couponsAsset} alt="" width="2048" height="2048" decoding="async" />
+              <span>Cupones</span>
+              <strong>Emisión y canje</strong>
+            </article>
+          </div>
+        </Reveal>
       </div>
     </section>
   );
 }
 
-function Dashboard() {
-  const bars = [30, 55, 38, 70, 48, 85, 58, 76, 48, 95, 66, 80];
-  const partners = [
-    ['CB', 'Café Blend'],
-    ['TR', 'Trattoria'],
-    ['LL', 'Librería'],
-  ];
-
+function WhyBenefy() {
   return (
-    <div className="dashboard">
-      <div className="dash-top">
-        <span>
-          <BrandMark />
-          Benefy <small>BUSINESS</small>
-        </span>
-        <div className="dash-user">
-          <i>CB</i>
-          <span>
-            <b>Café Blend</b>
-            <small>Plan crecimiento</small>
-          </span>
-          <Icon name="arrowOutward" />
-        </div>
-      </div>
-      <div className="dash-layout">
-        <aside className="dash-side">
-          <Icon name="store" />
-          <Icon name="handshake" />
-          <Icon name="confirmation_number" />
-          <Icon name="bar_chart" />
-          <Icon name="settings" />
-        </aside>
-        <div className="dash-main">
-          <div className="dash-heading">
-            <span>
-              <small>MIÉRCOLES, 26 DE OCTUBRE</small>
-              <b>
-                Buenos días, Café Blend <em>☀</em>
-              </b>
-            </span>
-            <small className="live">
-              <i />
-              Datos en vivo
-            </small>
-          </div>
-          <div className="dash-stats">
-            <div>
-              <small>Clientes recurrentes</small>
-              <b>
-                684 <i>+12.8%</i>
-              </b>
-              <div className="sparkline" />
-            </div>
-            <div>
-              <small>Recompensas canjeadas</small>
-              <b>
-                1,248 <i>+8.4%</i>
-              </b>
-              <div className="bars">
-                {bars.map((height, index) => (
-                  <i key={index} style={{ height: `${height}%` }} />
-                ))}
-              </div>
-            </div>
-          </div>
-          <div className="dash-chart">
-            <span>Actividad de la comunidad</span>
-            <div className="chart">
-              <i />
-              <i />
-              <i />
-              <i />
-              <i />
-              <svg viewBox="0 0 300 70" preserveAspectRatio="none" aria-hidden="true">
-                <path d="M0 58 C18 55 24 36 44 43 S72 49 88 33 115 41 132 28 156 40 175 21 204 35 221 15 246 26 263 12 283 19 300 4" />
-              </svg>
-            </div>
-          </div>
-          <div className="dash-partners">
-            {partners.map(([initials, name]) => (
-              <span key={initials}>
-                <i>{initials}</i>
-                {name}
-              </span>
-            ))}
-            <b>+8 aliados</b>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Phone() {
-  const partners = [
-    ['CB', 'Café Blend'],
-    ['TR', 'Trattoria'],
-    ['LL', 'Librería'],
-  ];
-
-  return (
-    <div className="phone-stage">
-      <div className="phone-glow" />
-      <div className="phone">
-        <div className="notch" />
-        <div className="phone-screen">
-          <div className="phone-status">
-            9:41 <span>●●● ◉</span>
-          </div>
-          <div className="phone-brand">
-            <BrandMark />
-            Benefy
-            <Icon name="notifications" />
-          </div>
-          <small className="phone-muted">Tu comunidad</small>
-          <h4>
-            Hola, Alex <em>✦</em>
-          </h4>
-          <div className="reward">
-            <small>BENEFICIO DE HOY</small>
-            <b>
-              Un café
-              <br />
-              por cuenta de <em>la casa.</em>
-            </b>
-            <span className="coffee">
-              <Icon name="local_cafe" />
-            </span>
-            <div>
-              En Café Blend <b>Canjear&nbsp; →</b>
-            </div>
-          </div>
-          <div className="partners-title">
-            Tus aliados <span>Ver todos</span>
-          </div>
-          <div className="phone-partners">
-            {partners.map(([initials, name]) => (
-              <span key={initials}>
-                <i>{initials}</i>
-                {name}
-              </span>
-            ))}
-          </div>
-          <div className="phone-nav">
-            <Icon name="home" />
-            <Icon name="qr_code_scanner" />
-            <Icon name="person" />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-const steps = [
-  {
-    number: '01',
-    title: 'Consumo en el comercio',
-    copy: 'El cliente disfruta su visita y pide su cuenta normal.',
-  },
-  {
-    number: '02',
-    title: 'Tap NFC o escaneo QR',
-    copy: 'Validación instantánea en la terminal o el móvil.',
-  },
-  {
-    number: '03',
-    title: 'Compensación automática',
-    copy: 'El libro contable B2B liquida entre comercios aliados.',
-  },
-];
-
-function Platform() {
-  return (
-    <section className="platform container" id="plataforma" aria-labelledby="platform-title">
-      <div className="platform-intro">
-        <div className="kicker">
-          <span>03</span>
-          UNA EXPERIENCIA, DOS PERSPECTIVAS
-        </div>
-        <h2 id="platform-title">
-          Arquitectura dual,
-          <br />
-          <em>simple por diseño.</em>
-        </h2>
-        <p>
-          La fidelización fracasa cuando el sistema es lento o complicado.
-          Benefy separa la gestión del negocio de la experiencia del cliente para
-          que ambas funcionen sin fricción.
-        </p>
-      </div>
-      <div className="platform-grid">
-        <article className="platform-card">
-          <div className="platform-copy">
-            <span className="platform-icon">
-              <Icon name="desktop_windows" />
-            </span>
-            <div>
-              <h3>Web ligera para gerentes</h3>
-              <p>
-                Configura campañas, crea alianzas y mide la retención sin
-                instalar software adicional.
-              </p>
-            </div>
-          </div>
-          <div className="dashboard-window">
-            <Dashboard />
-          </div>
-          <div className="platform-foot">
-            <Icon name="monitoring" />
-            Panel analítico en tiempo real
-          </div>
-        </article>
-        <article className="platform-card mobile-card">
-          <div className="platform-copy">
-            <span className="platform-icon">
-              <Icon name="smartphone" />
-            </span>
-            <div>
-              <h3>Ágil para cada cliente</h3>
-              <p>
-                Un toque NFC o QR para consultar y canjear beneficios, sin
-                formularios tediosos al pagar.
-              </p>
-            </div>
-          </div>
-          <Phone />
-          <div className="platform-foot">
-            <Icon name="touch_app" />
-            Wallet digital lista para usar
-          </div>
-        </article>
-      </div>
-      <div className="flow">
-        <div className="flow-title">
-          <span className="flow-symbol">
-            <Icon name="sync_alt" />
-          </span>
-          <span>
-            <b>Así de fácil</b>
-            <small>Un flujo de canje instantáneo</small>
-          </span>
-          <strong>
-            <Icon name="bolt" />
-            Sync &lt; 300 ms
-          </strong>
-        </div>
-        <div className="flow-steps">
-          {steps.map((step) => (
-            <div className="flow-step" key={step.number}>
-              <i>{step.number}</i>
-              <span>
-                <b>{step.title}</b>
-                <small>{step.copy}</small>
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function CTA() {
-  return (
-    <section className="container cta" id="contacto" aria-labelledby="cta-title">
-      <div className="cta-card">
-        <div className="cta-decor decor-one" />
-        <div className="cta-decor decor-two" />
-        <div className="cta-content">
-          <div className="cta-kicker">
-            <i />
-            TU PRÓXIMA ALIANZA EMPIEZA AQUÍ
-          </div>
-          <h2 id="cta-title">
-            ¿Listo para crecer
-            <br />
-            en <em>comunidad?</em>
-          </h2>
+    <section className="landing-section about-real-why" aria-labelledby="about-why-title">
+      <div className="container about-real-why-grid">
+        <Reveal className="landing-section-head">
+          <span className="landing-kicker">El problema que resolvemos</span>
+          <h2 id="about-why-title">Un programa de lealtad también es una operación.</h2>
           <p>
-            Súmate a más de 1,400 establecimientos que convirtieron clientes
-            esporádicos en promotores de su negocio.
+            No basta con mostrar una recompensa. El negocio necesita reglas,
+            permisos, vigencias y un registro confiable desde la visita hasta el canje.
           </p>
-          <div className="cta-actions">
-            <Link className="button button-light" to="/precios">
-              Comenzar gratis <Icon name="arrowForward" />
-            </Link>
-            <a className="cta-secondary" href="#footer">
-              Contactar al equipo
-            </a>
-          </div>
-          <small className="cta-note">
-            <Icon name="lock" />
-            Sin costo de instalación · Cancela cuando quieras
-          </small>
-        </div>
-        <div className="network-art">
-          <div className="ring outer" />
-          <div className="ring inner" />
-          <span className="star star-one">✦</span>
-          <span className="star star-two">✦</span>
-          <div className="network-logo">
-            <BrandMark />
-            Benefy
-          </div>
-          <i className="node node-one">
-            <Icon name="local_cafe" />
-          </i>
-          <i className="node node-two">
-            <Icon name="menu_book" />
-          </i>
-          <i className="node node-three">
-            <Icon name="restaurant" />
-          </i>
+        </Reveal>
+        <Reveal className="about-real-principles" delay={0.05}>
+          {principles.map((principle) => (
+            <article key={principle.title}>
+              <span><FontAwesomeIcon icon={principle.icon} /></span>
+              <div><h3>{principle.title}</h3><p>{principle.copy}</p></div>
+            </article>
+          ))}
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+function TwoExperiences() {
+  return (
+    <section className="landing-section about-real-experiences" aria-labelledby="about-experiences-title">
+      <div className="container">
+        <Reveal className="landing-section-head landing-section-head-light">
+          <span className="landing-kicker landing-kicker-light">Producto conectado</span>
+          <h2 id="about-experiences-title">Una base de datos, dos experiencias con responsabilidades distintas.</h2>
+          <p>El negocio administra y valida; el cliente acumula, consulta y utiliza sus beneficios.</p>
+        </Reveal>
+        <div className="about-real-experience-grid">
+          <Reveal className="about-real-experience-card">
+            <span className="about-real-experience-icon"><FontAwesomeIcon icon={faStore} /></span>
+            <small>Portal para negocios</small>
+            <h3>Control operativo y comercial</h3>
+            <ul>
+              <li><FontAwesomeIcon icon={faCheck} /> Programas de puntos y tarjetas de sellos</li>
+              <li><FontAwesomeIcon icon={faCheck} /> Recompensas, cupones y canjes</li>
+              <li><FontAwesomeIcon icon={faCheck} /> Sucursales, invitaciones y roles</li>
+              <li><FontAwesomeIcon icon={faCheck} /> Clientes y métricas por periodo</li>
+            </ul>
+          </Reveal>
+          <Reveal className="about-real-experience-card" delay={0.08}>
+            <span className="about-real-experience-icon"><FontAwesomeIcon icon={faCircleUser} /></span>
+            <small>Experiencia del cliente</small>
+            <h3>Progreso y beneficios personales</h3>
+            <ul>
+              <li><FontAwesomeIcon icon={faCheck} /> Registro de visitas con QR del negocio o sucursal</li>
+              <li><FontAwesomeIcon icon={faCheck} /> Saldo de puntos y progreso de tarjetas</li>
+              <li><FontAwesomeIcon icon={faCheck} /> Catálogo y adquisición de recompensas</li>
+              <li><FontAwesomeIcon icon={faCheck} /> Billetera, historial e inicio del canje</li>
+            </ul>
+          </Reveal>
         </div>
       </div>
+    </section>
+  );
+}
+
+function Roles() {
+  return (
+    <section className="landing-section about-real-roles" aria-labelledby="about-roles-title">
+      <div className="container about-real-roles-grid">
+        <Reveal className="landing-section-head">
+          <span className="landing-kicker">Personas y permisos</span>
+          <h2 id="about-roles-title">Cada rol ve y opera lo que le corresponde.</h2>
+          <p>Los permisos del portal se separan del plan comercial y respetan el alcance de negocio o sucursal.</p>
+        </Reveal>
+        <Reveal className="about-real-role-list" delay={0.05}>
+          {roles.map(([name, copy], index) => (
+            <article key={name}>
+              <span>0{index + 1}</span>
+              <div><h3>{name}</h3><p>{copy}</p></div>
+            </article>
+          ))}
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+function Transparency() {
+  return (
+    <section className="about-real-transparency" aria-labelledby="about-transparency-title">
+      <Reveal className="container about-real-transparency-inner">
+        <div>
+          <span className="landing-kicker">Construcción responsable</span>
+          <h2 id="about-transparency-title">La landing distingue lo disponible de lo que sigue en desarrollo.</h2>
+        </div>
+        <div>
+          <p>
+            Facturación con Stripe, analítica avanzada, exportación de reportes,
+            personalización avanzada y alianzas comerciales no se presentan como
+            capacidades actuales.
+          </p>
+          <p>
+            Premium amplía hoy la capacidad de sucursales, tarjetas, recompensas y equipo.
+          </p>
+        </div>
+      </Reveal>
+    </section>
+  );
+}
+
+function AboutCTA() {
+  return (
+    <section className="landing-final-cta" aria-labelledby="about-cta-title">
+      <Reveal className="container landing-final-cta-inner">
+        <div>
+          <span className="landing-kicker landing-kicker-light">Empieza con una base real</span>
+          <h2 id="about-cta-title">Crea el programa que tu equipo puede operar hoy.</h2>
+          <p>El plan Free se asigna automáticamente al registrar un negocio.</p>
+        </div>
+        <div className="landing-actions">
+          <Link className="landing-button landing-button-mint" to="/registro">Crear mi negocio</Link>
+          <Link className="landing-text-link landing-text-link-light" to="/precios">Comparar planes</Link>
+        </div>
+      </Reveal>
     </section>
   );
 }
 
 export default function AboutPage() {
-  useReveal(
-    '.about-page > section, .value-card, .how-step',
-  );
+  useEffect(() => {
+    const previousTitle = document.title;
+    document.title = 'Sobre Benefy | Lealtad conectada con la operación';
+    return () => { document.title = previousTitle; };
+  }, []);
 
   return (
-    <main className="about-page">
-      <Hero />
-      <Story />
-      <Values />
-      <Platform />
-      <CTA />
-    </main>
+    <LandingMotionProvider>
+      <main className="about-real-page">
+        <AboutHero />
+        <WhyBenefy />
+        <TwoExperiences />
+        <Roles />
+        <Transparency />
+        <AboutCTA />
+      </main>
+    </LandingMotionProvider>
   );
 }

@@ -19,6 +19,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 
 import Icon from '../components/Icon.tsx';
+import { LandingMotionProvider, Reveal } from '../components/LandingMotion.tsx';
 import PlansSection from '../components/PlansSection.tsx';
 import couponsAsset from '../assets/coupons.png';
 import logoMark from '../assets/logo_no_name.png';
@@ -144,7 +145,7 @@ function Hero() {
   return (
     <section className="landing-hero" aria-labelledby="landing-title">
       <div className="container landing-hero-grid">
-        <div className="landing-hero-copy">
+        <Reveal className="landing-hero-copy" mode="load">
           <span className="landing-kicker landing-kicker-light">Lealtad que tu negocio puede operar</span>
           <h1 id="landing-title">Premia cada visita y controla tu programa desde un solo lugar.</h1>
           <p>
@@ -160,9 +161,9 @@ function Hero() {
             <li><FontAwesomeIcon icon={faCheck} /> QR por negocio y sucursal</li>
             <li><FontAwesomeIcon icon={faCheck} /> Roles de operación</li>
           </ul>
-        </div>
+        </Reveal>
 
-        <div className="landing-product-preview" aria-label="Vista ilustrativa del portal de Benefy">
+        <Reveal className="landing-product-preview" mode="load" delay={0.12}>
           <div className="preview-toolbar">
             <span className="preview-brand"><img src={logoMark} alt="" width="488" height="319" decoding="async" /> Benefy</span>
             <span>Vista del portal</span>
@@ -188,7 +189,7 @@ function Hero() {
               <small>6 / 7</small>
             </article>
           </div>
-        </div>
+        </Reveal>
       </div>
     </section>
   );
@@ -197,7 +198,7 @@ function Hero() {
 function ValueProposition() {
   return (
     <section className="landing-value" aria-labelledby="value-title">
-      <div className="container landing-value-grid">
+      <Reveal className="container landing-value-grid">
         <div className="landing-section-head landing-value-head">
           <span className="landing-kicker">Una operación conectada</span>
           <h2 id="value-title">Del programa de lealtad al canje, sin perder el contexto.</h2>
@@ -207,7 +208,7 @@ function ValueProposition() {
           <article><span>02</span><h3>Operación por sucursal</h3><p>Visitas, canjes y personal conservan el lugar donde ocurrió cada acción.</p></article>
           <article><span>03</span><h3>Actividad trazable</h3><p>El portal reúne clientes, puntos, cupones y resultados por periodo.</p></article>
         </div>
-      </div>
+      </Reveal>
     </section>
   );
 }
@@ -216,12 +217,12 @@ function ProductFeatures() {
   return (
     <section className="landing-section landing-features" id="producto" aria-labelledby="features-title">
       <div className="container">
-        <div className="landing-section-head">
+        <Reveal className="landing-section-head">
           <span className="landing-kicker">El producto de hoy</span>
           <h2 id="features-title">Funciones que ya forman parte de la operación.</h2>
           <p>Cada módulo responde a un flujo real del sistema, desde crear la dinámica hasta consultar lo que ocurrió en cada sucursal.</p>
-        </div>
-        <div className="landing-feature-grid">
+        </Reveal>
+        <Reveal className="landing-feature-grid" delay={0.05}>
           {features.map((feature, index) => (
             <article className={`landing-feature landing-feature-${index + 1}`} key={feature.title}>
               <span className="landing-feature-icon" aria-hidden="true">
@@ -235,7 +236,7 @@ function ProductFeatures() {
               <p>{feature.copy}</p>
             </article>
           ))}
-        </div>
+        </Reveal>
       </div>
     </section>
   );
@@ -245,12 +246,12 @@ function HowItWorks() {
   return (
     <section className="landing-section landing-how" id="como-funciona" aria-labelledby="how-title">
       <div className="container">
-        <div className="landing-section-head landing-section-head-light">
+        <Reveal className="landing-section-head landing-section-head-light">
           <span className="landing-kicker landing-kicker-light">Cómo funciona</span>
           <h2 id="how-title">Un flujo claro para el negocio y para el cliente.</h2>
           <p>La configuración, la visita, el beneficio y el seguimiento comparten la misma lógica.</p>
-        </div>
-        <div className="landing-steps">
+        </Reveal>
+        <Reveal className="landing-steps" delay={0.05}>
           {steps.map((step, index) => (
             <article key={step.title}>
               <div className="landing-step-top"><span><FontAwesomeIcon icon={step.icon} /></span><small>0{index + 1}</small></div>
@@ -258,8 +259,8 @@ function HowItWorks() {
               <p>{step.copy}</p>
             </article>
           ))}
-        </div>
-        <div className="landing-customer-flow">
+        </Reveal>
+        <Reveal className="landing-customer-flow" delay={0.08}>
           <div>
             <span className="landing-kicker landing-kicker-light">Experiencia del cliente</span>
             <h3>Saldo, progreso y beneficios con un historial común.</h3>
@@ -270,7 +271,7 @@ function HowItWorks() {
             <span><img src={couponsAsset} alt="" width="2048" height="2048" loading="lazy" decoding="async" /> Obtiene un cupón</span>
             <span><FontAwesomeIcon icon={faTicket} /> Inicia el canje</span>
           </div>
-        </div>
+        </Reveal>
       </div>
     </section>
   );
@@ -280,12 +281,12 @@ function UseCases() {
   return (
     <section className="landing-section landing-cases" id="casos" aria-labelledby="cases-title">
       <div className="container">
-        <div className="landing-section-head landing-cases-head">
+        <Reveal className="landing-section-head landing-cases-head">
           <span className="landing-kicker">Casos de uso</span>
           <h2 id="cases-title">La misma base, configurada para hábitos distintos.</h2>
           <p>Estos ejemplos muestran cómo combinar las capacidades existentes de Benefy según la frecuencia de visita.</p>
-        </div>
-        <div className="landing-case-grid">
+        </Reveal>
+        <Reveal className="landing-case-grid" delay={0.05}>
           {cases.map((item) => (
             <article key={item.title}>
               <span><FontAwesomeIcon icon={item.icon} /></span>
@@ -294,7 +295,7 @@ function UseCases() {
               <small>{item.example}</small>
             </article>
           ))}
-        </div>
+        </Reveal>
       </div>
     </section>
   );
@@ -305,7 +306,7 @@ function FAQ() {
 
   return (
     <section className="landing-section landing-faq" id="preguntas" aria-labelledby="faq-title">
-      <div className="container landing-faq-layout">
+      <Reveal className="container landing-faq-layout">
         <div className="landing-section-head landing-faq-head">
           <span className="landing-kicker">Sin letra pequeña</span>
           <h2 id="faq-title">Preguntas sobre el producto actual.</h2>
@@ -326,7 +327,7 @@ function FAQ() {
             );
           })}
         </div>
-      </div>
+      </Reveal>
     </section>
   );
 }
@@ -334,7 +335,7 @@ function FAQ() {
 function FinalCTA() {
   return (
     <section className="landing-final-cta" aria-labelledby="final-cta-title">
-      <div className="container landing-final-cta-inner">
+      <Reveal className="container landing-final-cta-inner">
         <div>
           <span className="landing-kicker landing-kicker-light">Tu primer programa empieza en Free</span>
           <h2 id="final-cta-title">Configura una lealtad que tu equipo sí pueda operar.</h2>
@@ -344,7 +345,7 @@ function FinalCTA() {
           <Link className="landing-button landing-button-mint" to="/registro">Crear mi cuenta</Link>
           <Link className="landing-text-link landing-text-link-light" to="/login">Ya tengo una cuenta</Link>
         </div>
-      </div>
+      </Reveal>
     </section>
   );
 }
@@ -380,15 +381,17 @@ export default function HomePage() {
   }, []);
 
   return (
-    <main className="landing-page">
-      <Hero />
-      <ValueProposition />
-      <ProductFeatures />
-      <HowItWorks />
-      <UseCases />
-      <PlansSection />
-      <FAQ />
-      <FinalCTA />
-    </main>
+    <LandingMotionProvider>
+      <main className="landing-page">
+        <Hero />
+        <ValueProposition />
+        <ProductFeatures />
+        <HowItWorks />
+        <UseCases />
+        <PlansSection />
+        <FAQ />
+        <FinalCTA />
+      </main>
+    </LandingMotionProvider>
   );
 }

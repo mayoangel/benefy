@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCheck, faCrown, faSeedling } from '@fortawesome/free-solid-svg-icons';
+import { Reveal } from './LandingMotion.tsx';
 
 type PlansSectionProps = {
   headingLevel?: 'h1' | 'h2';
@@ -57,13 +58,13 @@ export default function PlansSection({
   return (
     <section className="landing-section plans-section" id="planes" aria-labelledby="plans-title">
       <div className="container">
-        <div className="landing-section-head plans-section-head">
+        <Reveal className="landing-section-head plans-section-head">
           <span className="landing-kicker">Planes reales del producto</span>
           <Heading id="plans-title">Empieza gratis. Amplía cuando tu operación lo pida.</Heading>
           <p>{intro}</p>
-        </div>
+        </Reveal>
 
-        <div className="plans-grid">
+        <Reveal className="plans-grid" delay={0.05}>
           {plans.map((plan) => (
             <article className={`real-plan real-plan-${plan.code}`} key={plan.code}>
               <div className="real-plan-head">
@@ -96,13 +97,15 @@ export default function PlansSection({
               </div>
             </article>
           ))}
-        </div>
+        </Reveal>
 
-        <p className="plans-truth-note">
-          Premium amplía los límites operativos. Analítica avanzada, exportación,
-          personalización y alianzas figuran en el esquema futuro del plan, pero todavía
-          no están disponibles y no se incluyen como beneficios actuales.
-        </p>
+        <Reveal delay={0.08}>
+          <p className="plans-truth-note">
+            Premium amplía los límites operativos. Analítica avanzada, exportación,
+            personalización y alianzas figuran en el esquema futuro del plan, pero todavía
+            no están disponibles y no se incluyen como beneficios actuales.
+          </p>
+        </Reveal>
       </div>
     </section>
   );
