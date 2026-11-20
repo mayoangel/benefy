@@ -13,6 +13,7 @@ const paths: Record<string, string> = {
   equipo: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M20 8v6m-3-3h6',
   sucursales: 'M4 10v11h16V10M3 10l2-7h14l2 7M8 21v-7h8v7M3 10h18',
   configuracion: 'M4 7h16M4 17h16M8 4v6m8 4v6',
+  admin: 'M4 21v-9l8-5 8 5v9M9 21v-5h6v5M3 21h18M8 9V5h8v4',
   menu: 'M4 6h16M4 12h16M4 18h16',
   salir: 'M9 4H4v16h5M14 8l4 4-4 4M8 12h12',
 };

@@ -19,7 +19,8 @@ body { background: var(--portal-bg); }
 .portal-shell *, .portal-shell *::before, .portal-shell *::after { box-sizing: border-box; }
 .portal-sidebar { position: fixed; inset: 0 auto 0 0; z-index: 10; width: var(--portal-rail); height: 100dvh; overflow-y: auto; overscroll-behavior: contain; background: var(--portal-navy); color: white; padding: 28px 16px 20px; display: flex; flex-direction: column; gap: 24px; }
 .portal-brand { display: flex; align-items: center; gap: 12px; padding: 0 12px 8px; }
-.portal-brand-mark { width: 40px; height: 40px; flex-shrink: 0; display: grid; place-items: center; border-radius: 12px 12px 12px 3px; background: var(--portal-mint); color: var(--portal-navy); font-family: var(--heading); font-weight: 800; font-size: 25px; }
+.portal-brand-mark { width: 44px; height: 40px; flex-shrink: 0; display: grid; place-items: center; border: 1px solid rgb(100 249 188 / 24%); border-radius: 10px; background: rgb(100 249 188 / 9%); }
+.portal-brand-mark img { display: block; width: 38px; height: auto; max-height: 30px; object-fit: contain; }
 .portal-brand strong, .portal-brand small { display: block; }
 .portal-brand strong { font-family: var(--heading); font-size: 23px; letter-spacing: -.04em; }
 .portal-brand small { color: #b3c9d6; font-size: 11px; }
@@ -99,6 +100,15 @@ body { background: var(--portal-bg); }
 .portal-role-badge[data-role="dueno"], .portal-role-badge[data-role="admin_sistema"] { background: #e8eff7; color: var(--portal-navy); }
 .portal-role-badge[data-role="supervisor"] { background: #e6f5ed; color: #005c40; }
 .portal-admin-kpis .portal-kpi:nth-child(-n+3) { grid-column: span 6; }
+.portal-admin-kpi { overflow: hidden; }
+.portal-admin-kpi-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.portal-admin-kpi-icon { width: 42px; height: 42px; flex: 0 0 42px; display: grid; place-items: center; border: 1px solid #cfe4dc; border-radius: 11px; background: #edf8f3; color: var(--portal-green); }
+.portal-admin-kpi-icon img { display: block; width: 32px; height: 24px; object-fit: contain; }
+.portal-entity-cell { display: flex; align-items: center; gap: 11px; min-width: 180px; }
+.portal-entity-logo { width: 38px; height: 38px; flex: 0 0 38px; display: grid; place-items: center; overflow: hidden; border: 1px solid var(--portal-line); border-radius: 10px; background: white; }
+.portal-entity-logo img { display: block; width: 100%; height: 100%; padding: 4px; object-fit: contain; }
+.portal-entity-logo.is-benefy { background: #edf8f3; border-color: #cfe4dc; }
+.portal-entity-logo.is-benefy img { width: 31px; height: auto; padding: 0; }
 .portal-empty-icon { color: var(--portal-green); }
 .portal-state h2 { font: 600 17px/1.4 var(--heading); color: var(--portal-navy); letter-spacing: -.02em; margin: 0; }
 .portal-table tr.is-current td { background: #edf8f2; }

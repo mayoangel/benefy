@@ -11,6 +11,7 @@ import {
 } from 'react-router-dom';
 
 import { useAuth } from '../auth/AuthProvider.tsx';
+import logoMark from '../assets/logo_no_name.png';
 import { membresiaDelNegocio } from '../lib/portal.ts';
 import type { RolComercio } from '../lib/types.ts';
 import { PortalIcon, PortalRoleBadge } from './components/PortalUI';
@@ -137,7 +138,9 @@ export default function PortalLayout() {
         aria-modal={mobile && menuOpen ? true : undefined} aria-label="Portal de negocios" onKeyDown={drawerKey} className={`portal-sidebar${menuOpen ? ' is-open' : ''}`}>
         {mobile ? <button className="portal-drawer-close" type="button" onClick={() => setMenuOpen(false)}>Cerrar menú</button> : null}
         <div className="portal-brand">
-          <span className="portal-brand-mark">B</span>
+          <span className="portal-brand-mark" aria-hidden="true">
+            <img src={logoMark} alt="" width="488" height="319" />
+          </span>
           <div>
             <strong>Benefy</strong>
             <small>{esAdmin ? 'Administración global' : 'Portal de negocios'}</small>
@@ -174,7 +177,7 @@ export default function PortalLayout() {
         <nav className="portal-nav" aria-label="Navegación del portal">
           {esAdmin ? (
             <NavLink end to="/portal/admin" className={({ isActive }) => isActive ? 'is-active' : ''}>
-              Administración global
+              <PortalIcon name="admin" />Administración global
             </NavLink>
           ) : null}
           {!esAdmin && NAV_GROUPS.map(group => {
