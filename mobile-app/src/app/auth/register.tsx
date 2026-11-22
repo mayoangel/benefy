@@ -80,7 +80,6 @@ export default function RegisterScreen() {
         return;
       }
 
-      router.replace('/');
     } catch {
       setErrorMsg('No se pudo completar el registro. Intenta de nuevo.');
     } finally {

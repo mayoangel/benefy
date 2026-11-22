@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useRouter } from 'expo-router';
+import { Link } from 'expo-router';
 import {
   ActivityIndicator,
   Image,
@@ -18,7 +18,6 @@ import { colors } from '../../constants/theme';
 import { supabase } from '../../lib/supabase';
 
 export default function LoginScreen() {
-  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -52,8 +51,6 @@ export default function LoginScreen() {
         return;
       }
 
-      // El AuthContext detectará la sesión y sincronizará con Django
-      router.replace('/');
     } catch {
       setErrorMsg('Error de conexión. Verifica tu internet e intenta de nuevo.');
     } finally {

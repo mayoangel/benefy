@@ -3,12 +3,13 @@ import { type Href, useRouter } from 'expo-router';
 import {
   Alert,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import HomeDashboard, { demoPoints, homeColors } from './src/components/HomeDashboard';
 
 type Tab = 'Inicio' | 'Dinámicas' | 'Cupones' | 'Billetera';
 
@@ -20,16 +21,16 @@ const tabPaths: Record<Tab, Href> = {
 };
 
 const colors = {
-  background: '#F7F6FB',
-  surface: '#FFFFFF',
-  ink: '#172222',
-  muted: '#71807F',
-  green: '#087B68',
-  greenDark: '#066653',
+  background: homeColors.background,
+  surface: homeColors.panel,
+  ink: homeColors.ink,
+  muted: homeColors.muted,
+  green: homeColors.green,
+  greenDark: homeColors.navy,
   mint: '#DDF8EB',
   paleGreen: '#EFFAF4',
   lavender: '#F0EFFB',
-  line: '#ECECF1',
+  line: homeColors.line,
 };
 
 const dynamics = [
@@ -112,41 +113,6 @@ function SectionHeading({
   );
 }
 
-function QuickAction({
-  icon,
-  label,
-  tint,
-  onPress,
-}: {
-  icon: string;
-  label: string;
-  tint: 'green' | 'mint' | 'lavender' | 'white';
-  onPress: () => void;
-}) {
-  const tintStyles = {
-    green: styles.quickIcon_green,
-    mint: styles.quickIcon_mint,
-    lavender: styles.quickIcon_lavender,
-    white: styles.quickIcon_white,
-  };
-
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      onPress={onPress}
-      style={({ pressed }) => [styles.quickAction, pressed && styles.pressed]}
-    >
-      <View style={[styles.quickIcon, tintStyles[tint]]}>
-        <Text style={[styles.quickIconText, tint === 'green' && styles.quickIconTextLight]}>
-          {icon}
-        </Text>
-      </View>
-      <Text style={styles.quickLabel}>{label}</Text>
-    </Pressable>
-  );
-}
-
 export default function App({ activeTab }: { activeTab: Tab }) {
   const router = useRouter();
 
@@ -176,7 +142,7 @@ export default function App({ activeTab }: { activeTab: Tab }) {
         </View>
       </View>
       <View style={styles.pointsRow}>
-        <Text style={styles.pointsValue}>1.480</Text>
+        <Text style={styles.pointsValue}>{demoPoints}</Text>
         <Text style={styles.pointsCaption}>Puntos acumulados</Text>
       </View>
       <View style={styles.benefitsRow}>
@@ -193,62 +159,6 @@ export default function App({ activeTab }: { activeTab: Tab }) {
           style={({ pressed }) => [styles.detailButton, pressed && styles.pressed]}
         >
           <Text style={styles.detailButtonText}>Detalle</Text>
-        </Pressable>
-      </View>
-    </View>
-  );
-
-  const renderQuickActions = () => (
-    <View style={styles.quickActions}>
-      <QuickAction
-        icon="⌗"
-        label="Escanear"
-        tint="green"
-        onPress={() => showUnavailableFeature('Escanear código QR')}
-      />
-      <QuickAction icon="▣" label="Canjear" tint="mint" onPress={() => goToTab('Cupones')} />
-      <QuickAction icon="ϟ" label="Dinámicas" tint="lavender" onPress={() => goToTab('Dinámicas')} />
-      <QuickAction icon="◷" label="Historial" tint="white" onPress={() => goToTab('Billetera')} />
-    </View>
-  );
-
-  const renderLoyaltyCard = () => (
-    <View style={styles.loyaltyCard}>
-      <View style={styles.loyaltyHeader}>
-        <View style={styles.activeLabel}>
-          <View style={styles.activeDot} />
-          <Text style={styles.activeLabelText}>BENEFICIO ACTIVO</Text>
-        </View>
-        <Text style={styles.visitsBadge}>4 de 5 visitas</Text>
-      </View>
-      <Text style={styles.loyaltyTitle}>¡Tu próxima recompensa va por nosotros!</Text>
-      <Text style={styles.loyaltyDescription}>
-        Completa el último sello y desbloquea 1 mes de café de cortesía en tus marcas favoritas.
-      </Text>
-      <View style={styles.stampsRow}>
-        {[1, 2, 3, 4].map((stamp) => (
-          <View key={stamp} style={styles.stampItem}>
-            <View style={styles.stampDone}>
-              <Text style={styles.stampCheck}>✓</Text>
-            </View>
-            <Text style={styles.stampNumber}>{stamp}</Text>
-          </View>
-        ))}
-        <View style={styles.stampItem}>
-          <View style={styles.stampGoal}>
-            <Text style={styles.stampGoalIcon}>♧</Text>
-          </View>
-          <Text style={styles.stampNumber}>Meta</Text>
-        </View>
-      </View>
-      <View style={styles.loyaltyFooter}>
-        <Text style={styles.participatingCafe}>☕  Café Blend participante</Text>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => showUnavailableFeature('Registrar visita')}
-          hitSlop={8}
-        >
-          <Text style={styles.registerVisit}>Registrar visita</Text>
         </Pressable>
       </View>
     </View>
@@ -348,37 +258,11 @@ export default function App({ activeTab }: { activeTab: Tab }) {
   );
 
   const renderHome = () => (
-    <>
-      <View style={styles.greetingRow}>
-        <View style={styles.flex}>
-          <View style={styles.membershipBadge}>
-            <Text style={styles.membershipSpark}>✦</Text>
-            <Text style={styles.membershipText}>MEMBRESÍA ACTIVA PRO</Text>
-          </View>
-          <Text style={styles.greeting}>¡Hola, Sofía!</Text>
-        </View>
-        <View style={styles.savingsIcon}>
-          <Text style={styles.savingsIconText}>▣</Text>
-        </View>
-      </View>
-      {renderBalanceCard()}
-      {renderQuickActions()}
-      {renderLoyaltyCard()}
-      {renderDynamics()}
-      {renderCoupons()}
-      <View style={styles.savingsTip}>
-        <View style={styles.tipIcon}>
-          <Text style={styles.tipIconText}>✧</Text>
-        </View>
-        <View style={styles.flex}>
-          <Text style={styles.tipTitle}>Consejo de ahorro</Text>
-          <Text style={styles.tipDescription}>
-            Tienes 2 suscripciones con prueba anual disponible.
-          </Text>
-        </View>
-        <Text style={styles.tipArrow}>›</Text>
-      </View>
-    </>
+    <HomeDashboard
+      onDynamics={() => goToTab('Dinámicas')}
+      onCoupons={() => goToTab('Cupones')}
+      onScan={() => showUnavailableFeature('Escanear código QR')}
+    />
   );
 
   const renderWallet = () => (
@@ -463,11 +347,11 @@ export default function App({ activeTab }: { activeTab: Tab }) {
         </Pressable>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Perfil de Sofía"
+          accessibilityLabel="Perfil de usuario"
           onPress={() => Alert.alert('Perfil', 'Tu perfil de Benefy estará disponible próximamente.')}
           style={({ pressed }) => [styles.avatar, pressed && styles.pressed]}
         >
-          <Text style={styles.avatarText}>S</Text>
+          <Text style={styles.avatarText}>A</Text>
         </Pressable>
       </View>
       <ScrollView
@@ -562,12 +446,12 @@ const styles = StyleSheet.create({
     borderRadius: 17,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F0D8C8',
+    backgroundColor: homeColors.mint,
     borderWidth: 2,
-    borderColor: '#F6ECE5',
+    borderColor: homeColors.panel,
   },
   avatarText: {
-    color: '#76533F',
+    color: homeColors.navy,
     fontWeight: '700',
     fontSize: 15,
   },
@@ -576,50 +460,8 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 28,
   },
-  greetingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
   flex: {
     flex: 1,
-  },
-  membershipBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    marginBottom: 4,
-  },
-  membershipSpark: {
-    color: colors.green,
-    fontSize: 13,
-    marginRight: 5,
-  },
-  membershipText: {
-    color: colors.greenDark,
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.45,
-  },
-  greeting: {
-    color: colors.ink,
-    fontSize: 27,
-    fontWeight: '800',
-    letterSpacing: -0.7,
-  },
-  savingsIcon: {
-    width: 46,
-    height: 46,
-    borderRadius: 16,
-    backgroundColor: '#E9EAFB',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 10,
-  },
-  savingsIconText: {
-    color: colors.green,
-    fontSize: 23,
-    fontWeight: '700',
   },
   balanceCard: {
     overflow: 'hidden',
@@ -728,165 +570,6 @@ const styles = StyleSheet.create({
     color: colors.greenDark,
     fontSize: 11,
     fontWeight: '700',
-  },
-  quickActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 18,
-  },
-  quickAction: {
-    width: '23.5%',
-    minHeight: 88,
-    borderRadius: 16,
-    backgroundColor: '#F0EFFB',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-  },
-  quickIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 6,
-  },
-  quickIcon_green: {
-    backgroundColor: colors.green,
-  },
-  quickIcon_mint: {
-    backgroundColor: '#8BF0BD',
-  },
-  quickIcon_lavender: {
-    backgroundColor: '#E3E5FA',
-  },
-  quickIcon_white: {
-    backgroundColor: '#FFFFFF',
-  },
-  quickIconText: {
-    color: colors.greenDark,
-    fontSize: 22,
-    fontWeight: '700',
-  },
-  quickIconTextLight: {
-    color: colors.surface,
-  },
-  quickLabel: {
-    color: colors.ink,
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  loyaltyCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 19,
-    padding: 16,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: '#F0EFF4',
-  },
-  loyaltyHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 11,
-  },
-  activeLabel: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  activeDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.green,
-    marginRight: 7,
-  },
-  activeLabelText: {
-    color: colors.greenDark,
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.3,
-  },
-  visitsBadge: {
-    overflow: 'hidden',
-    color: '#455154',
-    backgroundColor: '#F0EFF8',
-    borderRadius: 14,
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  loyaltyTitle: {
-    color: colors.ink,
-    fontSize: 19,
-    lineHeight: 24,
-    fontWeight: '700',
-    letterSpacing: -0.3,
-  },
-  loyaltyDescription: {
-    color: colors.muted,
-    fontSize: 12,
-    lineHeight: 18,
-    marginTop: 5,
-    marginBottom: 13,
-  },
-  stampsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    backgroundColor: '#F3F3FC',
-    borderRadius: 15,
-    paddingHorizontal: 8,
-    paddingVertical: 10,
-  },
-  stampItem: {
-    alignItems: 'center',
-    width: '19%',
-  },
-  stampDone: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: colors.green,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stampCheck: {
-    color: colors.surface,
-    fontSize: 20,
-    fontWeight: '700',
-  },
-  stampGoal: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#A1F0C8',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stampGoalIcon: {
-    color: colors.green,
-    fontSize: 20,
-  },
-  stampNumber: {
-    color: '#536363',
-    fontSize: 10,
-    marginTop: 4,
-  },
-  loyaltyFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 12,
-  },
-  participatingCafe: {
-    color: '#536363',
-    fontSize: 11,
-  },
-  registerVisit: {
-    color: colors.greenDark,
-    fontSize: 11,
-    fontWeight: '800',
   },
   section: {
     marginBottom: 22,
@@ -1112,43 +795,6 @@ const styles = StyleSheet.create({
     color: colors.greenDark,
     fontSize: 10,
     fontWeight: '800',
-  },
-  savingsTip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F0EFFB',
-    borderRadius: 17,
-    padding: 14,
-    marginBottom: 10,
-  },
-  tipIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: '#E2E1F7',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 11,
-  },
-  tipIconText: {
-    color: colors.greenDark,
-    fontSize: 22,
-  },
-  tipTitle: {
-    color: colors.ink,
-    fontSize: 12,
-    fontWeight: '800',
-    marginBottom: 2,
-  },
-  tipDescription: {
-    color: colors.muted,
-    fontSize: 10,
-    lineHeight: 15,
-  },
-  tipArrow: {
-    color: colors.greenDark,
-    fontSize: 28,
-    marginLeft: 8,
   },
   pageTitle: {
     color: colors.ink,

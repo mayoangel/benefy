@@ -1,12 +1,14 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Session, User } from '@supabase/supabase-js';
+import { type Session, type User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 
 interface AuthContextType {
   session: Session | null;
   user: User | null;
-  benefyUser: any | null;
+  benefyUser: unknown;
   loading: boolean;
+  recovering: boolean;
+  finishRecovery: () => void;
   signOut: () => Promise<void>;
 }
 
@@ -15,66 +17,55 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   benefyUser: null,
   loading: true,
+  recovering: false,
+  finishRecovery: () => {},
   signOut: async () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
-  const [benefyUser, setBenefyUser] = useState<any | null>(null);
+  const [profile, setProfile] = useState<{ userId: string; data: unknown }>();
   const [loading, setLoading] = useState(true);
-
-  const syncWithBackend = async (currentSession: Session | null) => {
-    if (!currentSession) {
-      setBenefyUser(null);
-      return;
-    }
-
-    try {
-      const meta = currentSession.user.user_metadata || {};
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/v1/auth/sync/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${currentSession.access_token}`,
-        },
-        body: JSON.stringify({
-          nombre: meta.nombre || '',
-          apellido: meta.apellido || '',
-          telefono: meta.telefono || null,
-          rol: meta.rol || 'consumidor',
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setBenefyUser(data.usuario ?? data);
-      }
-    } catch (err) {
-      console.warn('Error sincronizando usuario con Django:', err);
-    }
-  };
+  const [recovering, setRecovering] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      await syncWithBackend(session);
-      setLoading(false);
-    });
-
     const { data: listener } = supabase.auth.onAuthStateChange(
-      async (_event, newSession) => {
+      (event, newSession) => {
         setSession(newSession);
-        await syncWithBackend(newSession);
+        if (event === 'PASSWORD_RECOVERY') setRecovering(true);
+        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') setRecovering(false);
+        if (event === 'SIGNED_OUT') setProfile(undefined);
+        setLoading(false);
       },
     );
 
     return () => listener.subscription.unsubscribe();
   }, []);
 
+  useEffect(() => {
+    const api = process.env.EXPO_PUBLIC_API_URL;
+    if (!api || !session || recovering) return;
+    const request = new AbortController();
+    void (async () => {
+      try {
+        const response = await fetch(`${api.replace(/\/$/, '')}/v1/autenticacion/perfil/`, {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+          signal: request.signal,
+        });
+        if (response.ok) {
+          const data: unknown = await response.json();
+          if (!request.signal.aborted) setProfile({ userId: session.user.id, data });
+        }
+      } catch (error) {
+        if (!request.signal.aborted) console.warn('No se pudo consultar el perfil de Django:', error);
+      }
+    })();
+    return () => request.abort();
+  }, [session, recovering]);
+
   const signOut = async () => {
-    await supabase.auth.signOut();
-    setSession(null);
-    setBenefyUser(null);
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
   };
 
   return (
@@ -82,8 +73,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value={{
         session,
         user: session?.user ?? null,
-        benefyUser,
+        benefyUser: profile && profile.userId === session?.user.id ? profile.data : null,
         loading,
+        recovering,
+        finishRecovery: () => setRecovering(false),
         signOut,
       }}
     >

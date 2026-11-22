@@ -16,10 +16,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors } from '../../constants/theme';
+import { useAuth } from '../../auth/AuthContext';
 import { supabase } from '../../lib/supabase';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
+  const { recovering, finishRecovery } = useAuth();
   const [step, setStep] = useState<'request' | 'verify'>('request');
   const [email, setEmail] = useState('');
   const [otpCode, setOtpCode] = useState('');
@@ -56,7 +58,7 @@ export default function ForgotPasswordScreen() {
     setErrorMsg(null);
     const cleanEmail = email.trim().toLowerCase();
 
-    if (otpCode.trim().length < 6) {
+    if (!recovering && otpCode.trim().length < 6) {
       setErrorMsg('Ingresa el código de 6 dígitos que enviamos a tu correo.');
       return;
     }
@@ -72,15 +74,16 @@ export default function ForgotPasswordScreen() {
     setLoading(true);
     try {
       // 1. Verificar el código OTP de recuperación (inicia sesión temporal)
-      const { error: verifyError } = await supabase.auth.verifyOtp({
-        email: cleanEmail,
-        token: otpCode.trim(),
-        type: 'recovery',
-      });
-
-      if (verifyError) {
-        setErrorMsg('El código es inválido o ya expiró.');
-        return;
+      if (!recovering) {
+        const { error: verifyError } = await supabase.auth.verifyOtp({
+          email: cleanEmail,
+          token: otpCode.trim(),
+          type: 'recovery',
+        });
+        if (verifyError) {
+          setErrorMsg('El código es inválido o ya expiró.');
+          return;
+        }
       }
 
       // 2. Actualizar la contraseña del usuario autenticado
@@ -96,7 +99,7 @@ export default function ForgotPasswordScreen() {
       Alert.alert(
         'Contraseña actualizada',
         'Tu contraseña se restableció correctamente.',
-        [{ text: 'Continuar', onPress: () => router.replace('/') }],
+        [{ text: 'Continuar', onPress: finishRecovery }],
       );
     } catch {
       setErrorMsg('Ocurrió un error al restablecer tu contraseña.');
