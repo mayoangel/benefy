@@ -1,3 +1,5 @@
+import { createThemedStyles, useBenefyTheme } from '../theme';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
@@ -7,6 +9,8 @@ import { BusinessMark } from './business';
 import { Button, Card, Copy, Heading, Notice, Screen, Skeleton } from './ui';
 
 export function RegisterScreen() {
+  const { colors } = useBenefyTheme();
+  const cameraStyles = useCameraStyles();
   const [permission, requestPermission, refreshPermission] = useCameraPermissions();
   const [active, setActive] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -50,27 +54,40 @@ export function RegisterScreen() {
     }
   };
 
+  const scanning = active && permission?.granted && focused;
+  const needsSettings = permission && !permission.granted && !permission.canAskAgain;
+
   return <Screen title="Registrar visita" tabs>
     {!permission && !error && <Skeleton />}
     {error !== '' && <Notice title={error} retry={() => void allowCamera()} />}
-    {permission && (!active || !permission.granted) && <Card>
-      <Heading>Escanear código QR</Heading>
-      <Copy>Benefy usa la cámara para leer el código del negocio. No guarda fotos ni video.</Copy>
-      {!permission.granted && (permission.status === 'denied' || !permission.canAskAgain)
-        ? <><Copy>Activa el permiso de cámara en los ajustes del dispositivo para registrar visitas.</Copy>
-          <Button label="Abrir ajustes" onPress={() => void Linking.openSettings().catch(() => setError('No se pudieron abrir los ajustes.'))} /></>
-        : <Button label={permission.granted ? 'Abrir cámara' : 'Permitir cámara'} onPress={() => void allowCamera()} />}
-    </Card>}
-    {active && permission?.granted && focused && <>
-      <View style={cameraStyles.preview}>
-        <CameraView style={StyleSheet.absoluteFill} barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+    {permission && <View style={cameraStyles.card}>
+      <View style={[cameraStyles.preview, scanning && cameraStyles.livePreview]}>
+        {scanning && <CameraView style={StyleSheet.absoluteFill} barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
           onBarcodeScanned={result => scan(result.data)}
-          onMountError={() => { setError('No se pudo abrir la cámara.'); setActive(false); }} />
-        <View pointerEvents="none" style={cameraStyles.guide}><View style={cameraStyles.frame} /></View>
+          onMountError={() => { setError('No se pudo abrir la cámara.'); setActive(false); }} />}
+        <View pointerEvents="none" style={cameraStyles.guide}>
+          <View style={[cameraStyles.frame, scanning && cameraStyles.liveFrame]}>
+            {!scanning && <MaterialIcons name="qr-code-scanner" size={48} color={colors.mint} />}
+          </View>
+        </View>
       </View>
-      <Text style={cameraStyles.instruction}>Coloca el código dentro del recuadro</Text>
-      <Button label="Cancelar" kind="quiet" onPress={() => setActive(false)} />
-    </>}
+      <View style={cameraStyles.controls}>
+        <Text accessibilityRole="header" style={cameraStyles.instruction}>
+          {scanning ? 'Coloca el QR dentro del recuadro' : 'Escanea el QR del negocio'}
+        </Text>
+        {needsSettings && <Copy>Activa el permiso de cámara en los ajustes del dispositivo para registrar tu visita.</Copy>}
+        {scanning
+          ? <Button label="Cerrar cámara" kind="quiet" onPress={() => setActive(false)} />
+          : needsSettings
+            ? <Button label="Abrir ajustes" icon="settings" onPress={() => void Linking.openSettings().catch(() => setError('No se pudieron abrir los ajustes.'))} />
+            : <Button label={permission.granted ? 'Abrir cámara' : 'Permitir cámara'} icon="qr-code-scanner"
+                onPress={() => void allowCamera()} />}
+      </View>
+    </View>}
+    {permission && !scanning && <View style={cameraStyles.privacy}>
+      <MaterialIcons name="lock-outline" size={16} color={colors.muted} />
+      <Text style={cameraStyles.privacyText}>La cámara solo lee el QR. Benefy no guarda fotos ni videos.</Text>
+    </View>}
   </Screen>;
 }
 
@@ -116,9 +133,16 @@ export function ScanErrorScreen() {
   </Screen>;
 }
 
-const cameraStyles = StyleSheet.create({
-  preview: { height: 360, borderRadius: 16, overflow: 'hidden', backgroundColor: '#002647' },
+const useCameraStyles = createThemedStyles(colors => StyleSheet.create({
+  card: { borderRadius: 20, borderWidth: 1, borderColor: colors.line, overflow: 'hidden', backgroundColor: colors.panel },
+  preview: { height: 180, overflow: 'hidden', backgroundColor: colors.brand },
+  livePreview: { height: 340 },
   guide: { ...StyleSheet.absoluteFill, justifyContent: 'center', alignItems: 'center' },
-  frame: { width: '68%', aspectRatio: 1, maxWidth: 260, borderColor: '#64F9BC', borderWidth: 3, borderRadius: 24 },
-  instruction: { color: '#002647', fontSize: 16, textAlign: 'center', fontWeight: '700' },
-});
+  frame: { width: 106, aspectRatio: 1, borderColor: colors.mint, borderWidth: 2, borderRadius: 24,
+    alignItems: 'center', justifyContent: 'center' },
+  liveFrame: { width: '68%', maxWidth: 260, borderWidth: 3 },
+  controls: { padding: 16, gap: 12 },
+  instruction: { color: colors.navy, fontSize: 19, textAlign: 'center', fontWeight: '800' },
+  privacy: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 12 },
+  privacyText: { color: colors.muted, fontSize: 12, flexShrink: 1 },
+}));

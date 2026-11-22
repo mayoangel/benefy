@@ -259,7 +259,6 @@ export default function App({ activeTab }: { activeTab: Tab }) {
 
   const renderHome = () => (
     <HomeDashboard
-      onHistory={() => goToTab('Billetera')}
       onDynamics={() => goToTab('Dinámicas')}
       onCoupons={() => goToTab('Cupones')}
       onScan={() => showUnavailableFeature('Escanear código QR')}

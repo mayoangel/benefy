@@ -1,18 +1,10 @@
+import { createThemedStyles, useBenefyTheme } from '../theme';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 export const demoPoints = 520;
 
-export const homeColors = {
-  navy: '#002647',
-  mint: '#64F9BC',
-  green: '#006C4B',
-  ink: '#191C1E',
-  muted: '#626A71',
-  background: '#F7F9FB',
-  panel: '#FFFFFF',
-  subtle: '#F0F3F5',
-  line: '#E4E9EC',
-};
+export { lightColors as homeColors } from '../theme';
 
 export const merchants = [
   {
@@ -41,10 +33,7 @@ export const merchants = [
 type HomeDashboardProps = {
   cards?: readonly (typeof merchants)[number][];
   name?: string;
-  unread?: number;
-  onNotifications?: () => void;
   onBusiness?: (index: number) => void;
-  onHistory: () => void;
   onDynamics: () => void;
   onCoupons: () => void;
   onScan: () => void;
@@ -53,30 +42,18 @@ type HomeDashboardProps = {
 export default function HomeDashboard({
   cards = merchants,
   name = 'Alex',
-  unread = 0,
-  onNotifications,
   onBusiness,
-  onHistory,
   onDynamics,
   onCoupons,
   onScan,
 }: HomeDashboardProps) {
+  const { colors } = useBenefyTheme();
+  const styles = useStyles();
   return (
     <View style={styles.dashboard}>
-      <View style={styles.row}>
-        <View style={styles.flex}>
-          <Text accessibilityRole="header" style={styles.greeting}>¡Hola, {name}! 👋</Text>
-          <Text style={styles.description}>Tus comercios favoritos</Text>
-        </View>
-        <Pressable accessibilityRole="button" accessibilityLabel="Historial" onPress={onHistory} style={styles.historyButton}>
-          <Text style={styles.link}>↶</Text>
-        </Pressable>
-        {onNotifications && (
-          <Pressable accessibilityRole="button" accessibilityLabel={`Notificaciones, ${unread} sin leer`}
-            onPress={onNotifications} style={styles.historyButton}>
-            <Text style={styles.link}>🔔{unread > 0 ? ` ${unread}` : ''}</Text>
-          </Pressable>
-        )}
+      <View>
+        <Text accessibilityRole="header" style={styles.greeting}>¡Hola, {name}! 👋</Text>
+        <Text style={styles.description}>Tus comercios favoritos</Text>
       </View>
 
       <View style={styles.summary}>
@@ -86,6 +63,16 @@ export default function HomeDashboard({
             <Text style={styles.points}>
               {demoPoints} <Text style={styles.pointsUnit}>pts Benefy</Text>
             </Text>
+            <View style={styles.summaryTags}>
+              <View style={styles.summaryTag}>
+                <MaterialIcons name="storefront" size={14} color={colors.mint} />
+                <Text style={styles.summaryTagText}>{cards.length} activos</Text>
+              </View>
+              <View style={styles.summaryTag}>
+                <MaterialIcons name="redeem" size={14} color={colors.mint} />
+                <Text style={styles.summaryTagText}>1 premio listo</Text>
+              </View>
+            </View>
           </View>
           <Pressable
             accessibilityRole="button"
@@ -93,12 +80,8 @@ export default function HomeDashboard({
             onPress={onScan}
             style={({ pressed }) => [styles.summaryScan, pressed && styles.pressed]}
           >
-            <Text style={styles.link}>QR</Text>
+            <MaterialIcons name="qr-code-scanner" size={24} color={colors.onMint} />
           </Pressable>
-        </View>
-        <View style={styles.summaryTags}>
-          <Text style={styles.summaryTag}>{cards.length} comercios activos</Text>
-          <Text style={styles.summaryTag}>1 premio listo</Text>
         </View>
       </View>
 
@@ -108,7 +91,16 @@ export default function HomeDashboard({
       </View>
 
       {cards.map((merchant, index) => (
-        <View key={merchant.name} style={styles.card}>
+        <Pressable
+          key={merchant.name}
+          accessibilityRole="button"
+          accessibilityLabel={`${merchant.name}, ${merchant.category}. ${merchant.goal}. ${merchant.balance}.`}
+          accessibilityHint={onBusiness ? 'Abre la información del negocio' : merchant.action}
+          onPress={onBusiness ? () => onBusiness(index) : index === 0 ? onDynamics : index === 1
+            ? () => Alert.alert('Gimnasio Fuerza', 'El canje del pase libre estará disponible cuando se conecten los servicios de Benefy.')
+            : onCoupons}
+          style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+        >
           <View style={styles.merchantHeading}>
             <View accessible={false} style={styles.merchantIcon}>
               <Text style={styles.emoji}>{merchant.icon}</Text>
@@ -118,11 +110,15 @@ export default function HomeDashboard({
               <Text accessibilityRole="header" style={styles.merchantName}>{merchant.name}</Text>
               <Text style={styles.description}>{merchant.category}</Text>
             </View>
+            <MaterialIcons name="chevron-right" size={24} color={colors.muted} />
           </View>
 
           <View style={styles.metrics}>
             <View style={styles.metric}>
-              <Text style={styles.description}>{merchant.progress ? '◉' : '◇'} {merchant.goalLabel}</Text>
+              <View style={styles.row}>
+                <Text style={[styles.description, styles.flex]}>{merchant.goalLabel}</Text>
+                <MaterialIcons name={merchant.progress ? 'loyalty' : 'handshake'} size={16} color={colors.green} />
+              </View>
               <Text style={styles.metricValue}>{merchant.goal}</Text>
               {merchant.progress && (
                 <View style={styles.track}>
@@ -131,7 +127,10 @@ export default function HomeDashboard({
               )}
             </View>
             <View style={styles.metric}>
-              <Text style={styles.description}>★ {merchant.balanceLabel}</Text>
+              <View style={styles.row}>
+                <Text style={[styles.description, styles.flex]}>{merchant.balanceLabel}</Text>
+                <MaterialIcons name="stars" size={16} color={colors.green} />
+              </View>
               <Text style={styles.metricValue}>{merchant.balance}</Text>
               <Text style={styles.description}>{merchant.note}</Text>
             </View>
@@ -139,18 +138,9 @@ export default function HomeDashboard({
 
           <View style={styles.cardFooter}>
             <Text style={styles.tag}>{merchant.tag}</Text>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`${merchant.action} de ${merchant.name}`}
-              onPress={onBusiness ? () => onBusiness(index) : index === 0 ? onDynamics : index === 1
-                ? () => Alert.alert('Gimnasio Fuerza', 'El canje del pase libre estará disponible cuando se conecten los servicios de Benefy.')
-                : onCoupons}
-              style={styles.cardAction}
-            >
-              <Text style={styles.link}>{merchant.action} ›</Text>
-            </Pressable>
+            <Text style={styles.link}>{merchant.action}</Text>
           </View>
-        </View>
+        </Pressable>
       ))}
 
       <Pressable
@@ -158,52 +148,47 @@ export default function HomeDashboard({
         onPress={onScan}
         style={({ pressed }) => [styles.scanButton, pressed && styles.pressed]}
       >
+        <MaterialIcons name="qr-code-scanner" size={21} color={colors.onMint} />
         <Text style={styles.scanLabel}>Escanear QR de un nuevo comercio</Text>
       </Pressable>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles(colors => StyleSheet.create({
   dashboard: { gap: 16 },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   flex: { flex: 1 },
-  greeting: { color: homeColors.navy, fontSize: 27, fontWeight: '800' },
-  description: { color: homeColors.muted, fontSize: 13 },
-  historyButton: {
-    minHeight: 44,
-    justifyContent: 'center',
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    backgroundColor: homeColors.subtle,
-  },
-  summary: { backgroundColor: homeColors.navy, borderRadius: 20, padding: 18, gap: 6 },
-  summaryLabel: { color: homeColors.mint, fontSize: 11, fontWeight: '700', letterSpacing: 1 },
-  points: { color: homeColors.panel, fontSize: 38, fontWeight: '800' },
-  pointsUnit: { color: homeColors.mint, fontSize: 15, fontWeight: '600' },
+  greeting: { color: colors.navy, fontSize: 27, fontWeight: '800' },
+  description: { color: colors.muted, fontSize: 13 },
+  summary: { backgroundColor: colors.brand, borderRadius: 20, padding: 18, gap: 6 },
+  summaryLabel: { color: colors.mint, fontSize: 11, fontWeight: '700', letterSpacing: 1 },
+  points: { color: colors.onBrand, fontSize: 38, fontWeight: '800' },
+  pointsUnit: { color: colors.mint, fontSize: 15, fontWeight: '600' },
   summaryScan: {
     minWidth: 44,
     minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 12,
-    backgroundColor: homeColors.mint,
+    backgroundColor: colors.mint,
   },
   summaryTags: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
   summaryTag: {
-    color: homeColors.panel,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     backgroundColor: '#133C64',
     borderRadius: 20,
     paddingHorizontal: 9,
     paddingVertical: 4,
-    fontSize: 12,
-    fontWeight: '600',
   },
-  sectionTitle: { color: homeColors.navy, flex: 1, fontSize: 19, fontWeight: '800' },
-  sectionCount: { color: homeColors.muted, fontSize: 12, fontWeight: '600' },
+  summaryTagText: { color: colors.onBrand, fontSize: 12, fontWeight: '600' },
+  sectionTitle: { color: colors.navy, flex: 1, fontSize: 19, fontWeight: '800' },
+  sectionCount: { color: colors.muted, backgroundColor: colors.subtle, borderRadius: 12, paddingHorizontal: 9, paddingVertical: 4, fontSize: 12, fontWeight: '600' },
   card: {
-    backgroundColor: homeColors.panel,
-    borderColor: homeColors.line,
+    backgroundColor: colors.panel,
+    borderColor: colors.line,
     borderWidth: 1,
     borderRadius: 18,
     padding: 14,
@@ -214,38 +199,40 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: homeColors.subtle,
+    backgroundColor: colors.subtle,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
   merchantLogo: { position: 'absolute', width: 44, height: 44 },
   emoji: { fontSize: 22 },
-  merchantName: { color: homeColors.navy, fontSize: 16, fontWeight: '800' },
+  merchantName: { color: colors.navy, fontSize: 16, fontWeight: '800' },
   metrics: { flexDirection: 'row', gap: 8 },
-  metric: { flex: 1, backgroundColor: homeColors.subtle, borderRadius: 12, padding: 10, gap: 4 },
-  metricValue: { color: homeColors.ink, fontSize: 14, fontWeight: '700' },
-  track: { height: 5, borderRadius: 3, backgroundColor: homeColors.line, overflow: 'hidden' },
-  fill: { height: '100%', borderRadius: 3, backgroundColor: homeColors.green },
+  metric: { flex: 1, backgroundColor: colors.subtle, borderRadius: 12, padding: 10, gap: 4 },
+  metricValue: { color: colors.ink, fontSize: 14, fontWeight: '700' },
+  track: { height: 5, borderRadius: 3, backgroundColor: colors.line, overflow: 'hidden' },
+  fill: { height: '100%', borderRadius: 3, backgroundColor: colors.green },
   cardFooter: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 4 },
   tag: {
-    color: homeColors.green,
-    backgroundColor: '#DCF8ED',
+    color: colors.green,
+    backgroundColor: colors.positiveSurface,
     borderRadius: 20,
     paddingHorizontal: 9,
     paddingVertical: 4,
     fontSize: 12,
     fontWeight: '600',
   },
-  cardAction: { minHeight: 44, justifyContent: 'center' },
-  link: { color: homeColors.green, fontSize: 13, fontWeight: '700' },
+  link: { color: colors.green, fontSize: 13, fontWeight: '700' },
   scanButton: {
     minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
     padding: 12,
-    backgroundColor: homeColors.mint,
+    backgroundColor: colors.mint,
     borderRadius: 14,
   },
-  scanLabel: { color: homeColors.navy, fontSize: 14, fontWeight: '800', textAlign: 'center' },
+  scanLabel: { color: colors.onMint, flexShrink: 1, fontSize: 14, fontWeight: '800', textAlign: 'center' },
   pressed: { opacity: 0.72 },
-});
+}));
