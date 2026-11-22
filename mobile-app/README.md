@@ -40,9 +40,10 @@ Los scripts disponibles son:
 | `npm run android` | Solicita abrir el proyecto en Android |
 | `npm run ios` | Solicita abrir el proyecto en iOS; depende del entorno disponible |
 | `npm run web` | Solicita el destino web; requiere comprobar/instalar sus dependencias compatibles |
+| `npm run lint` | Verifica el código con ESLint |
 | `npx tsc --noEmit` | Verifica TypeScript sin generar archivos |
 
-No hay scripts de lint ni pruebas. El script web existe, pero falta
+El script web existe, pero falta
 `react-native-web`; no se considera un destino verificado. En PowerShell puedes usar
 `npm.cmd` y `npx.cmd` si la ejecución de scripts está deshabilitada.
 
@@ -53,20 +54,21 @@ La navegación futura debe seguir las instrucciones locales de Expo del proyecto
 
 ## Variables y acceso al backend
 
-Crea `.env` a partir de [.env.example](./.env.example) si no existe.
-El prefijo público móvil es `EXPO_PUBLIC_*`; las variables del ejemplo aún
-no se consumen en `App.tsx`.
+Crea `.env` a partir de [.env.example](./.env.example). Configura
+`EXPO_PUBLIC_SUPABASE_URL` y `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` para iniciar
+sesión con Supabase. Configura la plantilla de recuperación de Supabase para
+enviar el código OTP que solicita la pantalla de recuperación.
 
 Para un dispositivo físico, `EXPO_PUBLIC_API_URL` deberá usar la IP LAN del
-equipo que ejecuta Django, por ejemplo `http://192.168.1.50:8000/api/v1`.
+equipo que ejecuta Django, por ejemplo `http://192.168.1.50:8000/api`.
 `localhost` en el teléfono apunta al propio teléfono. Comprueba red y firewall.
 El backend del montaje de demostración está ligado al loopback del servidor;
 requiere publicación HTTPS para el acceso móvil externo.
 
-La autenticación prevista para los clientes es Supabase Auth; el backend ya
-verifica access tokens y aplica permisos. Consulta [autenticación](../docs/autenticacion.md)
-y [API](../docs/api.md). Los IDs OAuth Google del ejemplo son placeholders;
-Firebase está pospuesto y no se encuentra integrado.
+La autenticación usa Supabase Auth y el cliente consulta el perfil en Django
+cuando hay una URL de API configurada. Las pantallas de recompensas y registro
+de visitas usan datos de demostración. Consulta [autenticación](../docs/autenticacion.md)
+y [API](../docs/api.md).
 
 Nunca uses variables `EXPO_PUBLIC_*` para passwords, claves secretas o
 credenciales de PostgreSQL. La app se ejecuta fuera de Docker.

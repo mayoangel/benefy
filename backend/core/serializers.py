@@ -1,0 +1,1948 @@
+from datetime import timedelta
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+from rest_framework import serializers
+from django.utils import timezone
+
+from core import models
+from core.services import planes
+
+
+def validar_zona_horaria(value):
+    """Valida un nombre IANA de zona horaria."""
+    try:
+        ZoneInfo(value)
+    except (ZoneInfoNotFoundError, ValueError):
+        raise serializers.ValidationError("La zona horaria no es válida.")
+    return value
+
+
+# Usuario Serializers
+
+#Create
+class UsuarioSerializerCreate(serializers.ModelSerializer):
+    class Meta:
+        model = models.Usuario
+        fields = [
+            "id",
+            "nombre",
+            "apellido",
+            "telefono",
+            "foto_perfil",
+        ]
+        read_only_fields = ["id"]
+
+    def validate(self, attrs):
+        if set(self.initial_data) - {"nombre", "apellido", "telefono", "foto_perfil"}:
+            raise serializers.ValidationError("Solo se permiten los campos editables del perfil.")
+        return attrs
+
+    def validate_nombre(self, value):
+        if not value.strip():
+            raise serializers.ValidationError("El nombre no puede estar vacío.")
+        return value
+
+    def validate_apellido(self, value):
+        if not value.strip():
+            raise serializers.ValidationError("El apellido no puede estar vacío.")
+        return value
+
+#List
+class UsuarioSerializerList(serializers.ModelSerializer):
+    class Meta:
+        model = models.Usuario
+        fields = [
+            "id",
+            "nombre",
+            "apellido",
+            "correo",
+            "rol",
+        ]
+
+#Retrieve
+class UsuarioSerializerDetail(serializers.ModelSerializer):
+    class Meta:
+        model = models.Usuario
+        fields = ["id", "supabase_uid", "nombre", "apellido", "telefono", "correo",
+                  "rol", "foto_perfil", "qr_token", "is_active", "fecha_registro", "fecha_actualizacion"]
+
+#Update
+class UsuarioSerializerUpdate(UsuarioSerializerCreate):
+    class Meta:
+        model = models.Usuario
+        fields = [
+            "nombre",
+            "apellido",
+            "telefono",
+            "foto_perfil",
+        ]
+
+class UsuarioRolSerializer(serializers.ModelSerializer):
+    rol = serializers.CharField(max_length=30)
+
+    class Meta:
+        model = models.Usuario
+        fields = ["rol", "is_active"]
+
+    def validate_rol(self, value):
+        if value == "negocio":
+            # Alias temporal para clientes anteriores al refactor.
+            return "consumidor"
+        if value not in ("consumidor", "admin_sistema"):
+            raise serializers.ValidationError(
+                "El rol debe ser consumidor o admin_sistema."
+            )
+        return value
+
+#Delete
+class UsuarioSerializerDelete(serializers.ModelSerializer):
+    class Meta:
+        model = models.Usuario
+        fields = "__all__"
+
+#Categoria-Negocio Serializers
+
+#Create
+class CategoriaNegocioSerializerCreate(serializers.ModelSerializer):
+    class Meta:
+        model = models.CategoriaNegocio
+        fields = [
+            "nombre",
+            "descripcion",
+        ]
+
+    def validate_nombre(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError("El nombre de la categoría no puede estar vacío.")
+        if models.CategoriaNegocio.objects.filter(nombre__iexact=value).exists():
+            raise serializers.ValidationError("Ya existe una categoría con este nombre.")
+        return value
+
+#List
+class CategoriaNegocioSerializerList(serializers.ModelSerializer):
+    class Meta:
+        model = models.CategoriaNegocio
+        fields = [
+            "id",
+            "nombre",
+        ]
+
+#Retrieve
+class CategoriaNegocioSerializerDetail(serializers.ModelSerializer):
+    class Meta:
+        model = models.CategoriaNegocio
+        fields = "__all__"
+
+#Update
+class CategoriaNegocioSerializerUpdate(serializers.ModelSerializer):
+    class Meta:
+        model = models.CategoriaNegocio
+        fields = [
+            "nombre",
+            "descripcion",
+        ]
+
+    def validate_nombre(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError("El nombre de la categoría no puede estar vacío.")
+        categorias = models.CategoriaNegocio.objects.filter(nombre__iexact=value)
+        if self.instance:
+            categorias = categorias.exclude(pk=self.instance.pk)
+        if categorias.exists():
+            raise serializers.ValidationError("Ya existe una categoría con este nombre.")
+        return value
+
+#Delete
+class CategoriaNegocioSerializerDelete(serializers.ModelSerializer):
+    class Meta:
+        model = models.CategoriaNegocio
+        fields = "__all__"
+
+
+#Negocio Serializers
+
+#Create
+class NegocioSerializerCreate(serializers.ModelSerializer):
+    class Meta:
+        model = models.Negocio
+        fields = [
+            "stripe_id",
+            "nombre",
+            "descripcion",
+            "direccion",
+            "telefono",
+            "correo",
+            "logo_url",
+            "banner_url",
+            "slug",
+            "zona_horaria",
+            "status",
+            "categoria",
+        ]
+
+    def validate_nombre(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError("El nombre del negocio no puede estar vacío.")
+        return value
+
+    def validate_direccion(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError("La dirección del negocio no puede estar vacía.")
+        return value
+
+    def validate_zona_horaria(self, value):
+        return validar_zona_horaria(value)
+
+    def validate_correo(self, value):
+        value = value.strip()
+        if models.Negocio.objects.filter(correo__iexact=value).exists():
+            raise serializers.ValidationError("Ya existe un negocio registrado con este correo.")
+        return value
+
+    def validate_slug(self, value):
+        value = value.strip()
+        if value and models.Negocio.objects.filter(slug__iexact=value).exists():
+            raise serializers.ValidationError("Este slug ya está siendo utilizado por otro negocio.")
+        return value
+
+#List
+class NegocioSerializerList(serializers.ModelSerializer):
+    class Meta:
+        model = models.Negocio
+        fields = [
+            "id",
+            "nombre",
+            "slug",
+            "logo_url",
+            "status",
+            "categoria",
+        ]
+
+#Retrieve
+class NegocioSerializerDetail(serializers.ModelSerializer):
+    class Meta:
+        model = models.Negocio
+        fields = "__all__"
+
+#Update
+class NegocioSerializerUpdate(serializers.ModelSerializer):
+    class Meta:
+        model = models.Negocio
+        fields = [
+            "stripe_id",
+            "nombre",
+            "descripcion",
+            "direccion",
+            "telefono",
+            "correo",
+            "logo_url",
+            "banner_url",
+            "slug",
+            "zona_horaria",
+            "status",
+            "categoria",
+        ]
+        extra_kwargs = {
+            # El registro inicial no solicita dirección; puede completarse aquí.
+            "direccion": {"required": False, "allow_blank": True},
+        }
+
+    def validate_nombre(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError("El nombre del negocio no puede estar vacío.")
+        return value
+
+    def validate_direccion(self, value):
+        return value.strip()
+
+    def validate_zona_horaria(self, value):
+        return validar_zona_horaria(value)
+
+    def validate_correo(self, value):
+        value = value.strip()
+        negocios = models.Negocio.objects.filter(correo__iexact=value)
+        if self.instance:
+            negocios = negocios.exclude(pk=self.instance.pk)
+        if negocios.exists():
+            raise serializers.ValidationError("Ya existe un negocio registrado con este correo.")
+        return value
+
+    def validate_slug(self, value):
+        value = value.strip()
+        negocios = models.Negocio.objects.filter(slug__iexact=value)
+        if self.instance:
+            negocios = negocios.exclude(pk=self.instance.pk)
+        if value and negocios.exists():
+            raise serializers.ValidationError("Este slug ya está siendo utilizado por otro negocio.")
+        return value
+
+#Delete
+class NegocioSerializerDelete(serializers.ModelSerializer):
+    class Meta:
+        model = models.Negocio
+        fields = "__all__"
+
+
+#Sucursal Serializers
+
+#Create
+class SucursalSerializerCreate(serializers.ModelSerializer):
+    class Meta:
+        model = models.Sucursal
+        fields = [
+            "nombre",
+            "direccion",
+            "telefono",
+            "ciudad",
+            "codigo_postal",
+            "qr_uuid",
+            "nfc_uid",
+            "status",
+            "negocio",
+        ]
+
+    def validate_nombre(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError("El nombre de la sucursal no puede estar vacío.")
+        return value
+
+    def validate_direccion(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError("La dirección de la sucursal no puede estar vacía.")
+        return value
+
+    def validate_ciudad(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError("La ciudad no puede estar vacía.")
+        return value
+
+    def validate_nfc_uid(self, value):
+        if value is None:
+            return value
+        value = value.strip()
+        if not value:
+            return None
+        if models.Sucursal.objects.filter(nfc_uid__iexact=value).exists():
+            raise serializers.ValidationError("Este identificador NFC ya está asignado a otra sucursal.")
+        return value
+
+    def validate(self, attrs):
+        negocio = attrs["negocio"]
+        status = attrs.get("status", True)
+        if status and not negocio.status:
+            raise serializers.ValidationError({
+                "negocio": "No se puede activar una sucursal de un negocio inactivo."
+            })
+        return attrs
+
+#List
+class SucursalSerializerList(serializers.ModelSerializer):
+    class Meta:
+        model = models.Sucursal
+        fields = [
+            "id",
+            "nombre",
+            "direccion",
+            "ciudad",
+            "status",
+            "negocio",
+        ]
+
+#Retrieve
+class SucursalSerializerDetail(serializers.ModelSerializer):
+    class Meta:
+        model = models.Sucursal
+        fields = "__all__"
+
+#Update
+class SucursalSerializerUpdate(serializers.ModelSerializer):
+    class Meta:
+        model = models.Sucursal
+        fields = [
+            "nombre",
+            "direccion",
+            "telefono",
+            "ciudad",
+            "codigo_postal",
+            "qr_uuid",
+            "nfc_uid",
+            "status",
+            "negocio",
+        ]
+
+    def validate_nombre(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError("El nombre de la sucursal no puede estar vacío.")
+        return value
+
+    def validate_direccion(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError("La dirección de la sucursal no puede estar vacía.")
+        return value
+
+    def validate_ciudad(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError("La ciudad no puede estar vacía.")
+        return value
+
+    def validate_nfc_uid(self, value):
+        if value is None:
+            return value
+        value = value.strip()
+        if not value:
+            return None
+        sucursales = models.Sucursal.objects.filter(nfc_uid__iexact=value)
+        if self.instance:
+            sucursales = sucursales.exclude(pk=self.instance.pk)
+        if sucursales.exists():
+            raise serializers.ValidationError("Este identificador NFC ya está asignado a otra sucursal.")
+        return value
+
+    def validate(self, attrs):
+        negocio = attrs.get("negocio", self.instance.negocio)
+        status = attrs.get("status", self.instance.status)
+        if status and not negocio.status:
+            raise serializers.ValidationError({
+                "negocio": "No se puede activar una sucursal de un negocio inactivo."
+            })
+        return attrs
+
+#Delete
+class SucursalSerializerDelete(serializers.ModelSerializer):
+    class Meta:
+        model = models.Sucursal
+        fields = "__all__"
+
+
+#Usuario-Negocio Serializers
+
+#Create
+def validar_rol_comercio(value):
+    if value == "admin":
+        # Alias temporal para clientes anteriores al refactor.
+        return "supervisor"
+    if value not in dict(models.ROLES_COMERCIO):
+        raise serializers.ValidationError("El rol comercial no es válido.")
+    return value
+
+
+def validar_membresia(negocio, sucursal, rol_comercio):
+    if rol_comercio == "dueno" and sucursal is not None:
+        raise serializers.ValidationError({
+            "sucursal": "El dueño no debe tener una sucursal asignada."
+        })
+    if rol_comercio in ("supervisor", "empleado") and sucursal is None:
+        raise serializers.ValidationError({
+            "sucursal": "El supervisor y el empleado requieren una sucursal."
+        })
+    if sucursal is not None and sucursal.negocio_id != negocio.pk:
+        raise serializers.ValidationError({
+            "sucursal": "La sucursal debe pertenecer al negocio indicado."
+        })
+
+
+class UsuarioNegocioSerializerCreate(serializers.ModelSerializer):
+    rol_comercio = serializers.CharField(
+        max_length=30, required=False, default="empleado",
+    )
+    motivo = serializers.CharField(write_only=True, required=False, allow_blank=True)
+
+    class Meta:
+        model = models.UsuarioNegocio
+        fields = [
+            "usuario",
+            "negocio",
+            "sucursal",
+            "rol_comercio",
+            "status",
+            "motivo",
+        ]
+        read_only_fields = ["status"]
+
+    def validate_rol_comercio(self, value):
+        return validar_rol_comercio(value)
+
+    def validate(self, attrs):
+        negocio = attrs["negocio"]
+        sucursal = attrs.get("sucursal")
+        rol_comercio = attrs.get("rol_comercio", "empleado")
+        validar_membresia(negocio, sucursal, rol_comercio)
+        if models.UsuarioNegocio.objects.filter(
+            usuario=attrs["usuario"],
+            negocio=negocio,
+            sucursal=sucursal,
+            status=True,
+        ).exists():
+            raise serializers.ValidationError(
+                "El usuario ya tiene una membresía activa en esta sucursal."
+            )
+        return attrs
+
+#List
+class UsuarioNegocioSerializerList(serializers.ModelSerializer):
+    usuario_nombre = serializers.CharField(source="usuario.nombre", read_only=True)
+    usuario_correo = serializers.EmailField(source="usuario.correo", read_only=True)
+    sucursal_nombre = serializers.CharField(
+        source="sucursal.nombre", read_only=True, allow_null=True,
+    )
+
+    class Meta:
+        model = models.UsuarioNegocio
+        fields = [
+            "id",
+            "usuario",
+            "usuario_nombre",
+            "usuario_correo",
+            "negocio",
+            "sucursal",
+            "sucursal_nombre",
+            "rol_comercio",
+            "status",
+        ]
+
+#Retrieve
+class UsuarioNegocioSerializerDetail(serializers.ModelSerializer):
+    class Meta:
+        model = models.UsuarioNegocio
+        fields = "__all__"
+
+#Update
+class UsuarioNegocioSerializerUpdate(serializers.ModelSerializer):
+    rol_comercio = serializers.CharField(max_length=30, required=False)
+    motivo = serializers.CharField(write_only=True, required=False, allow_blank=True)
+
+    class Meta:
+        model = models.UsuarioNegocio
+        fields = [
+            "usuario",
+            "negocio",
+            "sucursal",
+            "rol_comercio",
+            "status",
+            "motivo",
+        ]
+
+    def validate_rol_comercio(self, value):
+        return validar_rol_comercio(value)
+
+    def validate(self, attrs):
+        usuario = attrs.get("usuario", self.instance.usuario)
+        negocio = attrs.get("negocio", self.instance.negocio)
+        sucursal = attrs.get("sucursal", self.instance.sucursal)
+        rol_comercio = attrs.get(
+            "rol_comercio", self.instance.rol_comercio,
+        )
+        validar_membresia(negocio, sucursal, rol_comercio)
+
+        membresias = models.UsuarioNegocio.objects.filter(
+            usuario=usuario,
+            negocio=negocio,
+            sucursal=sucursal,
+            status=True,
+        ).exclude(pk=self.instance.pk)
+        if membresias.exists():
+            raise serializers.ValidationError(
+                "El usuario ya tiene una membresía activa en esta sucursal."
+            )
+        return attrs
+
+#Delete
+class UsuarioNegocioSerializerDelete(serializers.ModelSerializer):
+    class Meta:
+        model = models.UsuarioNegocio
+        fields = "__all__"
+
+
+#Dinamica Serializers
+
+#Create
+def validar_dinamica(attrs, instance=None):
+    def valor(campo, por_defecto=None):
+        return attrs.get(campo, getattr(instance, campo, por_defecto) if instance else por_defecto)
+
+    tipo = valor("tipo")
+    meta = valor("meta")
+    regla = valor("regla_conversion", 1)
+    fecha_inicio = valor("fecha_inicio")
+    fecha_fin = valor("fecha_fin")
+    negocio = valor("negocio")
+    status = valor("status", True)
+    es_repetible = valor("es_repetible", False)
+    dias_expiracion = valor("dias_expiracion_puntos")
+
+    if instance is not None and tipo != instance.tipo:
+        raise serializers.ValidationError({
+            "tipo": "No se puede cambiar el tipo de una dinámica existente."
+        })
+    if fecha_inicio and fecha_fin and fecha_fin <= fecha_inicio:
+        raise serializers.ValidationError({
+            "fecha_fin": "La fecha de fin debe ser posterior a la fecha de inicio."
+        })
+    if tipo == "sellos":
+        if meta is None or meta <= 0:
+            raise serializers.ValidationError({
+                "meta": "Una tarjeta de sellos requiere una meta mayor que cero."
+            })
+    if tipo == "puntos":
+        if regla is None or regla <= 0:
+            raise serializers.ValidationError({
+                "regla_conversion": "La regla de conversión debe ser mayor que cero."
+            })
+        if regla != regla.to_integral_value():
+            raise serializers.ValidationError({
+                "regla_conversion": "Los puntos por visita deben ser un número entero."
+            })
+        if dias_expiracion is not None and dias_expiracion <= 0:
+            raise serializers.ValidationError({
+                "dias_expiracion_puntos": "La vigencia de puntos debe ser mayor que cero."
+            })
+        if status and negocio is not None:
+            activas = models.Dinamica.objects.filter(
+                negocio=negocio, tipo="puntos", status=True,
+            )
+            if instance is not None:
+                activas = activas.exclude(pk=instance.pk)
+            if activas.exists():
+                raise serializers.ValidationError({
+                    "status": "Ya existe una dinámica de puntos activa para este negocio."
+                })
+    if tipo != "sellos" and es_repetible:
+        raise serializers.ValidationError({
+            "es_repetible": "Solo las tarjetas de sellos pueden ser repetibles."
+        })
+    if tipo != "puntos" and dias_expiracion is not None:
+        raise serializers.ValidationError({
+            "dias_expiracion_puntos": "Solo las dinámicas de puntos pueden configurar caducidad."
+        })
+    return attrs
+
+
+class DinamicaSerializerCreate(serializers.ModelSerializer):
+    class Meta:
+        model = models.Dinamica
+        fields = [
+            "nombre",
+            "descripcion",
+            "tipo",
+            "meta",
+            "regla_conversion",
+            "es_repetible",
+            "dias_expiracion_puntos",
+            "fecha_inicio",
+            "fecha_fin",
+            "status",
+            "negocio",
+        ]
+
+    def validate_nombre(self, value):
+        if not value.strip():
+            raise serializers.ValidationError("El nombre no puede estar vacío.")
+        return value
+
+    def validate_meta(self, value):
+        if value is not None and value <= 0:
+            raise serializers.ValidationError("La meta debe ser mayor que cero.")
+        return value
+
+    def validate_regla_conversion(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("La regla de conversión debe ser mayor que cero.")
+        return value
+
+    def validate(self, attrs):
+        return validar_dinamica(attrs)
+
+
+#List
+class DinamicaSerializerList(serializers.ModelSerializer):
+    class Meta:
+        model = models.Dinamica
+        fields = [
+            "id",
+            "nombre",
+            "tipo",
+            "meta",
+            "es_repetible",
+            "fecha_inicio",
+            "fecha_fin",
+            "status",
+            "negocio",
+        ]
+
+#Retrieve
+class DinamicaSerializerDetail(serializers.ModelSerializer):
+    class Meta:
+        model = models.Dinamica
+        fields = "__all__"
+
+#Update
+class DinamicaSerializerUpdate(serializers.ModelSerializer):
+    class Meta:
+        model = models.Dinamica
+        fields = [
+            "nombre",
+            "descripcion",
+            "tipo",
+            "meta",
+            "regla_conversion",
+            "es_repetible",
+            "dias_expiracion_puntos",
+            "fecha_inicio",
+            "fecha_fin",
+            "status",
+            "negocio",
+        ]
+
+    def validate_nombre(self, value):
+        if not value.strip():
+            raise serializers.ValidationError("El nombre no puede estar vacío.")
+        return value
+
+    def validate_meta(self, value):
+        if value is not None and value <= 0:
+            raise serializers.ValidationError("La meta debe ser mayor que cero.")
+        return value
+
+    def validate_regla_conversion(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("La regla de conversión debe ser mayor que cero.")
+        return value
+
+    def validate(self, attrs):
+        return validar_dinamica(attrs, self.instance)
+
+#Delete
+class DinamicaSerializerDelete(serializers.ModelSerializer):
+    class Meta:
+        model = models.Dinamica
+        fields = "__all__"
+
+#Alianza Serializers
+
+#Create
+class AlianzaSerializerCreate(serializers.ModelSerializer):
+    class Meta:
+        model = models.Alianza
+        fields = [
+            "negocio1",
+            "negocio2",
+            "condicion_participacion",
+            "status",
+            "fecha_inicio",
+            "fecha_fin",
+            "fecha_respuesta",
+        ]
+
+    def validate_condicion_participacion(self, value):
+        if not value.strip():
+            raise serializers.ValidationError("La condición de participación no puede estar vacía.")
+        return value
+
+    def validate_status(self, value):
+        if value != "pendiente":
+            raise serializers.ValidationError("Una alianza nueva debe iniciar como pendiente.")
+        return value
+
+    def validate_fecha_respuesta(self, value):
+        if value is not None:
+            raise serializers.ValidationError(
+                "La fecha de respuesta se establece al aceptar o rechazar la alianza."
+            )
+        return value
+
+    def validate(self, attrs):
+        if attrs["negocio1"].pk == attrs["negocio2"].pk:
+            raise serializers.ValidationError({
+                "negocio2": "Un negocio no puede crear una alianza consigo mismo."
+            })
+        if attrs["fecha_fin"] <= attrs["fecha_inicio"]:
+            raise serializers.ValidationError({
+                "fecha_fin": "La fecha de fin debe ser posterior a la fecha de inicio."
+            })
+        return attrs
+
+
+#List
+class AlianzaSerializerList(serializers.ModelSerializer):
+    class Meta:
+        model = models.Alianza
+        fields = [
+            "id",
+            "negocio1",
+            "negocio2",
+            "status",
+            "fecha_inicio",
+            "fecha_fin",
+        ]
+
+
+#Retrieve
+class AlianzaSerializerDetail(serializers.ModelSerializer):
+    class Meta:
+        model = models.Alianza
+        fields = "__all__"
+
+
+#Update
+class AlianzaSerializerUpdate(serializers.ModelSerializer):
+    class Meta:
+        model = models.Alianza
+        fields = [
+            "negocio1",
+            "negocio2",
+            "condicion_participacion",
+            "status",
+            "fecha_inicio",
+            "fecha_fin",
+            "fecha_respuesta",
+        ]
+
+    def validate_condicion_participacion(self, value):
+        if not value.strip():
+            raise serializers.ValidationError("La condición de participación no puede estar vacía.")
+        return value
+
+    def validate(self, attrs):
+        negocio1 = attrs.get("negocio1", self.instance.negocio1)
+        negocio2 = attrs.get("negocio2", self.instance.negocio2)
+        fecha_inicio = attrs.get("fecha_inicio", self.instance.fecha_inicio)
+        fecha_fin = attrs.get("fecha_fin", self.instance.fecha_fin)
+        if negocio1.pk == negocio2.pk:
+            raise serializers.ValidationError({
+                "negocio2": "Un negocio no puede crear una alianza consigo mismo."
+            })
+        if fecha_fin <= fecha_inicio:
+            raise serializers.ValidationError({
+                "fecha_fin": "La fecha de fin debe ser posterior a la fecha de inicio."
+            })
+        return attrs
+
+#Delete
+class AlianzaSerializerDelete(serializers.ModelSerializer):
+    class Meta:
+        model = models.Alianza
+        fields = "__all__"
+
+#Recompensa Serializers
+
+#Create
+def validar_recompensa(attrs, instance=None):
+    def valor(campo, por_defecto=None):
+        return attrs.get(campo, getattr(instance, campo, por_defecto) if instance else por_defecto)
+
+    tipo = valor("tipo", "gratis")
+    descuento = valor("descuento")
+    dinamica = valor("dinamica")
+    alianza = valor("alianza")
+    negocio = valor("negocio")
+    es_meta = valor("es_meta", False)
+    fecha_expiracion = valor("fecha_expiracion")
+    vigencia_dias = valor("vigencia_dias")
+
+    if dinamica is not None and alianza is not None:
+        raise serializers.ValidationError(
+            "La recompensa no puede pertenecer a una dinámica y a una alianza a la vez."
+        )
+    if negocio is None and dinamica is not None:
+        negocio = dinamica.negocio
+        attrs["negocio"] = negocio
+    if negocio is None and alianza is None:
+        raise serializers.ValidationError(
+            "La recompensa debe pertenecer a un negocio o a una alianza."
+        )
+    if dinamica is not None and negocio is not None and dinamica.negocio_id != negocio.pk:
+        raise serializers.ValidationError({
+            "negocio": "El negocio de la recompensa debe coincidir con el de la dinámica."
+        })
+    if instance is not None and instance.negocio_id is not None and negocio is not None:
+        if negocio.pk != instance.negocio_id:
+            raise serializers.ValidationError({
+                "negocio": "No se puede trasladar una recompensa a otro negocio."
+            })
+    if bool(fecha_expiracion) == bool(vigencia_dias):
+        raise serializers.ValidationError(
+            "La recompensa debe definir una fecha de expiración o una duración, pero no ambas."
+        )
+    if fecha_expiracion is not None and fecha_expiracion <= timezone.now():
+        raise serializers.ValidationError({
+            "fecha_expiracion": "La fecha de expiración debe ser futura."
+        })
+    if vigencia_dias is not None and vigencia_dias <= 0:
+        raise serializers.ValidationError({
+            "vigencia_dias": "La vigencia debe ser mayor que cero."
+        })
+    if es_meta:
+        if dinamica is None:
+            raise serializers.ValidationError({
+                "es_meta": "Solo una dinámica puede tener una recompensa meta."
+            })
+        metas = models.Recompensa.objects.filter(dinamica=dinamica, es_meta=True)
+        if instance is not None:
+            metas = metas.exclude(pk=instance.pk)
+        if metas.exists():
+            raise serializers.ValidationError({
+                "es_meta": "Esta dinámica ya tiene una recompensa meta."
+            })
+    if dinamica is not None and dinamica.fecha_fin is not None and fecha_expiracion is not None:
+        if fecha_expiracion > dinamica.fecha_fin:
+            raise serializers.ValidationError({
+                "fecha_expiracion": "La recompensa no puede vencer después de su dinámica."
+            })
+    if alianza is not None:
+        if fecha_expiracion is not None and fecha_expiracion > alianza.fecha_fin:
+            raise serializers.ValidationError({
+                "fecha_expiracion": "La recompensa no puede vencer después de la alianza."
+            })
+        if vigencia_dias is not None and timezone.now() + timedelta(days=vigencia_dias) > alianza.fecha_fin:
+            raise serializers.ValidationError({
+                "vigencia_dias": "La vigencia supera la fecha de fin de la alianza."
+            })
+    if tipo == "descuento" and (descuento is None or descuento <= 0 or descuento > 100):
+        raise serializers.ValidationError({
+            "descuento": "El descuento porcentual debe ser mayor que cero y no superar 100."
+        })
+    if tipo == "descuento_fijo" and (descuento is None or descuento <= 0):
+        raise serializers.ValidationError({
+            "descuento": "El descuento fijo debe ser mayor que cero."
+        })
+    if tipo == "gratis" and descuento is not None:
+        raise serializers.ValidationError({
+            "descuento": "Una recompensa gratis no debe especificar un descuento."
+        })
+    return attrs
+
+
+class RecompensaSerializerCreate(serializers.ModelSerializer):
+    class Meta:
+        model = models.Recompensa
+        fields = [
+            "titulo",
+            "descripcion",
+            "tipo",
+            "descuento",
+            "costo_desbloqueo",
+            "terminos_condiciones",
+            "status",
+            "negocio",
+            "es_meta",
+            "fecha_expiracion",
+            "vigencia_dias",
+            "cantidad_disponible",
+            "dinamica",
+            "alianza",
+        ]
+
+    def validate_titulo(self, value):
+        if not value.strip():
+            raise serializers.ValidationError("El título no puede estar vacío.")
+        return value
+
+    def validate(self, attrs):
+        return validar_recompensa(attrs)
+
+
+#List
+class RecompensaSerializerList(serializers.ModelSerializer):
+    class Meta:
+        model = models.Recompensa
+        fields = [
+            "id",
+            "titulo",
+            "descripcion",
+            "tipo",
+            "descuento",
+            "costo_desbloqueo",
+            "terminos_condiciones",
+            "status",
+            "negocio",
+            "es_meta",
+            "fecha_expiracion",
+            "vigencia_dias",
+            "cantidad_disponible",
+            "dinamica",
+            "alianza",
+        ]
+
+
+#Retrieve
+class RecompensaSerializerDetail(serializers.ModelSerializer):
+    class Meta:
+        model = models.Recompensa
+        fields = "__all__"
+
+
+#Update
+class RecompensaSerializerUpdate(serializers.ModelSerializer):
+    class Meta:
+        model = models.Recompensa
+        fields = [
+            "titulo",
+            "descripcion",
+            "tipo",
+            "descuento",
+            "costo_desbloqueo",
+            "terminos_condiciones",
+            "status",
+            "negocio",
+            "es_meta",
+            "fecha_expiracion",
+            "vigencia_dias",
+            "cantidad_disponible",
+            "dinamica",
+            "alianza",
+        ]
+
+    def validate_titulo(self, value):
+        if not value.strip():
+            raise serializers.ValidationError("El título no puede estar vacío.")
+        return value
+
+    def validate(self, attrs):
+        return validar_recompensa(attrs, self.instance)
+
+#Delete
+class RecompensaSerializerDelete(serializers.ModelSerializer):
+    class Meta:
+        model = models.Recompensa
+        fields = "__all__"
+
+#Registro-Actividad Serializers
+
+#Create
+class RegistroActividadSerializerCreate(serializers.ModelSerializer):
+    class Meta:
+        model = models.RegistroActividad
+        fields = [
+            "usuario",
+            "sucursal",
+            "metodo_validacion",
+            "tipo",
+            "monto_transaccion",
+        ]
+
+    def validate_monto_transaccion(self, value):
+        if value is not None and value < 0:
+            raise serializers.ValidationError("El monto de la transacción no puede ser negativo.")
+        return value
+
+    def validate(self, attrs):
+        tipo = attrs["tipo"]
+        monto = attrs.get("monto_transaccion")
+        sucursal = attrs["sucursal"]
+        if not sucursal.status:
+            raise serializers.ValidationError({
+                "sucursal": "No se pueden registrar actividades en una sucursal inactiva."
+            })
+        if not sucursal.negocio.status:
+            raise serializers.ValidationError({
+                "sucursal": "No se pueden registrar actividades en un negocio inactivo."
+            })
+        if tipo == "compra" and (monto is None or monto <= 0):
+            raise serializers.ValidationError({
+                "monto_transaccion": "Una compra debe tener un monto mayor que cero."
+            })
+        return attrs
+
+
+#List
+class RegistroActividadSerializerList(serializers.ModelSerializer):
+    usuario_correo = serializers.EmailField(source="usuario.correo", read_only=True)
+    sucursal_nombre = serializers.CharField(
+        source="sucursal.nombre", read_only=True, allow_null=True,
+    )
+
+    class Meta:
+        model = models.RegistroActividad
+        fields = [
+            "id",
+            "usuario",
+            "usuario_correo",
+            "negocio",
+            "sucursal",
+            "sucursal_nombre",
+            "metodo_validacion",
+            "tipo",
+            "monto_transaccion",
+            "fecha",
+            "fecha_negocio",
+            "es_valida",
+        ]
+
+
+#Retrieve
+class RegistroActividadSerializerDetail(serializers.ModelSerializer):
+    class Meta:
+        model = models.RegistroActividad
+        fields = "__all__"
+
+
+#Update
+class RegistroActividadSerializerUpdate(serializers.ModelSerializer):
+    class Meta:
+        model = models.RegistroActividad
+        fields = [
+            "usuario",
+            "sucursal",
+            "metodo_validacion",
+            "tipo",
+            "monto_transaccion",
+        ]
+
+    def validate_monto_transaccion(self, value):
+        if value is not None and value < 0:
+            raise serializers.ValidationError("El monto de la transacción no puede ser negativo.")
+        return value
+
+    def validate(self, attrs):
+        tipo = attrs.get("tipo", self.instance.tipo)
+        monto = attrs.get("monto_transaccion", self.instance.monto_transaccion)
+        sucursal = attrs.get("sucursal", self.instance.sucursal)
+        if not sucursal.status:
+            raise serializers.ValidationError({
+                "sucursal": "No se pueden registrar actividades en una sucursal inactiva."
+            })
+        if not sucursal.negocio.status:
+            raise serializers.ValidationError({
+                "sucursal": "No se pueden registrar actividades en un negocio inactivo."
+            })
+        if tipo == "compra" and (monto is None or monto <= 0):
+            raise serializers.ValidationError({
+                "monto_transaccion": "Una compra debe tener un monto mayor que cero."
+            })
+        return attrs
+
+#Delete
+class RegistroActividadSerializerDelete(serializers.ModelSerializer):
+    class Meta:
+        model = models.RegistroActividad
+        fields = "__all__"
+
+#Progreso-Usuario Serializers
+
+#Create
+class ProgresoUsuarioSerializerCreate(serializers.ModelSerializer):
+    class Meta:
+        model = models.ProgresoUsuario
+        fields = [
+            "usuario",
+            "dinamica",
+            "saldo_acumulado",
+            "completado",
+        ]
+
+    def validate_saldo_acumulado(self, value):
+        if value < 0:
+            raise serializers.ValidationError("El saldo acumulado no puede ser negativo.")
+        return value
+
+    def validate(self, attrs):
+        if models.ProgresoUsuario.objects.filter(
+            usuario=attrs["usuario"],
+            dinamica=attrs["dinamica"],
+        ).exists():
+            raise serializers.ValidationError("Ya existe un progreso para este usuario y dinámica.")
+        return attrs
+
+
+#List
+class ProgresoUsuarioSerializerList(serializers.ModelSerializer):
+    class Meta:
+        model = models.ProgresoUsuario
+        fields = [
+            "id",
+            "usuario",
+            "dinamica",
+            "saldo_acumulado",
+            "completado",
+        ]
+
+
+#Retrieve
+class ProgresoUsuarioSerializerDetail(serializers.ModelSerializer):
+    class Meta:
+        model = models.ProgresoUsuario
+        fields = "__all__"
+
+
+#Update
+class ProgresoUsuarioSerializerUpdate(serializers.ModelSerializer):
+    class Meta:
+        model = models.ProgresoUsuario
+        fields = [
+            "usuario",
+            "dinamica",
+            "saldo_acumulado",
+            "completado",
+        ]
+
+    def validate_saldo_acumulado(self, value):
+        if value < 0:
+            raise serializers.ValidationError("El saldo acumulado no puede ser negativo.")
+        return value
+
+    def validate(self, attrs):
+        usuario = attrs.get("usuario", self.instance.usuario)
+        dinamica = attrs.get("dinamica", self.instance.dinamica)
+        progresos = models.ProgresoUsuario.objects.filter(
+            usuario=usuario,
+            dinamica=dinamica,
+        )
+        if self.instance:
+            progresos = progresos.exclude(pk=self.instance.pk)
+        if progresos.exists():
+            raise serializers.ValidationError("Ya existe un progreso para este usuario y dinámica.")
+        return attrs
+
+#Delete
+class ProgresoUsuarioSerializerDelete(serializers.ModelSerializer):
+    class Meta:
+        model = models.ProgresoUsuario
+        fields = "__all__"
+
+#Cupon-Usuario Serializers
+
+#Create
+class CuponUsuarioSerializerCreate(serializers.ModelSerializer):
+    class Meta:
+        model = models.CuponUsuario
+        fields = [
+            "fecha_expiracion",
+            "usuario",
+            "recompensa",
+            "status",
+        ]
+
+    def validate_fecha_expiracion(self, value):
+        if value <= timezone.now():
+            raise serializers.ValidationError("La fecha de expiración debe ser futura.")
+        return value
+
+    def validate_status(self, value):
+        if value != "disponible":
+            raise serializers.ValidationError("Un cupón nuevo debe iniciar como disponible.")
+        return value
+
+    def validate(self, attrs):
+        usuario = attrs["usuario"]
+        recompensa = attrs["recompensa"]
+        if not usuario.is_active:
+            raise serializers.ValidationError({
+                "usuario": "Los cupones solo pueden emitirse a usuarios activos."
+            })
+        if bool(recompensa.dinamica_id) == bool(recompensa.alianza_id):
+            raise serializers.ValidationError({
+                "recompensa": "La recompensa debe pertenecer exactamente a una dinámica o alianza."
+            })
+        if not recompensa.status:
+            raise serializers.ValidationError({
+                "recompensa": "No se pueden emitir cupones para una recompensa inactiva."
+            })
+        if recompensa.dinamica_id and not recompensa.dinamica.status:
+            raise serializers.ValidationError({
+                "recompensa": "No se pueden emitir cupones para una dinámica inactiva."
+            })
+        if recompensa.alianza_id and recompensa.alianza.status != "activa":
+            raise serializers.ValidationError({
+                "recompensa": "No se pueden emitir cupones para una alianza que no esté activa."
+            })
+        return attrs
+
+
+#List
+class CuponUsuarioSerializerList(serializers.ModelSerializer):
+    usuario_correo = serializers.EmailField(source="usuario.correo", read_only=True)
+
+    class Meta:
+        model = models.CuponUsuario
+        fields = [
+            "id",
+            "uuid",
+            "usuario",
+            "usuario_correo",
+            "recompensa",
+            "negocio",
+            "origen",
+            "status",
+            "titulo_beneficio",
+            "costo_pagado",
+            "fecha_expiracion",
+        ]
+
+
+#Retrieve
+class CuponUsuarioSerializerDetail(serializers.ModelSerializer):
+    class Meta:
+        model = models.CuponUsuario
+        fields = "__all__"
+
+
+#Update
+class CuponUsuarioSerializerUpdate(serializers.ModelSerializer):
+    class Meta:
+        model = models.CuponUsuario
+        fields = [
+            "fecha_expiracion",
+            "usuario",
+            "recompensa",
+            "status",
+        ]
+
+    def validate_fecha_expiracion(self, value):
+        if value <= self.instance.fecha_emision:
+            raise serializers.ValidationError("La expiración debe ser posterior a la fecha de emisión.")
+        return value
+
+    def validate(self, attrs):
+        usuario = attrs.get("usuario", self.instance.usuario)
+        recompensa = attrs.get("recompensa", self.instance.recompensa)
+        fecha_expiracion = attrs.get("fecha_expiracion", self.instance.fecha_expiracion)
+        status = attrs.get("status", self.instance.status)
+
+        if usuario.pk != self.instance.usuario_id:
+            raise serializers.ValidationError({
+                "usuario": "No se puede cambiar el usuario propietario de un cupón emitido."
+            })
+        if recompensa.pk != self.instance.recompensa_id:
+            raise serializers.ValidationError({
+                "recompensa": "No se puede cambiar la recompensa de un cupón emitido."
+            })
+        if self.instance.status in ("canjeado", "vencido") and status != self.instance.status:
+            raise serializers.ValidationError({
+                "status": "El estado de un cupón canjeado o vencido no se puede reactivar ni modificar."
+            })
+        if (
+            self.instance.status != "disponible"
+            and fecha_expiracion != self.instance.fecha_expiracion
+        ):
+            raise serializers.ValidationError({
+                "fecha_expiracion": "La expiración de un cupón ya canjeado o vencido no se puede modificar."
+            })
+        if status == "canjeado" and not models.Canje.objects.filter(cupon=self.instance).exists():
+            raise serializers.ValidationError({
+                "status": "El cupón solo puede marcarse como canjeado si existe un canje registrado."
+            })
+        if status == "vencido" and fecha_expiracion > timezone.now():
+            raise serializers.ValidationError({
+                "status": "El cupón solo puede marcarse como vencido después de su expiración."
+            })
+        if status == "disponible" and fecha_expiracion <= timezone.now():
+            raise serializers.ValidationError({
+                "status": "Un cupón expirado no puede estar disponible."
+            })
+        if status == "disponible" and models.Canje.objects.filter(cupon=self.instance).exists():
+            raise serializers.ValidationError({
+                "status": "Un cupón con un canje registrado no puede volver a estar disponible."
+            })
+        return attrs
+
+#Delete
+class CuponUsuarioSerializerDelete(serializers.ModelSerializer):
+    class Meta:
+        model = models.CuponUsuario
+        fields = "__all__"
+
+#Canje Serializers
+
+#Create
+class CanjeSerializerCreate(serializers.ModelSerializer):
+    class Meta:
+        model = models.Canje
+        fields = [
+            "cupon",
+            "sucursal",
+            "validado_por",
+        ]
+
+    def validate(self, attrs):
+        request = self.context.get("request")
+        if request is not None:
+            if attrs.get("validado_por") not in (None, request.user):
+                raise serializers.ValidationError({"validado_por": "Debe ser el usuario autenticado."})
+            attrs["validado_por"] = request.user
+        cupon = attrs["cupon"]
+        sucursal = attrs["sucursal"]
+        validado_por = attrs.get("validado_por")
+        recompensa = cupon.recompensa
+
+        if cupon.status != "disponible":
+            raise serializers.ValidationError({"cupon": "El cupón no está disponible para canje."})
+        if cupon.fecha_expiracion <= timezone.now():
+            raise serializers.ValidationError({"cupon": "El cupón ya venció."})
+        if models.Canje.objects.filter(cupon=cupon).exists():
+            raise serializers.ValidationError({"cupon": "Este cupón ya fue canjeado."})
+        if not sucursal.status:
+            raise serializers.ValidationError({"sucursal": "La sucursal está inactiva."})
+        if not sucursal.negocio.status:
+            raise serializers.ValidationError({"sucursal": "El negocio de la sucursal está inactivo."})
+
+        if recompensa.dinamica_id:
+            negocios_validos = [recompensa.dinamica.negocio_id]
+        elif recompensa.alianza_id:
+            negocios_validos = [recompensa.alianza.negocio1_id, recompensa.alianza.negocio2_id]
+        else:
+            raise serializers.ValidationError({
+                "cupon": "La recompensa asociada al cupón no tiene un origen válido."
+            })
+        if sucursal.negocio_id not in negocios_validos:
+            raise serializers.ValidationError({
+                "sucursal": "La sucursal no pertenece a un negocio asociado con esta recompensa."
+            })
+        from core.permissions import puede_operar_sucursal
+        if validado_por and not puede_operar_sucursal(validado_por, sucursal):
+            raise serializers.ValidationError({
+                "validado_por": "El usuario no tiene una asignación activa en esta sucursal."
+            })
+        return attrs
+
+
+#List
+class CanjeSerializerList(serializers.ModelSerializer):
+    usuario_correo = serializers.EmailField(
+        source='cupon.usuario.correo', read_only=True,
+    )
+    titulo_beneficio = serializers.CharField(
+        source='cupon.titulo_beneficio', read_only=True,
+    )
+    sucursal_nombre = serializers.CharField(
+        source='sucursal.nombre', read_only=True, allow_null=True,
+    )
+
+    class Meta:
+        model = models.Canje
+        fields = [
+            "id",
+            "cupon",
+            "usuario_correo",
+            "titulo_beneficio",
+            "sucursal",
+            "sucursal_nombre",
+            "negocio",
+            "validado_por",
+            "origen",
+            "metodo",
+            "token_validacion",
+            "expira_en",
+            "fecha",
+            "anulado",
+        ]
+
+
+#Retrieve
+class CanjeSerializerDetail(serializers.ModelSerializer):
+    class Meta:
+        model = models.Canje
+        fields = "__all__"
+
+
+#Update
+class CanjeSerializerUpdate(serializers.ModelSerializer):
+    class Meta:
+        model = models.Canje
+        fields = [
+            "cupon",
+            "sucursal",
+            "validado_por",
+        ]
+
+    def validate(self, attrs):
+        cupon = attrs.get("cupon", self.instance.cupon)
+        sucursal = attrs.get("sucursal", self.instance.sucursal)
+        validado_por = attrs.get("validado_por", self.instance.validado_por)
+        mismo_cupon = cupon.pk == self.instance.cupon_id
+        recompensa = cupon.recompensa
+
+        if not mismo_cupon:
+            if cupon.status != "disponible":
+                raise serializers.ValidationError({"cupon": "El cupón no está disponible para canje."})
+            if cupon.fecha_expiracion <= timezone.now():
+                raise serializers.ValidationError({"cupon": "El cupón ya venció."})
+            canjes = models.Canje.objects.filter(cupon=cupon).exclude(pk=self.instance.pk)
+            if canjes.exists():
+                raise serializers.ValidationError({"cupon": "Este cupón ya fue canjeado."})
+        if not sucursal.status:
+            raise serializers.ValidationError({"sucursal": "La sucursal está inactiva."})
+        if not sucursal.negocio.status:
+            raise serializers.ValidationError({"sucursal": "El negocio de la sucursal está inactivo."})
+
+        if recompensa.dinamica_id:
+            negocios_validos = [recompensa.dinamica.negocio_id]
+        elif recompensa.alianza_id:
+            negocios_validos = [recompensa.alianza.negocio1_id, recompensa.alianza.negocio2_id]
+        else:
+            raise serializers.ValidationError({
+                "cupon": "La recompensa asociada al cupón no tiene un origen válido."
+            })
+        if sucursal.negocio_id not in negocios_validos:
+            raise serializers.ValidationError({
+                "sucursal": "La sucursal no pertenece a un negocio asociado con esta recompensa."
+            })
+        if validado_por and not models.UsuarioNegocio.objects.filter(
+            usuario=validado_por,
+            negocio_id=sucursal.negocio_id,
+            sucursal=sucursal,
+            status=True,
+        ).exists():
+            raise serializers.ValidationError({
+                "validado_por": "El usuario no tiene una asignación activa en esta sucursal."
+            })
+        return attrs
+
+#Delete
+class CanjeSerializerDelete(serializers.ModelSerializer):
+    class Meta:
+        model = models.Canje
+        fields = "__all__"
+
+#Plan-Suscripcion Serializers
+
+#Create
+class PlanPrecioSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.PlanPrecio
+        fields = [
+            "id",
+            "intervalo",
+            "stripe_price_id",
+            "monto",
+            "divisa",
+            "status",
+        ]
+
+
+class PlanSuscripcionSerializerCreate(serializers.ModelSerializer):
+    limites = serializers.JSONField()
+    caracteristicas = serializers.JSONField(required=False, default=dict)
+
+    class Meta:
+        model = models.PlanSuscripcion
+        fields = [
+            "codigo",
+            "nombre",
+            "descripcion",
+            "orden",
+            "limites",
+            "caracteristicas",
+            "status",
+        ]
+
+    def validate_nombre(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError("El nombre del plan no puede estar vacío.")
+        if models.PlanSuscripcion.objects.filter(nombre__iexact=value).exists():
+            raise serializers.ValidationError("Ya existe un plan con este nombre.")
+        return value
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        try:
+            attrs["limites"] = planes.validar_limites(attrs["limites"])
+        except ValueError as exc:
+            raise serializers.ValidationError({"limites": str(exc)}) from None
+        try:
+            attrs["caracteristicas"] = planes.validar_caracteristicas(
+                attrs.get("caracteristicas", {}),
+            )
+        except ValueError as exc:
+            raise serializers.ValidationError({"caracteristicas": str(exc)}) from None
+        return attrs
+
+
+#List
+class PlanSuscripcionSerializerList(serializers.ModelSerializer):
+    precios = PlanPrecioSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = models.PlanSuscripcion
+        fields = [
+            "id",
+            "codigo",
+            "nombre",
+            "descripcion",
+            "orden",
+            "limites",
+            "caracteristicas",
+            "status",
+            "precios",
+        ]
+
+
+#Retrieve
+class PlanSuscripcionSerializerDetail(PlanSuscripcionSerializerList):
+    pass
+
+
+#Update
+class PlanSuscripcionSerializerUpdate(serializers.ModelSerializer):
+    limites = serializers.JSONField(required=False)
+    caracteristicas = serializers.JSONField(required=False)
+
+    class Meta:
+        model = models.PlanSuscripcion
+        fields = [
+            "codigo",
+            "nombre",
+            "descripcion",
+            "orden",
+            "limites",
+            "caracteristicas",
+            "status",
+        ]
+
+    def validate_nombre(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError("El nombre del plan no puede estar vacío.")
+        planes_qs = models.PlanSuscripcion.objects.filter(nombre__iexact=value)
+        if self.instance:
+            planes_qs = planes_qs.exclude(pk=self.instance.pk)
+        if planes_qs.exists():
+            raise serializers.ValidationError("Ya existe un plan con este nombre.")
+        return value
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        try:
+            if "limites" in attrs:
+                attrs["limites"] = planes.validar_limites(attrs["limites"])
+        except ValueError as exc:
+            raise serializers.ValidationError({"limites": str(exc)}) from None
+        try:
+            if "caracteristicas" in attrs:
+                attrs["caracteristicas"] = planes.validar_caracteristicas(
+                    attrs["caracteristicas"],
+                )
+        except ValueError as exc:
+            raise serializers.ValidationError({"caracteristicas": str(exc)}) from None
+        return attrs
+
+#Delete
+class PlanSuscripcionSerializerDelete(serializers.ModelSerializer):
+    class Meta:
+        model = models.PlanSuscripcion
+        fields = "__all__"
+
+#Suscripcion Serializers
+
+#Create
+class SuscripcionSerializerCreate(serializers.ModelSerializer):
+    class Meta:
+        model = models.Suscripcion
+        fields = [
+            "stripe_subscription_id",
+            "status",
+            "periodo_actual_inicio",
+            "periodo_actual_fin",
+            "en_cancelacion",
+            "origen",
+            "fecha_inicio",
+            "fecha_fin",
+            "negocio",
+            "plan",
+        ]
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        estado = attrs.get("status", "incompleta")
+        if estado in models.ESTADOS_SUSCRIPCION_VIGENTES:
+            if models.Suscripcion.objects.filter(
+                negocio=attrs["negocio"],
+                status__in=models.ESTADOS_SUSCRIPCION_VIGENTES,
+            ).exists():
+                raise serializers.ValidationError({
+                    "negocio": "El negocio ya tiene una suscripción vigente."
+                })
+        inicio = attrs.get("periodo_actual_inicio")
+        fin = attrs.get("periodo_actual_fin")
+        if inicio is not None and fin is not None and fin <= inicio:
+            raise serializers.ValidationError({
+                "periodo_actual_fin": "El fin del periodo debe ser posterior a su inicio."
+            })
+        inicio_logico = attrs.get("fecha_inicio")
+        fin_logico = attrs.get("fecha_fin")
+        if (
+            inicio_logico is not None
+            and fin_logico is not None
+            and fin_logico < inicio_logico
+        ):
+            raise serializers.ValidationError({
+                "fecha_fin": "El fin no puede ser anterior al inicio."
+            })
+        return attrs
+
+
+#List
+class SuscripcionSerializerList(serializers.ModelSerializer):
+    class Meta:
+        model = models.Suscripcion
+        fields = [
+            "id",
+            "stripe_subscription_id",
+            "status",
+            "periodo_actual_inicio",
+            "periodo_actual_fin",
+            "en_cancelacion",
+            "origen",
+            "fecha_inicio",
+            "fecha_fin",
+            "negocio",
+            "plan",
+        ]
+
+
+#Retrieve
+class SuscripcionSerializerDetail(serializers.ModelSerializer):
+    class Meta:
+        model = models.Suscripcion
+        fields = "__all__"
+
+
+#Update
+class SuscripcionSerializerUpdate(serializers.ModelSerializer):
+    class Meta:
+        model = models.Suscripcion
+        fields = [
+            "stripe_subscription_id",
+            "status",
+            "periodo_actual_inicio",
+            "periodo_actual_fin",
+            "en_cancelacion",
+            "origen",
+            "fecha_inicio",
+            "fecha_fin",
+            "negocio",
+            "plan",
+        ]
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        inicio = attrs.get("periodo_actual_inicio", self.instance.periodo_actual_inicio)
+        fin = attrs.get("periodo_actual_fin", self.instance.periodo_actual_fin)
+        if inicio is not None and fin is not None and fin <= inicio:
+            raise serializers.ValidationError({
+                "periodo_actual_fin": "El fin del periodo debe ser posterior a su inicio."
+            })
+        inicio_logico = attrs.get("fecha_inicio", self.instance.fecha_inicio)
+        fin_logico = attrs.get("fecha_fin", self.instance.fecha_fin)
+        if (
+            inicio_logico is not None
+            and fin_logico is not None
+            and fin_logico < inicio_logico
+        ):
+            raise serializers.ValidationError({
+                "fecha_fin": "El fin no puede ser anterior al inicio."
+            })
+        estado = attrs.get("status", self.instance.status)
+        negocio = attrs.get("negocio", self.instance.negocio)
+        if estado in models.ESTADOS_SUSCRIPCION_VIGENTES:
+            vigentes = models.Suscripcion.objects.filter(
+                negocio=negocio,
+                status__in=models.ESTADOS_SUSCRIPCION_VIGENTES,
+            ).exclude(pk=self.instance.pk)
+            if vigentes.exists():
+                raise serializers.ValidationError({
+                    "negocio": "El negocio ya tiene una suscripción vigente."
+                })
+        return attrs
+#Delete
+class SuscripcionSerializerDelete(serializers.ModelSerializer):
+    class Meta:
+        model = models.Suscripcion
+        fields = "__all__"
+
+#Pago Serializers
+
+#Create
+class PagoSerializerCreate(serializers.ModelSerializer):
+    class Meta:
+        model = models.Pago
+        fields = [
+            "stripe_invoice_id",
+            "stripe_payment_intent_id",
+            "monto",
+            "divisa",
+            "status",
+            "recibo_url",
+            "negocio",
+            "suscripcion",
+        ]
+
+    def validate_monto(self, value):
+        if value < 0:
+            raise serializers.ValidationError("El monto del pago no puede ser negativo.")
+        return value
+
+    def validate(self, attrs):
+        if attrs["suscripcion"].negocio_id != attrs["negocio"].pk:
+            raise serializers.ValidationError({
+                "suscripcion": "La suscripción debe pertenecer al negocio indicado."
+            })
+        return attrs
+
+
+#List
+class PagoSerializerList(serializers.ModelSerializer):
+    class Meta:
+        model = models.Pago
+        fields = [
+            "id",
+            "stripe_invoice_id",
+            "monto",
+            "divisa",
+            "status",
+            "fecha_pago",
+            "negocio",
+            "suscripcion",
+        ]
+
+
+#Retrieve
+class PagoSerializerDetail(serializers.ModelSerializer):
+    class Meta:
+        model = models.Pago
+        fields = "__all__"
+
+
+#Update
+class PagoSerializerUpdate(serializers.ModelSerializer):
+    class Meta:
+        model = models.Pago
+        fields = [
+            "stripe_invoice_id",
+            "stripe_payment_intent_id",
+            "monto",
+            "divisa",
+            "status",
+            "recibo_url",
+            "negocio",
+            "suscripcion",
+        ]
+
+    def validate_monto(self, value):
+        if value < 0:
+            raise serializers.ValidationError("El monto del pago no puede ser negativo.")
+        return value
+
+    def validate(self, attrs):
+        negocio = attrs.get("negocio", self.instance.negocio)
+        suscripcion = attrs.get("suscripcion", self.instance.suscripcion)
+        if suscripcion.negocio_id != negocio.pk:
+            raise serializers.ValidationError({
+                "suscripcion": "La suscripción debe pertenecer al negocio indicado."
+            })
+        return attrs
+
+#Delete
+class PagoSerializerDelete(serializers.ModelSerializer):
+    class Meta:
+        model = models.Pago
+        fields = "__all__"
+
+#Notificacion Serializers
+
+#Create
+class NotificacionSerializerCreate(serializers.ModelSerializer):
+    class Meta:
+        model = models.Notificacion
+        fields = [
+            "titulo",
+            "cuerpo",
+            "tipo",
+            "fcm_token_destino",
+            "leida",
+            "usuario",
+        ]
+
+    def validate_titulo(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError("El título no puede estar vacío.")
+        return value
+
+    def validate_cuerpo(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError("El cuerpo de la notificación no puede estar vacío.")
+        return value
+
+    def validate_leida(self, value):
+        if value:
+            raise serializers.ValidationError("Una notificación nueva debe iniciar como no leída.")
+        return value
+
+
+#List
+class NotificacionSerializerList(serializers.ModelSerializer):
+    class Meta:
+        model = models.Notificacion
+        fields = [
+            "id",
+            "titulo",
+            "tipo",
+            "leida",
+            "fecha_envio",
+            "usuario",
+        ]
+
+
+#Retrieve
+class NotificacionSerializerDetail(serializers.ModelSerializer):
+    class Meta:
+        model = models.Notificacion
+        fields = "__all__"
+
+
+#Update
+class NotificacionSerializerUpdate(serializers.ModelSerializer):
+    class Meta:
+        model = models.Notificacion
+        fields = [
+            "titulo",
+            "cuerpo",
+            "tipo",
+            "fcm_token_destino",
+            "leida",
+            "usuario",
+        ]
+
+    def validate_titulo(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError("El título no puede estar vacío.")
+        return value
+
+    def validate_cuerpo(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError("El cuerpo de la notificación no puede estar vacío.")
+        return value
+
+    def validate_leida(self, value):
+        if self.instance.leida and not value:
+            raise serializers.ValidationError("Una notificación leída no puede volver a marcarse como no leída.")
+        return value
+
+    def validate(self, attrs):
+        usuario = attrs.get("usuario", self.instance.usuario)
+        if usuario != self.instance.usuario:
+            raise serializers.ValidationError({
+                "usuario": "No se puede cambiar el destinatario de una notificación existente."
+            })
+        return attrs
+
+#Delete
+class NotificacionSerializerDelete(serializers.ModelSerializer):
+    class Meta:
+        model = models.Notificacion
+        fields = "__all__"

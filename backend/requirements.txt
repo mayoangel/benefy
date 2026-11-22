@@ -1,0 +1,17 @@
+# Backend de Benefy (Django + Django REST Framework)
+Django==5.2.18
+djangorestframework==3.18.3
+django-cors-headers==4.9.0
+whitenoise==6.11.0
+
+# Driver de PostgreSQL para Django
+psycopg2-binary==2.9.13
+
+# Lectura de variables de entorno desde archivos .env
+python-dotenv==1.2.4
+
+# Base de datos IANA de zonas horarias (necesaria en Windows).
+tzdata==2025.2
+
+# Servidor WSGI para el contenedor de producción (Linux)
+gunicorn==23.0.0

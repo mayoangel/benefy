@@ -16,7 +16,6 @@ export function HomeScreen() {
   const styles = useUiStyles();
   const resource = useResource(loadBusinesses);
   const session = usePreview();
-  if (!session.signedIn) return <WelcomeScreen />;
   const cards = resource.data;
   const unread = notifications.filter(item => !session.read.includes(item.id)).length;
   return <Screen title="Benefy" tabs headerActions={<>
@@ -51,14 +50,6 @@ const useHomeStyles = createThemedStyles(colors => StyleSheet.create({
   headerButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   unreadDot: { position: 'absolute', top: 10, right: 10, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.mint },
 }));
-
-export function WelcomeScreen() {
-  const session = usePreview();
-  return <Screen title="Benefy" subtitle="Tus comercios y recompensas" >
-    <Notice title="Bienvenido a Benefy" message="Puedes explorar las pantallas con una cuenta de demostración." />
-    <Button label="Entrar a la demostración" onPress={() => { session.setSignedIn(true); router.replace('/'); }} />
-  </Screen>;
-}
 
 export function BusinessMark({ business, size = 48 }: { business: Business; size?: number }) {
   return <View style={{ width: size, height: size, borderRadius: 12, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}>

@@ -5,6 +5,7 @@ import { launchImageLibraryAsync } from 'expo-image-picker';
 import { useCallback, useRef, useState, type ComponentProps, type ComponentRef } from 'react';
 import { Alert, AppState, Image, Linking, Modal, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { DisplayQr } from '../components/DisplayQr';
+import { useAuth } from '../auth/AuthContext';
 import { notificationPermission } from './notificationPermission';
 import type { NotificationPermission } from './notificationPermission.types';
 import { businesses, loadProfile, notificationTypes, profile, usePreview, useResource } from './preview';
@@ -23,7 +24,7 @@ export function ProfileScreen() {
   const profileStyles = useProfileStyles();
   const styles = useUiStyles();
   const resource = useResource(loadProfile);
-  const session = usePreview();
+  const { signOut } = useAuth();
   const [showQr, setShowQr] = useState(false);
   const account = resource.data;
   return <Screen title="Perfil" tabs>
@@ -74,7 +75,9 @@ export function ProfileScreen() {
         <View style={profileStyles.divider} />
         <ProfileAction icon="logout" label="Cerrar sesión" danger onPress={() => Alert.alert('Cerrar sesión', '¿Quieres salir de Benefy?', [
           { text: 'Cancelar', style: 'cancel' },
-          { text: 'Cerrar sesión', style: 'destructive', onPress: () => { session.setSignedIn(false); router.replace('/welcome'); } },
+          { text: 'Cerrar sesión', style: 'destructive', onPress: () => {
+            void signOut().catch(() => Alert.alert('No se pudo cerrar sesión', 'Inténtalo de nuevo.'));
+          } },
         ])} />
         <Pressable accessibilityRole="button" onPress={() => Alert.alert('Eliminar cuenta',
           'Esta acción es permanente. Si eliminas tu cuenta, perderás tus puntos, visitas y cupones.', [

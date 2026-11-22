@@ -1,0 +1,14 @@
+# Archivos locales que no deben formar parte de un contexto Docker.
+.git
+**/node_modules
+**/dist
+**/artifacts
+**/test-results
+**/playwright-report
+**/__pycache__
+**/*.py[cod]
+**/.venv
+**/venv
+**/.env
+**/.env.*
+backups

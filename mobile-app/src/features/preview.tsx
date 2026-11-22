@@ -70,26 +70,23 @@ const Session = createContext<{
   read: string[]; markRead: (ids: string[]) => void;
   preferences: Record<string, boolean>; togglePreference: (key: string, value: boolean) => void;
   notificationPrompted: boolean; markNotificationPrompted: () => void;
-  signedIn: boolean; setSignedIn: (value: boolean) => void;
 } | null>(null);
 
-export function PreviewProvider({ children }: { children: ReactNode }) {
+export function PreviewProvider({ children, accountId }: { children: ReactNode; accountId?: string }) {
   const [read, setRead] = useState<string[]>([]);
   const [preferences, setPreferences] = useState<Record<string, boolean>>({});
   const [notificationPrompted, setNotificationPrompted] = useState(false);
-  const [signedIn, setActive] = useState(true);
-  const setSignedIn = (value: boolean) => {
-    if (!value) {
-      setRead([]);
-      setPreferences({});
-    }
-    setActive(value);
-  };
+  const [previousAccount, setPreviousAccount] = useState(accountId);
+  if (previousAccount !== accountId) {
+    setPreviousAccount(accountId);
+    setRead([]);
+    setPreferences({});
+    setNotificationPrompted(false);
+  }
   return <Session.Provider value={{
     read, markRead: ids => setRead(previous => [...new Set([...previous, ...ids])]),
     preferences, togglePreference: (key, value) => setPreferences(previous => ({ ...previous, [key]: value })),
     notificationPrompted, markNotificationPrompted: () => setNotificationPrompted(true),
-    signedIn, setSignedIn,
   }}>{children}</Session.Provider>;
 }
 

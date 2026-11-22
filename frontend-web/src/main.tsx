@@ -1,0 +1,20 @@
+import './styles/fonts.css';
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
+import App from './App.tsx';
+import { AuthProvider } from './auth/AuthProvider.tsx';
+import './styles/tokens.css';
+import './styles/site.css';
+import './styles/portal.css';
+import './styles/landing.css';
+
+createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <BrowserRouter>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </BrowserRouter>
+  </React.StrictMode>,
+);

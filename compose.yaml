@@ -1,0 +1,111 @@
+# Desarrollo y demostración de Benefy. Usar docker compose o dev.py.
+# Sin migraciones ni seed al arrancar. Los montajes de código son de solo lectura.
+name: benefy
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./backend:/app:ro
+      - ./backups:/backups:ro
+    environment:
+      DJANGO_SETTINGS_MODULE: config.devdemo
+      ENVIRONMENT: development
+      BENEFY_LOAD_DOTENV: "0"
+      SECRET_KEY: ${SECRET_KEY:?Configura SECRET_KEY}
+      DB_HOST: ${DB_HOST:?Configura DB_HOST}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:?Configura DB_NAME}
+      DB_USER: ${DB_USER:?Configura DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD:?Configura DB_PASSWORD}
+      DB_SSLMODE: ${DB_SSLMODE:-require}
+      SUPABASE_URL: ${SUPABASE_URL:?Configura SUPABASE_URL}
+      SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY:?Configura la clave publicable}
+      CANJE_VALIDACION_SEGUNDOS: ${CANJE_VALIDACION_SEGUNDOS:-300}
+      BENEFY_DB_MODE: ${BENEFY_DB_MODE:-remote}
+    ports:
+      - "127.0.0.1:8001:8000"
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/db/', timeout=5)"]
+      interval: 15s
+      timeout: 8s
+      retries: 5
+      start_period: 20s
+
+  web:
+    build:
+      context: ./frontend-web
+      dockerfile: Dockerfile
+    command: sh -c "npm ci --no-audit --no-fund && npm run dev -- --host 0.0.0.0 --port 5173 --strictPort"
+    volumes:
+      - ./frontend-web:/app:ro
+      - web_modules:/app/node_modules
+    environment:
+      BENEFY_DOCKER_ENV: "1"
+      VITE_API_BASE_URL: /api/v1
+      VITE_SUPABASE_URL: ${SUPABASE_URL:?Configura SUPABASE_URL}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY:?Configura la clave publicable}
+      VITE_BACKEND_PROXY: http://backend:8000
+    ports:
+      - "127.0.0.1:5173:5173"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:5173/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 40s
+
+  benef-ai:
+    build: ./benef-ai
+    command: uvicorn main:app --host 0.0.0.0 --port 5000 --reload
+    volumes:
+      - ./benef-ai:/app:ro
+    environment:
+      ENVIRONMENT: development
+      BENEFY_LOAD_DOTENV: "0"
+      BACKEND_API_URL: http://backend:8000/api/v1
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.1-flash-lite}
+      BENEF_AI_ALLOWED_ORIGINS: ${BENEF_AI_ALLOWED_ORIGINS:-http://localhost:5173}
+      WATCHFILES_FORCE_POLLING: "true"
+    ports:
+      - "127.0.0.1:5001:5000"
+
+  # Solo para validación aislada o desarrollo sin datos remotos.
+  postgres:
+    profiles: [local]
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: benefy_devdemo
+      POSTGRES_USER: benefy_local
+      POSTGRES_PASSWORD: ${LOCAL_DB_PASSWORD:?Configura LOCAL_DB_PASSWORD para modo local}
+    volumes:
+      - local_database:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U benefy_local -d benefy_devdemo"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  backup:
+    profiles: [tools]
+    image: postgres:17-alpine
+    environment:
+      PGHOST: ${DB_HOST}
+      PGPORT: ${DB_PORT:-5432}
+      PGDATABASE: ${DB_NAME}
+      PGUSER: ${DB_USER}
+      PGPASSWORD: ${DB_PASSWORD}
+      PGSSLMODE: ${DB_SSLMODE:-require}
+    volumes:
+      - ./backups:/backups
+    entrypoint: [pg_dump]
+
+volumes:
+  web_modules:
+  local_database:

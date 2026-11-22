@@ -1,0 +1,338 @@
+"""Alcance de consultas y autorización de escrituras del CRUD existente."""
+
+from django.db import transaction
+from django.db.models import F, Q
+from django.db.models.deletion import ProtectedError
+from rest_framework.exceptions import APIException, PermissionDenied, ValidationError
+
+from core import models, permissions
+from core.services import membresias, planes
+
+
+class ProtectedDeleteConflict(APIException):
+    status_code = 409
+    default_detail = 'No se puede eliminar el registro porque conserva historial asociado.'
+
+
+RECURSOS_LIMITADOS = {
+    models.Sucursal: 'sucursales',
+    models.Recompensa: 'recompensas',
+}
+TIPOS_DINAMICA_LIMITADOS = {
+    'puntos': 'programas_puntos',
+    'sellos': 'tarjetas_sellos',
+}
+ROLES_LIMITADOS = {
+    'supervisor': 'supervisores',
+    'empleado': 'empleados',
+}
+
+
+def recurso_limitado(model, data, instance=None):
+    """Devuelve ``(negocio, recurso)`` si el estado resultante consume cupo.
+
+    Los recursos inactivos no consumen cupo. Una reactivación se evalúa con el
+    estado resultante, no con el estado anterior.
+    """
+    def valor(campo, por_defecto=None):
+        if campo in data:
+            return data[campo]
+        if instance is not None:
+            return getattr(instance, campo)
+        return por_defecto
+
+    if model is models.Sucursal:
+        negocio = valor('negocio')
+        activo = valor('status', True)
+        return (negocio, 'sucursales') if activo and negocio else (None, None)
+
+    if model is models.Dinamica:
+        negocio = valor('negocio')
+        tipo = valor('tipo', 'puntos')
+        activo = valor('status', True)
+        recurso = TIPOS_DINAMICA_LIMITADOS.get(tipo)
+        return (negocio, recurso) if activo and negocio and recurso else (None, None)
+
+    if model is models.Recompensa:
+        negocio = valor('negocio')
+        if negocio is None:
+            dinamica = valor('dinamica')
+            negocio = getattr(dinamica, 'negocio', None)
+        activo = valor('status', True)
+        return (negocio, 'recompensas') if activo and negocio else (None, None)
+
+    if model is models.UsuarioNegocio:
+        negocio = valor('negocio')
+        rol = valor('rol_comercio', 'empleado')
+        activo = valor('status', True)
+        recurso = ROLES_LIMITADOS.get(rol)
+        return (negocio, recurso) if activo and negocio and recurso else (None, None)
+
+    return (None, None)
+
+
+def verificar_limite_creacion(model, data):
+    negocio, recurso = recurso_limitado(model, data)
+    if negocio is not None and recurso is not None:
+        planes.verificar_capacidad(negocio, recurso)
+
+
+def verificar_limite_actualizacion(model, data, instance):
+    negocio_nuevo, recurso_nuevo = recurso_limitado(model, data, instance)
+    if negocio_nuevo is None or recurso_nuevo is None:
+        return
+    estado_anterior = {
+        'status': getattr(instance, 'status', True),
+        'negocio': getattr(instance, 'negocio', None),
+    }
+    negocio_anterior, recurso_anterior = recurso_limitado(
+        model,
+        {
+            'status': estado_anterior['status'],
+            'negocio': estado_anterior['negocio'],
+            'tipo': getattr(instance, 'tipo', None),
+            'rol_comercio': getattr(instance, 'rol_comercio', None),
+        },
+        instance,
+    )
+    if (
+        negocio_anterior is not None
+        and negocio_anterior.pk == negocio_nuevo.pk
+        and recurso_anterior == recurso_nuevo
+    ):
+        # Sigue activo en la misma categoría: no consume un cupo nuevo.
+        return
+    planes.verificar_capacidad(
+        negocio_nuevo,
+        recurso_nuevo,
+        excluir_ids=[instance.pk],
+        accion='reactivar',
+    )
+
+
+
+def scoped_queryset(user, queryset):
+    if permissions.es_admin_sistema(user):
+        return queryset
+    if not permissions.es_usuario_benefy(user):
+        return queryset.none()
+    model = queryset.model
+    businesses = permissions.negocios_accesibles(user)
+    owner_businesses = permissions.negocios_administrados(user)
+    branches = permissions.sucursales_accesibles(user)
+    rewards = models.Recompensa.objects.filter(
+        Q(negocio__in=businesses)
+        | Q(dinamica__negocio__in=businesses)
+        | Q(alianza__negocio1__in=businesses)
+        | Q(alianza__negocio2__in=businesses)
+    )
+    if model is models.Usuario:
+        return queryset.filter(pk=user.pk)
+    if model in (models.CategoriaNegocio, models.PlanSuscripcion):
+        return queryset
+    if model is models.Negocio:
+        return queryset.filter(pk__in=businesses)
+    if model is models.Sucursal:
+        return queryset.filter(pk__in=branches)
+    if model is models.UsuarioNegocio:
+        owner_businesses = models.UsuarioNegocio.objects.filter(
+            usuario=user, rol_comercio='dueno', sucursal__isnull=True, status=True,
+        ).values('negocio_id')
+        supervisor_branches = models.UsuarioNegocio.objects.filter(
+            usuario=user, rol_comercio='supervisor', status=True,
+            sucursal__negocio_id=F('negocio_id'),
+        ).values('sucursal_id')
+        return queryset.filter(
+            Q(usuario=user) | Q(negocio_id__in=owner_businesses)
+            | Q(sucursal_id__in=supervisor_branches)
+        )
+    if model in (models.Dinamica, models.Suscripcion, models.Pago):
+        # Facturación solo para propietarios; programas para miembros del negocio.
+        if model in (models.Suscripcion, models.Pago):
+            businesses = businesses.filter(usuarionegocio__usuario=user,
+                usuarionegocio__rol_comercio='dueno',
+                usuarionegocio__sucursal__isnull=True, usuarionegocio__status=True)
+        return queryset.filter(negocio__in=businesses)
+    if model is models.Alianza:
+        return queryset.filter(Q(negocio1__in=businesses) | Q(negocio2__in=businesses)).distinct()
+    if model is models.Recompensa:
+        return queryset.filter(pk__in=rewards)
+    if model is models.RegistroActividad:
+        return queryset.filter(
+            Q(usuario=user)
+            | Q(negocio__in=owner_businesses)
+            | Q(sucursal__in=branches)
+        )
+    if model is models.ProgresoUsuario:
+        return queryset.filter(Q(usuario=user) | Q(dinamica__negocio__in=businesses))
+    if model is models.CuponUsuario:
+        return queryset.filter(
+            Q(usuario=user)
+            | Q(negocio__in=owner_businesses)
+            | Q(recompensa__negocio__in=owner_businesses)
+        )
+    if model is models.Canje:
+        return queryset.filter(
+            Q(cupon__usuario=user)
+            | Q(negocio__in=owner_businesses)
+            | Q(sucursal__in=branches)
+        )
+    if model in (models.SaldoPuntos, models.LotePuntos, models.MovimientoPuntos, models.CicloTarjeta):
+        return queryset.filter(Q(usuario=user) | Q(negocio__in=businesses))
+    if model is models.Notificacion:
+        return queryset.filter(usuario=user)
+    return queryset.none()
+
+
+def authorize_write(user, model, data, instance=None, method='POST', supplied_fields=()):
+    if permissions.es_admin_sistema(user):
+        return
+    allowed = False
+
+    def value(field):
+        return data.get(field, getattr(instance, field, None))
+
+    if model is models.Usuario:
+        allowed = method in ('PUT', 'PATCH') and instance.pk == user.pk
+    elif model is models.Negocio:
+        allowed = method == 'POST' or (
+            method in ('PUT', 'PATCH') and permissions.puede_administrar_negocio(user, instance)
+        )
+        if 'stripe_id' in supplied_fields:
+            allowed = False
+    elif model is models.Sucursal:
+        business = value('negocio')
+        allowed = business is not None and permissions.puede_administrar_negocio(user, business)
+        if instance:
+            allowed = allowed and instance.negocio_id == business.pk
+    elif model is models.UsuarioNegocio:
+        if method == 'DELETE':
+            allowed = permissions.puede_administrar_membresia(user, instance)
+        else:
+            allowed = permissions.puede_crear_membresia(
+                user, value('negocio'), value('sucursal'), value('rol_comercio') or 'empleado',
+            )
+            if instance:
+                allowed = (allowed and permissions.puede_administrar_membresia(user, instance)
+                           and value('negocio').pk == instance.negocio_id
+                           and value('usuario').pk == instance.usuario_id)
+    elif model is models.Dinamica:
+        business = value('negocio')
+        allowed = business is not None and permissions.puede_administrar_negocio(user, business)
+        if instance:
+            allowed = allowed and instance.negocio_id == business.pk
+    elif model is models.Recompensa:
+        program, alliance, business = value('dinamica'), value('alianza'), value('negocio')
+        if program and not alliance:
+            allowed = permissions.puede_administrar_negocio(user, program.negocio)
+        elif alliance and not program:
+            allowed = all(permissions.puede_administrar_negocio(user, negocio)
+                          for negocio in (alliance.negocio1, alliance.negocio2))
+        elif business and not program and not alliance:
+            allowed = permissions.puede_administrar_negocio(user, business)
+        # El origen de una recompensa existente no se puede trasladar a otro negocio.
+        if instance:
+            allowed = (allowed and instance.dinamica_id == (program.pk if program else None)
+                       and instance.alianza_id == (alliance.pk if alliance else None))
+    elif model in (models.RegistroActividad, models.ProgresoUsuario,
+                   models.CuponUsuario, models.Canje):
+        # Estas operaciones solo se modifican mediante los servicios de lealtad.
+        allowed = False
+    elif model is models.Notificacion:
+        allowed = (instance is not None and instance.usuario_id == user.pk
+                   and method in ('PUT', 'PATCH') and set(supplied_fields) <= {'leida'})
+    # Saldos, emisión de cupones, alianzas y facturación requieren procesos de
+    # negocio específicos; el CRUD de escritura queda reservado al admin.
+    if not allowed:
+        raise PermissionDenied('No tienes permisos para realizar esta operación.')
+
+
+class ResourceAccessMixin:
+    def get_queryset(self):
+        return scoped_queryset(self.request.user, super().get_queryset())
+
+    @transaction.atomic
+    def perform_create(self, serializer):
+        model = serializer.Meta.model
+        authorize_write(self.request.user, model, serializer.validated_data,
+                        supplied_fields=self.request.data.keys())
+        verificar_limite_creacion(model, serializer.validated_data)
+
+        if model is models.UsuarioNegocio:
+            datos = dict(serializer.validated_data)
+            motivo = datos.pop('motivo', '')
+            try:
+                serializer.instance = membresias.crear_membresia(
+                    usuario=datos['usuario'],
+                    negocio=datos['negocio'],
+                    sucursal=datos.get('sucursal'),
+                    rol_comercio=datos.get('rol_comercio', 'empleado'),
+                    actor=self.request.user,
+                    motivo=motivo,
+                )
+            except membresias.ErrorMembresia as exc:
+                raise ValidationError({'detail': str(exc)}) from None
+            return serializer.instance
+
+        instance = serializer.save()
+        if model is models.Negocio:
+            try:
+                membresias.crear_membresia(
+                    usuario=self.request.user,
+                    negocio=instance,
+                    sucursal=None,
+                    rol_comercio='dueno',
+                    actor=self.request.user,
+                    motivo='Alta de negocio y membresía de dueño.',
+                )
+                planes.asignar_free_inicial(
+                    instance,
+                    actor=self.request.user,
+                    motivo='Alta de negocio; plan Free predeterminado.',
+                )
+            except (membresias.ErrorMembresia, planes.ErrorConfiguracionPlan) as exc:
+                raise ValidationError({'detail': str(exc)}) from None
+        return instance
+
+    @transaction.atomic
+    def perform_update(self, serializer):
+        model = serializer.Meta.model
+        authorize_write(self.request.user, model, serializer.validated_data,
+                        serializer.instance, self.request.method, self.request.data.keys())
+        verificar_limite_actualizacion(
+            model, serializer.validated_data, serializer.instance,
+        )
+        if model is models.UsuarioNegocio:
+            datos = dict(serializer.validated_data)
+            motivo = datos.pop('motivo', '')
+            try:
+                serializer.instance = membresias.actualizar_membresia(
+                    membresia=serializer.instance,
+                    cambios=datos,
+                    actor=self.request.user,
+                    motivo=motivo,
+                )
+            except membresias.ErrorMembresia as exc:
+                raise ValidationError({'detail': str(exc)}) from None
+            return serializer.instance
+        serializer.save()
+        return serializer.instance
+
+    def perform_destroy(self, instance):
+        authorize_write(self.request.user, type(instance), {}, instance, 'DELETE')
+        if isinstance(instance, models.UsuarioNegocio):
+            datos = getattr(self.request, 'data', None)
+            motivo = datos.get('motivo', '') if hasattr(datos, 'get') else ''
+            try:
+                membresias.desactivar_membresia(
+                    membresia=instance,
+                    actor=self.request.user,
+                    motivo=motivo,
+                )
+            except membresias.ErrorMembresia as exc:
+                raise ValidationError({'detail': str(exc)}) from None
+            return
+        try:
+            instance.delete()
+        except ProtectedError:
+            raise ProtectedDeleteConflict() from None
