@@ -25,10 +25,11 @@ test('the owner role is presented with a human readable label',()=>{
  expect(screen.getByRole('link',{name:'Visitas'}).getAttribute('href')).toBe('/portal/negocio/1/visitas?sucursal=11');
 });
 
-test('owner navigation groups activity, loyalty and business without losing the branch filter',()=>{
+test('owner navigation groups activity, loyalty, growth and business without losing the branch filter',()=>{
  window.matchMedia=vi.fn().mockReturnValue({matches:false,addEventListener(){},removeEventListener(){}});
  render(<MemoryRouter initialEntries={['/portal/negocio/1?sucursal=11']}><Routes><Route path="/portal/negocio/:negocioId" element={<PortalLayout/>}/></Routes></MemoryRouter>);
- for (const group of ['Actividad','Fidelización','Tu negocio']) expect(screen.getByText(group)).toBeTruthy();
- expect(screen.getAllByRole('link').filter(link=>link.classList.contains('portal-nav-link'))).toHaveLength(11);
+ for (const group of ['Actividad','Fidelización','Crecimiento','Tu negocio']) expect(screen.getByText(group)).toBeTruthy();
+ expect(screen.getAllByRole('link').filter(link=>link.classList.contains('portal-nav-link'))).toHaveLength(12);
  expect(screen.getByRole('link',{name:'Recompensas'}).getAttribute('href')).toBe('/portal/negocio/1/recompensas?sucursal=11');
+ expect(screen.getByRole('link',{name:'Alianzas'}).getAttribute('href')).toBe('/portal/negocio/1/alianzas?sucursal=11');
 });

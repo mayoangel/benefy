@@ -19,6 +19,7 @@ import { PortalIcon, PortalRoleBadge } from './components/PortalUI';
 const NAV_GROUPS = [
   { label: 'Actividad', paths: ['', 'clientes', 'visitas', 'canjes', 'cupones'] },
   { label: 'Fidelización', paths: ['puntos', 'tarjetas', 'recompensas'] },
+  { label: 'Crecimiento', paths: ['alianzas'] },
   { label: 'Tu negocio', paths: ['sucursales', 'equipo', 'configuracion'] },
 ];
 
@@ -31,6 +32,7 @@ function navItems(rol: RolComercio | null) {
       { label: 'Puntos', path: 'puntos' },
       { label: 'Tarjetas', path: 'tarjetas' },
       { label: 'Recompensas', path: 'recompensas' },
+      { label: 'Alianzas', path: 'alianzas' },
       { label: 'Equipo', path: 'equipo' },
       { label: 'Visitas', path: 'visitas' },
       { label: 'Canjes', path: 'canjes' },

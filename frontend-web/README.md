@@ -29,10 +29,11 @@ carga `src/App.tsx`. Las rutas implementadas son:
 | `/portal` | Redirección según rol y contexto |
 | `/portal/negocio/:id` | Resumen del negocio o sucursal |
 | `/portal/negocio/:id/configuracion` | Datos públicos y de contacto |
-| `/portal/negocio/:id/sucursales` | CRUD de sucursales |
+| `/portal/negocio/:id/sucursales` | CRUD de sucursales y QR imprimible |
 | `/portal/negocio/:id/puntos` | Programa de puntos |
 | `/portal/negocio/:id/tarjetas` | Tarjetas de sellos y premio meta |
 | `/portal/negocio/:id/recompensas` | CRUD de recompensas |
+| `/portal/negocio/:id/alianzas` | Descubrimiento, propuestas y beneficios de alianzas |
 | `/portal/negocio/:id/equipo` | Membresías e invitaciones |
 | `/portal/negocio/:id/visitas` | Visitas con filtros y paginación |
 | `/portal/negocio/:id/canjes` | Canjes con filtros y paginación |
@@ -61,8 +62,8 @@ comercial: no implican pagos ni analítica implementados.
   sucursal, navegación por rol y adaptación móvil.
 - `src/portal/components/PlanPanel.tsx`: plan actual, uso y límites, excedentes
   y funciones Premium con su estado de disponibilidad.
-- `src/portal/pages/`: configuración, sucursales, puntos, tarjetas, recompensas,
-  equipo, visitas, canjes, cupones y clientes.
+- `src/portal/pages/`: configuración, sucursales con QR, puntos, tarjetas,
+  recompensas, alianzas, equipo, visitas, canjes, cupones y clientes.
 - `src/pages/InvitationPage.tsx`: aceptación de invitaciones con el correo
   autenticado.
 
@@ -70,9 +71,10 @@ Un consumidor sin membresías no entra al portal: se le redirige a
 `/acceso-restringido` con el CTA para registrar su negocio. El onboarding
 comercial se completa automáticamente tras confirmar el correo, sin repetir el
 formulario. El portal consulta `/planes/` y `/negocios/{id}/plan/`; Django
-conserva la autoridad sobre los límites. El detalle está en
-[autenticación](../docs/autenticacion.md), [API](../docs/api.md) y
-[planes](../docs/planes-free-premium.md).
+conserva la autoridad sobre los límites. El QR se genera localmente a partir del `qr_uuid` de la sucursal; su descarga e
+impresión están disponibles, pero el escáner de la app móvil sigue pendiente.
+El detalle está en [autenticación](../docs/autenticacion.md),
+[API](../docs/api.md) y [planes](../docs/planes-free-premium.md).
 
 ## Ejecución y verificación
 

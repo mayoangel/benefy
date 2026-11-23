@@ -25,6 +25,7 @@ const BusinessSettingsPage = lazy(() => import('./portal/pages/BusinessSettingsP
 const PointsPage = lazy(() => import('./portal/pages/PointsPage.tsx'));
 const CardsPage = lazy(() => import('./portal/pages/CardsPage.tsx'));
 const RewardsPage = lazy(() => import('./portal/pages/RewardsPage.tsx'));
+const AlliancesPage = lazy(() => import('./portal/pages/AlliancesPage.tsx'));
 const RedemptionsPage = lazy(() => import('./portal/pages/RedemptionsPage.tsx'));
 const ClientsPage = lazy(() => import('./portal/pages/ClientsPage.tsx'));
 const InvitationPage = lazy(() => import('./pages/InvitationPage.tsx'));
@@ -62,6 +63,7 @@ export default function App() {
               <Route path="puntos" element={<PointsPage />} />
               <Route path="tarjetas" element={<CardsPage />} />
               <Route path="recompensas" element={<RewardsPage />} />
+              <Route path="alianzas" element={<AlliancesPage />} />
               <Route path="equipo" element={<TeamPage />} />
               <Route path="visitas" element={<VisitsPage />} />
               <Route path="canjes" element={<RedemptionsPage />} />

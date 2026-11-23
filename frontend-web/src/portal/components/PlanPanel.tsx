@@ -130,8 +130,8 @@ export default function PlanPanel({ plan }: { plan: PlanNegocio }) {
         </div>
       ) : (
         <p className="portal-muted">
-          Plan Premium activo. Las funciones avanzadas se habilitarán en las
-          próximas fases.
+          Plan Premium activo. Las funciones marcadas como disponibles ya están
+          habilitadas; las demás se incorporarán en próximas fases.
         </p>
       )}
     </article>

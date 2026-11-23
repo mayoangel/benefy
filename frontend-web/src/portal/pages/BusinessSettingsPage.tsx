@@ -1,5 +1,6 @@
 import { PortalPageHeader, PortalForm, PortalFormSection } from '../components/PortalUI';
 import { useRequestGuard } from '../hooks/useRequestGuard';
+import { useUnsavedChanges } from '../hooks/useUnsavedChanges';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
@@ -7,9 +8,24 @@ import { useAuth } from '../../auth/AuthProvider.tsx';
 import { api } from '../../lib/api.ts';
 import { membresiaDelNegocio } from '../../lib/portal.ts';
 import type { NegocioDetalle } from '../../lib/types.ts';
+import BranchQRDialog from '../components/BranchQRDialog.tsx';
 import { PortalError, PortalLoading } from '../components/PortalState.tsx';
 import PlanPanel from '../components/PlanPanel.tsx';
 import { usePlan } from '../hooks/usePlan.ts';
+
+function firmaNegocio(negocio: NegocioDetalle) {
+  return JSON.stringify({
+    nombre: negocio.nombre,
+    descripcion: negocio.descripcion ?? '',
+    direccion: negocio.direccion,
+    telefono: negocio.telefono ?? '',
+    correo: negocio.correo,
+    logo_url: negocio.logo_url ?? '',
+    banner_url: negocio.banner_url ?? '',
+    zona_horaria: negocio.zona_horaria,
+    categoria: negocio.categoria,
+  });
+}
 
 export default function BusinessSettingsPage() {
   const { context, refreshContext } = useAuth();
@@ -18,10 +34,14 @@ export default function BusinessSettingsPage() {
   const membresia = membresiaDelNegocio(context, id);
   const { plan, reload: recargarPlan } = usePlan(id);
   const [negocio, setNegocio] = useState<NegocioDetalle | null>(null);
+  const [original, setOriginal] = useState<NegocioDetalle | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
+  const [mostrarQr, setMostrarQr] = useState(false);
+  const dirty = Boolean(negocio && original && firmaNegocio(negocio) !== firmaNegocio(original));
+  const { confirmClose } = useUnsavedChanges(dirty);
 
   const requestGuard = useRequestGuard(Number(negocioId));
   const cargar = useCallback(async () => {
@@ -32,6 +52,7 @@ export default function BusinessSettingsPage() {
       const respuesta = await api.getBusinessDetail(id);
       if (!vigente()) return;
       setNegocio(respuesta);
+      setOriginal(respuesta);
     } catch (err) {
       if (!vigente()) return;
       setError(err instanceof Error ? err.message : 'No se pudo cargar el negocio.');
@@ -68,6 +89,7 @@ export default function BusinessSettingsPage() {
         categoria: negocio.categoria,
       });
       setNegocio(actualizado);
+      setOriginal(actualizado);
       setOk('Los datos del negocio se guardaron.');
       await refreshContext();
     } catch (err) {
@@ -86,6 +108,14 @@ export default function BusinessSettingsPage() {
   return (
     <section className="portal-page">
       <PortalPageHeader eyebrow="Configuración" title="Datos del negocio" description={<>Información pública y de contacto que verán tus clientes.</>}>
+        <button
+          className="portal-button-secondary"
+          type="button"
+          onClick={() => setMostrarQr(true)}
+          disabled={!negocio.qr_uuid}
+        >
+          Ver QR del negocio
+        </button>
         <Link className="portal-button-secondary" to="/registrar-negocio">
           Registrar otro negocio
         </Link>
@@ -167,6 +197,17 @@ export default function BusinessSettingsPage() {
           <span className={negocio.status ? 'portal-badge is-on' : 'portal-badge'}>
             {negocio.status ? 'Negocio activo' : 'Negocio inactivo'}
           </span>
+          <button
+            className="portal-button-secondary"
+            type="button"
+            disabled={busy || !dirty}
+            onClick={() => confirmClose(() => {
+              if (original) setNegocio(original);
+              setOk('Cambios descartados.');
+            })}
+          >
+            Descartar cambios
+          </button>
           <button className="portal-button" type="submit" disabled={busy}>
             {busy ? 'Guardando...' : 'Guardar cambios'}
           </button>
@@ -174,6 +215,21 @@ export default function BusinessSettingsPage() {
       </PortalForm>
 
       {plan ? <PlanPanel plan={plan} /> : null}
+
+      {mostrarQr ? (
+        <BranchQRDialog
+          kind="negocio"
+          businessName={negocio.nombre}
+          branch={{
+            id: 0,
+            nombre: 'Negocio completo',
+            negocio: id,
+            status: negocio.status,
+            qr_uuid: negocio.qr_uuid,
+          }}
+          onClose={() => setMostrarQr(false)}
+        />
+      ) : null}
     </section>
   );
 }

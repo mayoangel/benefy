@@ -1,5 +1,7 @@
 import { supabase } from './supabase.ts';
 import type {
+  AlianzaDetalle,
+  AlianzaResumen,
   CanjeResumen,
   CategoriaResumen,
   ClienteResumen,
@@ -9,6 +11,7 @@ import type {
   InvitacionResumen,
   MembresiaResumen,
   MetricasPortal,
+  NegocioAliado,
   NegocioDetalle,
   NegocioResumen,
   OnboardingResultado,
@@ -16,6 +19,7 @@ import type {
   PaginaResultados,
   PlanCatalogo,
   PlanNegocio,
+  RecompensaAlianza,
   RecompensaResumen,
   SucursalDetalle,
   SucursalResumen,
@@ -161,6 +165,47 @@ export const api = {
   getPlans: () => request<PlanCatalogo[]>('/planes/'),
   getBusinessPlan: (businessId: number) =>
     request<PlanNegocio>(`/negocios/${businessId}/plan/`),
+  getAlliances: (businessId: number, params: Record<string, ValorQuery> = {}) =>
+    request<AlianzaResumen[]>(
+      `/alianzas/${query({ negocio: businessId, ...params })}`,
+    ),
+  discoverAlliances: (
+    businessId: number,
+    params: Record<string, ValorQuery> = {},
+  ) => request<NegocioAliado[]>(
+    `/alianzas/descubrir/${query({ negocio: businessId, ...params })}`,
+  ),
+  getAlliance: (
+    businessId: number,
+    allianceId: number,
+  ) => request<AlianzaDetalle>(
+    `/alianzas/${allianceId}/${query({ negocio: businessId })}`,
+  ),
+  createAlliance: (data: Record<string, unknown>) =>
+    request<AlianzaDetalle>('/alianzas/solicitudes/', jsonBody(data)),
+  acceptAlliance: (businessId: number, allianceId: number) =>
+    request<AlianzaDetalle>(
+      `/alianzas/${allianceId}/aceptar/${query({ negocio: businessId })}`,
+      { method: 'POST' },
+    ),
+  rejectAlliance: (businessId: number, allianceId: number) =>
+    request<AlianzaDetalle>(
+      `/alianzas/${allianceId}/rechazar/${query({ negocio: businessId })}`,
+      { method: 'POST' },
+    ),
+  finalizeAlliance: (businessId: number, allianceId: number) =>
+    request<AlianzaDetalle>(
+      `/alianzas/${allianceId}/finalizar/${query({ negocio: businessId })}`,
+      { method: 'POST' },
+    ),
+  createAllianceReward: (
+    businessId: number,
+    allianceId: number,
+    data: Record<string, unknown>,
+  ) => request<RecompensaAlianza>(
+    `/alianzas/${allianceId}/recompensas/${query({ negocio: businessId })}`,
+    jsonBody({ ...data, negocio: businessId }),
+  ),
   createProfile: (nombre: string, apellido: string) =>
     request<UsuarioPortal>('/usuario/crear/', jsonBody({ nombre, apellido })),
   getCategories: () => request<CategoriaResumen[]>('/categorias-negocio/listar/'),

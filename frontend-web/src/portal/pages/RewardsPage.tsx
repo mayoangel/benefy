@@ -51,7 +51,9 @@ export default function RewardsPage() {
       const datos = await api.getRewards();
       if (!vigente()) return;
       setRecompensas(datos.filter(
-        (recompensa) => recompensa.negocio === id && !recompensa.es_meta,
+        (recompensa) => recompensa.negocio === id
+          && !recompensa.es_meta
+          && !recompensa.alianza,
       ));
     } catch (err) {
       if (!vigente()) return;

@@ -138,6 +138,7 @@ export type SucursalResumen = {
   status: boolean;
   ciudad?: string;
   direccion?: string;
+  qr_uuid: string;
 };
 
 export type UsuarioResumen = {
@@ -219,6 +220,7 @@ export type NegocioDetalle = {
   banner_url: string | null;
   slug: string;
   zona_horaria: string;
+  qr_uuid: string;
   status: boolean;
   categoria: number;
 };
@@ -263,9 +265,70 @@ export type RecompensaResumen = {
   negocio: number | null;
   es_meta: boolean;
   dinamica: number | null;
+  alianza: number | null;
   fecha_expiracion: string | null;
   vigencia_dias: number | null;
   cantidad_disponible: number | null;
+};
+
+export type EstadoAlianza = 'pendiente' | 'activa' | 'finalizada' | 'rechazada';
+
+export type NegocioAliado = {
+  id: number;
+  nombre: string;
+  descripcion: string | null;
+  direccion: string;
+  logo_url: string | null;
+  categoria: number;
+  categoria_nombre: string;
+};
+
+export type EventoAlianza = {
+  id: number;
+  accion: 'solicitud' | 'aceptacion' | 'rechazo' | 'finalizacion' | 'recompensa';
+  actor_correo: string;
+  detalle: string;
+  fecha: string;
+};
+
+export type RecompensaAlianza = {
+  id: number;
+  titulo: string;
+  descripcion: string;
+  tipo: RecompensaResumen['tipo'];
+  descuento: string | null;
+  costo_desbloqueo: number;
+  terminos_condiciones: string;
+  status: boolean;
+  negocio: number | null;
+  fecha_expiracion: string | null;
+  vigencia_dias: number | null;
+  cantidad_disponible: number | null;
+};
+
+export type AlianzaResumen = {
+  id: number;
+  negocio1: NegocioAliado;
+  negocio2: NegocioAliado;
+  condicion_participacion: string;
+  status: EstadoAlianza;
+  vigente: boolean;
+  fecha_inicio: string;
+  fecha_fin: string;
+  fecha_solicitud: string;
+  fecha_respuesta: string | null;
+  direccion: 'enviada' | 'recibida' | 'participante';
+  numero_beneficios: number;
+};
+
+export type AlianzaDetalle = AlianzaResumen & {
+  eventos: EventoAlianza[];
+  recompensas: RecompensaAlianza[];
+  creado_por_correo: string | null;
+  respondido_por_correo: string | null;
+  puede_responder: boolean;
+  puede_finalizar: boolean;
+  puede_agregar_beneficio: boolean;
 };
 
 export type CanjeResumen = {

@@ -7,6 +7,7 @@ import { useAuth } from '../../auth/AuthProvider.tsx';
 import { ApiError, api } from '../../lib/api.ts';
 import { membresiaDelNegocio } from '../../lib/portal.ts';
 import type { SucursalResumen } from '../../lib/types.ts';
+import BranchQRDialog from '../components/BranchQRDialog.tsx';
 import { PortalError, PortalLoading } from '../components/PortalState.tsx';
 import { usePlan } from '../hooks/usePlan.ts';
 
@@ -36,6 +37,7 @@ export default function BranchesPage() {
   const puedeEditar = membresia?.rol_comercio === 'dueno';
   const { plan, reload: recargarPlan } = usePlan(id);
   const [sucursales, setSucursales] = useState<SucursalResumen[]>([]);
+  const [qrSucursal, setQrSucursal] = useState<SucursalResumen | null>(null);
   const [form, setForm] = useState<Formulario>(inicial);
   const [editando, setEditando] = useState<number | null>(null);
   const [mostrarForm, setMostrarForm] = useState(false);
@@ -272,28 +274,39 @@ export default function BranchesPage() {
                       </span>
                     </td>
                     <td>
-                      {puedeEditar ? (
-                        <div className="portal-row-actions">
-                          <button type="button" onClick={() => void abrirEdicion(sucursal)}>
-                            Editar
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => void cambiarEstado(sucursal)}
-                            disabled={busy}
-                          >
-                            {sucursal.status ? 'Desactivar' : 'Activar'}
-                          </button>
-                        </div>
-                      ) : (
-                        <span className="portal-muted">Solo lectura</span>
-                      )}
+                      <div className="portal-row-actions">
+                        <button type="button" onClick={() => setQrSucursal(sucursal)}>
+                          Ver QR
+                        </button>
+                        {puedeEditar ? (
+                          <>
+                            <button type="button" onClick={() => void abrirEdicion(sucursal)}>
+                              Editar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void cambiarEstado(sucursal)}
+                              disabled={busy}
+                            >
+                              {sucursal.status ? 'Desactivar' : 'Activar'}
+                            </button>
+                          </>
+                        ) : null}
+                      </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </PortalTable>
         </div>
+      ) : null}
+
+      {qrSucursal ? (
+        <BranchQRDialog
+          branch={qrSucursal}
+          businessName={membresia?.negocio.nombre ?? 'Benefy'}
+          onClose={() => setQrSucursal(null)}
+        />
       ) : null}
     </section>
   );

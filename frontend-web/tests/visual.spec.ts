@@ -26,6 +26,40 @@ for (const [device, width, height] of [['desktop', 1440, 1000], ['tablet', 768, 
   });
 }
 
+test('branch and business QR are generated from the real UUID and remain accessible', async ({ page }) => {
+  await installVisualFixture(page);
+  await page.goto('/portal/negocio/1/sucursales');
+  const row = page.getByRole('row').filter({ hasText: 'Centro' });
+  await row.getByRole('button', { name: 'Ver QR' }).click();
+  const dialog = page.getByRole('dialog', { name: 'QR de Centro' });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByText('3f2c1e9a-8b7d-4c6a-9e5f-1a2b3c4d5e6f')).toBeVisible();
+  await expect(dialog.locator('svg')).toHaveCount(1);
+  await expect(dialog.getByRole('button', { name: 'Descargar SVG' })).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Imprimir QR' })).toBeVisible();
+  await dialog.getByRole('button', { name: 'Cerrar' }).click();
+
+  await page.goto('/portal/negocio/1/configuracion');
+  await page.getByRole('button', { name: 'Ver QR del negocio' }).click();
+  const businessDialog = page.getByRole('dialog', { name: 'QR del negocio' });
+  await expect(businessDialog).toBeVisible();
+  await expect(businessDialog.getByText('9b8a7c6d-5e4f-4a3b-2c1d-0e9f8a7b6c5d')).toBeVisible();
+  await expect(businessDialog.getByText('Café Nómada · Negocio completo')).toBeVisible();
+});
+
+test('alliances page separates tabs and explains the Premium requirement', async ({ page }) => {
+  await installVisualFixture(page);
+  await page.goto('/portal/negocio/1/alianzas');
+  await expect(page.getByRole('heading', { name: 'Alianzas comerciales' })).toBeVisible();
+  await expect(page.getByText(/Las alianzas están incluidas en Premium/)).toBeVisible();
+  await page.getByRole('tab', { name: /Recibidas/ }).click();
+  await expect(page.getByRole('heading', { name: 'Panadería Norte' })).toBeVisible();
+  await page.getByRole('button', { name: 'Revisar solicitud' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Panadería Norte' });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Aceptar alianza' })).toBeDisabled();
+});
+
 test('admin retains global tables and distinct table names', async ({ page }) => {
   await installVisualFixture(page, { role: 'admin' });
   await page.setViewportSize({ width: 1440, height: 1000 });

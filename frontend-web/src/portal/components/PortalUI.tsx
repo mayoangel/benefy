@@ -10,6 +10,7 @@ const paths: Record<string, string> = {
   puntos: 'm12 3 2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3l-5.5 2.9 1-6.2L3 9.6l6.2-.9L12 3Z',
   tarjetas: 'M4 4h16v16H4V4Zm4 5h.01M12 9h.01M16 9h.01M8 15h.01M12 15h.01M16 15h.01',
   recompensas: 'M3 8h18v4H3V8Zm2 4v9h14v-9M12 8v13M12 8H8a3 3 0 1 1 3-3l1 3Zm0 0h4a3 3 0 1 0-3-3l-1 3Z',
+  alianzas: 'M8 12a4 4 0 0 1 0-8h3M16 12a4 4 0 0 1 0 8h-3M9 16H7a4 4 0 0 1 0-8h2m6 0h2a4 4 0 0 1 0 8h-2M8 12h8',
   equipo: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M20 8v6m-3-3h6',
   sucursales: 'M4 10v11h16V10M3 10l2-7h14l2 7M8 21v-7h8v7M3 10h18',
   configuracion: 'M4 7h16M4 17h16M8 4v6m8 4v6',

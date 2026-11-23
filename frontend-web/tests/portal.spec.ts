@@ -15,7 +15,7 @@ test.beforeEach(async({page})=>{
  if(u.pathname.endsWith('/metricas/'))body=metrics(id);
  if(u.pathname.endsWith('/plan/'))body={negocio:id,plan:{codigo:'free',nombre:'Free'},limites:Object.fromEntries(['sucursales','tarjetas_sellos','recompensas','supervisores','empleados','programas_puntos'].map(k=>[k,{uso:1,limite:3,disponible:2,excedido:false}])),excedentes:[],caracteristicas:{},caracteristicas_implementadas:[]};
  if(u.pathname.endsWith('/clientes/'))body=clients(u.searchParams.get('buscar')||'Initial');
- if(['/dinamicas/listar/','/recompensas/listar/','/sucursales/listar/','/usuarios-negocio/listar/'].some(p=>u.pathname.endsWith(p))||u.pathname.endsWith('/invitaciones/'))body=[];
+ if(['/dinamicas/listar/','/recompensas/listar/','/sucursales/listar/','/usuarios-negocio/listar/'].some(p=>u.pathname.endsWith(p))||u.pathname.endsWith('/invitaciones/')||u.pathname.endsWith('/alianzas/')||u.pathname.endsWith('/alianzas/descubrir/'))body=[];
  await route.fulfill({json:body});
  });
 });
@@ -63,7 +63,7 @@ test('mobile drawer, responsive header and fonts',async({page})=>{
 });
 test('all owner sections and public routes load',async({page})=>{
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
- for(const route of ['','clientes','visitas','canjes','cupones','puntos','tarjetas','recompensas','equipo','sucursales']){
+ for(const route of ['','clientes','visitas','canjes','cupones','puntos','tarjetas','recompensas','alianzas','equipo','sucursales']){
  await page.goto('/portal/negocio/1/'+route);await expect(page.locator('h1')).toBeVisible();
  }
  for(const route of ['/','/about','/precios','/login','/registro','/recuperar']){await page.goto(route);await expect(page.locator('h1').first()).toBeVisible();}
