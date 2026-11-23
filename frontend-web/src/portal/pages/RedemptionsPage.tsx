@@ -2,10 +2,11 @@ import { PortalPageHeader, PortalTable } from '../components/PortalUI';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { useRequestGuard } from '../hooks/useRequestGuard';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 
 import { useAuth } from '../../auth/AuthProvider.tsx';
 import { api } from '../../lib/api.ts';
+import { membresiaDelNegocio } from '../../lib/portal.ts';
 import type { CanjeResumen, PaginaResultados } from '../../lib/types.ts';
 import PortalPagination from '../components/PortalPagination.tsx';
 import { PortalEmpty, PortalError, PortalLoading } from '../components/PortalState.tsx';
@@ -18,8 +19,11 @@ export default function RedemptionsPage() {
   const { context } = useAuth();
   const { negocioId } = useParams();
   const id = Number(negocioId);
+  const membresia = membresiaDelNegocio(context, id);
+  const esDueno = membresia?.rol_comercio === 'dueno';
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedBranch = searchParams.get('sucursal') ?? '';
+  const clienteUrl = searchParams.get('cliente') ?? '';
   const [datos, setDatos] = useState(vacio);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -28,7 +32,7 @@ export default function RedemptionsPage() {
     hasta: '',
     sucursal: '',
     anulado: '',
-    buscar: '',
+    buscar: clienteUrl,
     page: 1,
     page_size: 20,
   });
@@ -56,22 +60,45 @@ export default function RedemptionsPage() {
     void cargar();
   }, [cargar]);
 
+  useEffect(() => {
+    setFiltros((actual) => (
+      actual.buscar === clienteUrl
+        ? actual
+        : { ...actual, buscar: clienteUrl, page: 1 }
+    ));
+  }, [clienteUrl]);
+
   const sucursales = context?.sucursales.filter(
     (sucursal) => sucursal.negocio === id,
   ) ?? [];
 
   function cambiar(campo: string, valor: string) {
-    if (campo === 'sucursal') {
+    if (campo === 'sucursal' || campo === 'buscar') {
       const next = new URLSearchParams(searchParams);
-      if (valor) next.set('sucursal', valor); else next.delete('sucursal');
-      setSearchParams(next);
+      if (campo === 'sucursal') {
+        if (valor) next.set('sucursal', valor); else next.delete('sucursal');
+      } else {
+        if (valor) next.set('cliente', valor); else next.delete('cliente');
+      }
+      setSearchParams(next, { replace: campo === 'buscar' });
     }
     setFiltros((actual) => ({ ...actual, [campo]: valor, page: 1 }));
   }
 
   return (
     <section className="portal-page">
-      <PortalPageHeader eyebrow="Operación" title="Canjes" description={<>Cupones utilizados en el negocio o en tu sucursal.</>}>
+      <PortalPageHeader eyebrow="Actividad" title="Canjes" description={<>Cupones utilizados en el negocio o en tu sucursal.</>}>
+        <Link
+          className="portal-button-secondary"
+          to={`/portal/negocio/${id}/visitas${selectedBranch ? `?sucursal=${encodeURIComponent(selectedBranch)}` : ''}`}
+        >
+          Ver visitas
+        </Link>
+        {esDueno ? (
+          <Link className="portal-button-secondary" to={`/portal/negocio/${id}/cupones`}>
+            Ver cupones
+          </Link>
+        ) : null}
         <button className="portal-button-secondary" type="button" onClick={() => void cargar()}>
           Actualizar
         </button>
@@ -134,7 +161,18 @@ export default function RedemptionsPage() {
                   <tr key={canje.id}>
                     <td>{new Date(canje.fecha).toLocaleDateString('es-MX')}</td>
                     <td>{canje.titulo_beneficio || `Cupón #${canje.cupon}`}</td>
-                    <td>{canje.usuario_correo ?? '—'}</td>
+                    <td>
+                      {esDueno && canje.usuario_correo ? (
+                        <Link
+                          className="portal-table-link"
+                          to={`/portal/negocio/${id}/clientes?buscar=${encodeURIComponent(canje.usuario_correo)}`}
+                        >
+                          {canje.usuario_correo}
+                        </Link>
+                      ) : (
+                        canje.usuario_correo ?? '—'
+                      )}
+                    </td>
                     <td>{canje.sucursal_nombre ?? 'Todo el negocio'}</td>
                     <td>{canje.metodo === 'qr' ? 'QR' : canje.metodo === 'nfc' ? 'NFC' : canje.metodo}</td>
                     <td>

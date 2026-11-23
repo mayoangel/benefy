@@ -116,6 +116,24 @@ test('received proposals are visible and actionable from the received tab', asyn
   cleanup();
 });
 
+test('a deep link can open the received proposals tab directly', async () => {
+  vi.mocked(api.getAlliances).mockResolvedValue([alianza]);
+  vi.mocked(api.discoverAlliances).mockResolvedValue([negocio]);
+
+  render(
+    <MemoryRouter initialEntries={['/portal/negocio/1/alianzas?tab=recibidas']}>
+      <Routes>
+        <Route path="/portal/negocio/:negocioId/alianzas" element={<AlliancesPage />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+
+  expect((await screen.findByRole('tab', { name: /Recibidas/ })).getAttribute('aria-selected')).toBe('true');
+  expect(await screen.findByText('Panadería Norte')).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Revisar solicitud' })).toBeTruthy();
+  cleanup();
+});
+
 test('free plan can receive proposals but cannot send them', async () => {
   planState.premium = false;
   vi.mocked(api.getAlliances).mockResolvedValue([]);

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 
 import { useAuth } from '../../auth/AuthProvider.tsx';
 import { api } from '../../lib/api.ts';
@@ -107,7 +107,11 @@ export default function AlliancesPage() {
   const membresia = membresiaDelNegocio(context, id);
   const esDueno = membresia?.rol_comercio === 'dueno';
   const { plan, loading: planLoading } = usePlan(id);
-  const [tab, setTab] = useState<Tab>('descubrir');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const tab: Tab = TABS.some((item) => item.id === tabParam)
+    ? tabParam as Tab
+    : 'descubrir';
   const [alianzas, setAlianzas] = useState<AlianzaResumen[]>([]);
   const [descubiertos, setDescubiertos] = useState<NegocioAliado[]>([]);
   const [buscar, setBuscar] = useState('');
@@ -190,9 +194,16 @@ export default function AlliancesPage() {
   const limiteTexto = (limite: number | null | undefined) => limite === null || limite === undefined
     ? '∞' : limite;
 
+  function cambiarTab(next: Tab) {
+    const params = new URLSearchParams(searchParams);
+    if (next === 'descubrir') params.delete('tab');
+    else params.set('tab', next);
+    setSearchParams(params);
+  }
+
   function alCrear(alianza: AlianzaDetalle) {
     setMerchant(null);
-    setTab('enviadas');
+    cambiarTab('enviadas');
     setOk(`Propuesta enviada a ${alianza.negocio2.nombre}.`);
     void cargar();
   }
@@ -208,11 +219,11 @@ export default function AlliancesPage() {
   return (
     <section className="portal-page">
       <PortalPageHeader
-        eyebrow="Crecimiento"
+        eyebrow="Alianzas"
         title="Alianzas comerciales"
         description={<>Conecta con otros negocios, acuerda beneficios y compártelos con tus clientes.</>}
       >
-        <button type="button" className="portal-button-secondary" onClick={() => { setTab('descubrir'); setBuscar(''); }}>
+        <button type="button" className="portal-button-secondary" onClick={() => { cambiarTab('descubrir'); setBuscar(''); }}>
           Buscar comercios
         </button>
       </PortalPageHeader>
@@ -256,7 +267,7 @@ export default function AlliancesPage() {
                 aria-selected={tab === item.id}
                 aria-controls="alliance-panel"
                 className={tab === item.id ? 'is-active' : ''}
-                onClick={() => setTab(item.id)}
+                onClick={() => cambiarTab(item.id)}
               >
                 {item.label}
                 {conteo ? <span>{conteo}</span> : null}

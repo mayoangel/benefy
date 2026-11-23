@@ -155,9 +155,14 @@ export default function BranchesPage() {
 
   return (
     <section className="portal-page">
-      <PortalPageHeader eyebrow="Negocio" title="Sucursales" description={uso
+      <PortalPageHeader eyebrow="Administración" title="Sucursales" description={uso
               ? `${uso.uso} de ${uso.limite ?? '∞'} sucursales activas en tu plan.`
               : 'Sucursales a las que tienes acceso.'}>
+        {puedeEditar ? (
+          <Link className="portal-button-secondary" to={`/portal/negocio/${id}/configuracion`}>
+            QR del negocio
+          </Link>
+        ) : null}
         {puedeEditar ? (
           <button className="portal-button" type="button" onClick={abrirNueva}>
             Nueva sucursal

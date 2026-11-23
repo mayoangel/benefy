@@ -2,7 +2,7 @@ import { PortalPageHeader, PortalTable } from '../components/PortalUI';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { useRequestGuard } from '../hooks/useRequestGuard';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 
 import { api } from '../../lib/api.ts';
 import type { CuponResumen, PaginaResultados } from '../../lib/types.ts';
@@ -16,6 +16,8 @@ const vacio: PaginaResultados<CuponResumen> = {
 export default function CouponsPage() {
   const { negocioId } = useParams();
   const id = Number(negocioId);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const clienteUrl = searchParams.get('cliente') ?? '';
   const [datos, setDatos] = useState(vacio);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -23,7 +25,7 @@ export default function CouponsPage() {
     desde: '',
     hasta: '',
     estado: '',
-    buscar: '',
+    buscar: clienteUrl,
     page: 1,
     page_size: 20,
   });
@@ -51,13 +53,29 @@ export default function CouponsPage() {
     void cargar();
   }, [cargar]);
 
+  useEffect(() => {
+    setFiltros((actual) => (
+      actual.buscar === clienteUrl
+        ? actual
+        : { ...actual, buscar: clienteUrl, page: 1 }
+    ));
+  }, [clienteUrl]);
+
   function cambiar(campo: string, valor: string) {
+    if (campo === 'buscar') {
+      const next = new URLSearchParams(searchParams);
+      if (valor) next.set('cliente', valor); else next.delete('cliente');
+      setSearchParams(next, { replace: true });
+    }
     setFiltros((actual) => ({ ...actual, [campo]: valor, page: 1 }));
   }
 
   return (
     <section className="portal-page">
-      <PortalPageHeader eyebrow="Lealtad" title="Cupones emitidos" description={<>Cupones adquiridos por clientes; los cupones ya emitidos no se invalidan al desactivar una recompensa.</>}>
+      <PortalPageHeader eyebrow="Actividad" title="Cupones emitidos" description={<>Cupones adquiridos por clientes; los cupones ya emitidos no se invalidan al desactivar una recompensa.</>}>
+        <Link className="portal-button-secondary" to={`/portal/negocio/${id}/canjes`}>
+          Ver canjes
+        </Link>
         <button className="portal-button-secondary" type="button" onClick={() => void cargar()}>
           Actualizar
         </button>
@@ -112,7 +130,18 @@ export default function CouponsPage() {
                 {datos.results.map((cupon) => (
                   <tr key={cupon.id}>
                     <td>{cupon.titulo_beneficio || `Recompensa #${cupon.recompensa}`}</td>
-                    <td>{cupon.usuario_correo ?? `Usuario #${cupon.usuario}`}</td>
+                    <td>
+                      {cupon.usuario_correo ? (
+                        <Link
+                          className="portal-table-link"
+                          to={`/portal/negocio/${id}/clientes?buscar=${encodeURIComponent(cupon.usuario_correo)}`}
+                        >
+                          {cupon.usuario_correo}
+                        </Link>
+                      ) : (
+                        `Usuario #${cupon.usuario}`
+                      )}
+                    </td>
                     <td>{cupon.origen}</td>
                     <td>
                       <span className={cupon.status === 'disponible' ? 'portal-badge is-on' : 'portal-badge'}>

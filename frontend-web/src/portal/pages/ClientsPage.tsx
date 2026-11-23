@@ -2,7 +2,7 @@ import { PortalPageHeader, PortalTable } from '../components/PortalUI';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { useRequestGuard } from '../hooks/useRequestGuard';
 import { useCallback, useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 
 import { api } from '../../lib/api.ts';
 import type { PaginaClientes } from '../../lib/types.ts';
@@ -14,13 +14,29 @@ const vacio: PaginaClientes = { count: 0, page: 1, page_size: 20, results: [] };
 export default function ClientsPage() {
   const { negocioId } = useParams();
   const id = Number(negocioId);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const busquedaUrl = searchParams.get('buscar') ?? '';
   const [datos, setDatos] = useState(vacio);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [buscar, setBuscar] = useState('');
+  const [buscar, setBuscar] = useState(busquedaUrl);
   const [page, setPage] = useState(1);
 
   const search = useDebouncedValue(buscar);
+
+  useEffect(() => {
+    setBuscar(busquedaUrl);
+    setPage(1);
+  }, [busquedaUrl]);
+
+  function cambiarBusqueda(valor: string) {
+    setBuscar(valor);
+    setPage(1);
+    const next = new URLSearchParams(searchParams);
+    if (valor) next.set('buscar', valor);
+    else next.delete('buscar');
+    setSearchParams(next, { replace: true });
+  }
   const requestGuard = useRequestGuard(Number(negocioId));
   const cargar = useCallback(async () => {
     const vigente = requestGuard();
@@ -46,7 +62,7 @@ export default function ClientsPage() {
 
   return (
     <section className="portal-page">
-      <PortalPageHeader eyebrow="Clientes" title="Clientes del negocio" description={<>Datos operativos de clientes con visitas, puntos o cupones en este negocio.</>}>
+      <PortalPageHeader eyebrow="Actividad" title="Clientes del negocio" description={<>Datos operativos de clientes con visitas, puntos o cupones en este negocio.</>}>
         <button className="portal-button-secondary" type="button" onClick={() => void cargar()}>
           Actualizar
         </button>
@@ -57,10 +73,7 @@ export default function ClientsPage() {
           <span>Buscar por nombre o correo</span>
           <input id="portal-clients-1" name="portal-clients-1"
             value={buscar}
-            onChange={(event) => {
-              setBuscar(event.target.value);
-              setPage(1);
-            }}
+            onChange={(event) => cambiarBusqueda(event.target.value)}
             placeholder="Cliente o correo"
           />
         </label>
@@ -87,9 +100,23 @@ export default function ClientsPage() {
                   <tr key={cliente.id}>
                     <td>{cliente.nombre} {cliente.apellido}</td>
                     <td>{cliente.correo}</td>
-                    <td className="portal-numeric">{cliente.visitas}</td>
+                    <td className="portal-numeric">
+                      <Link
+                        className="portal-table-link"
+                        to={`/portal/negocio/${id}/visitas?cliente=${encodeURIComponent(cliente.correo)}`}
+                      >
+                        {cliente.visitas}
+                      </Link>
+                    </td>
                     <td className="portal-numeric">{cliente.puntos}</td>
-                    <td className="portal-numeric">{cliente.cupones}</td>
+                    <td className="portal-numeric">
+                      <Link
+                        className="portal-table-link"
+                        to={`/portal/negocio/${id}/cupones?cliente=${encodeURIComponent(cliente.correo)}`}
+                      >
+                        {cliente.cupones}
+                      </Link>
+                    </td>
                     <td>
                       {cliente.ultima_visita
                         ? new Date(cliente.ultima_visita).toLocaleDateString('es-MX')

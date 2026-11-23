@@ -1,7 +1,7 @@
 import { PortalPageHeader, PortalTable, PortalForm } from '../components/PortalUI';
 import { useRequestGuard } from '../hooks/useRequestGuard';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 
 import { useAuth } from '../../auth/AuthProvider.tsx';
 import { ApiError, api } from '../../lib/api.ts';
@@ -153,6 +153,9 @@ export default function PointsPage() {
   return (
     <section className="portal-page">
       <PortalPageHeader eyebrow="Fidelización" title="Programa de puntos" description={<>Un programa activo por negocio. Los puntos históricos no se recalculan.</>}>
+        <Link className="portal-button-secondary" to={`/portal/negocio/${id}/recompensas`}>
+          Ver recompensas
+        </Link>
         <button className="portal-button" type="button" onClick={nuevo}>
           Nuevo programa
         </button>

@@ -220,6 +220,11 @@ export default function CardsPage() {
         </button>
       </PortalPageHeader>
 
+      <p className="portal-note">
+        La recompensa al completar cada tarjeta se edita en esta misma pantalla,
+        dentro del formulario de la tarjeta.
+      </p>
+
       {plan ? (
         <div className="portal-note">
           Tarjetas activas: {plan.limites.tarjetas_sellos.uso} de{' '}
