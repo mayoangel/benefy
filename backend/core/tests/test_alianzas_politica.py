@@ -3,6 +3,7 @@
 import threading
 from datetime import timedelta
 from unittest import skipUnless
+from uuid import uuid4
 
 from django.db import connection, connections
 from django.test import TestCase, TransactionTestCase
@@ -11,7 +12,7 @@ from rest_framework.test import APIClient
 
 from core import models
 from core.services import planes
-from core.services.lealtad import cupones
+from core.services.lealtad import cupones, puntos
 from core.tests.helpers import (
     asegurar_planes,
     asignar_plan,
@@ -142,6 +143,32 @@ class FreeAlianzasTests(PoliticaAlianzasBaseTests):
             ).count(),
             1,
         )
+
+    def test_membresia_inactiva_no_puede_aceptar(self):
+        pendiente = self.pendiente(self.business_a, self.business_b)
+        membresia = models.UsuarioNegocio.objects.get(
+            usuario=self.owner_b, negocio=self.business_b,
+        )
+        membresia.status = False
+        membresia.save(update_fields=['status'])
+        respuesta = self.aceptar(pendiente.pk, self.owner_b, self.business_b)
+        self.assertEqual(respuesta.status_code, 403)
+        self.assertEqual(respuesta.data['codigo'], 'sin_permiso_alianza')
+
+    def test_transiciones_invalidas(self):
+        primera = self.pendiente(self.business_a, self.business_b)
+        self.assertEqual(
+            self.aceptar(primera.pk, self.owner_b, self.business_b).status_code,
+            200,
+        )
+        repetida = self.aceptar(primera.pk, self.owner_b, self.business_b)
+        self.assertEqual(repetida.status_code, 409)
+        self.assertEqual(repetida.data['codigo'], 'alianza_ya_respondida')
+
+        pendiente = self.pendiente(self.business_c, self.business_b)
+        finalizada = self.finalizar(pendiente.pk, self.owner_b, self.business_b)
+        self.assertEqual(finalizada.status_code, 409)
+        self.assertEqual(finalizada.data['codigo'], 'alianza_no_activa')
 
     def test_pendiente_no_consume_y_finalizada_libera_cupo(self):
         pendiente = self.pendiente(self.business_a, self.business_b)
@@ -351,6 +378,103 @@ class DowngradeAlianzasTests(PoliticaAlianzasBaseTests):
         self.assertEqual(cupon_actualizado.status, 'canjeado')
         self.assertIsNotNone(canje.pk)
 
+    def test_recompensa_compartida_consume_solo_el_saldo_ofertante(self):
+        alianza = self.activa(self.business_a, self.business_b)
+        recompensa = models.Recompensa.objects.create(
+            titulo='Café compartido',
+            descripcion='Beneficio de alianza.',
+            tipo='gratis',
+            costo_desbloqueo=10,
+            terminos_condiciones='Vigente con la alianza.',
+            status=True,
+            negocio=self.business_a,
+            alianza=alianza,
+            vigencia_dias=10,
+            cantidad_disponible=1,
+        )
+        puntos.otorgar_puntos(
+            usuario=self.consumer, negocio=self.business_a, cantidad=100,
+            origen='ajuste', referencia='saldo-a',
+        )
+        puntos.otorgar_puntos(
+            usuario=self.consumer, negocio=self.business_b, cantidad=50,
+            origen='ajuste', referencia='saldo-b',
+        )
+        clave = uuid4()
+        self.client.force_authenticate(self.consumer)
+        response = self.client.post('/api/v1/cupones/adquirir/', {
+            'recompensa': recompensa.pk,
+            'clave_idempotencia': str(clave),
+        }, format='json')
+        self.assertEqual(response.status_code, 201)
+        cupon_uuid = response.data['cupon']['uuid']
+        self.assertEqual(response.data['cupon']['negocio'], self.business_a.pk)
+        self.assertEqual(
+            models.SaldoPuntos.objects.get(
+                usuario=self.consumer, negocio=self.business_a,
+            ).saldo_actual,
+            90,
+        )
+        self.assertEqual(
+            models.SaldoPuntos.objects.get(
+                usuario=self.consumer, negocio=self.business_b,
+            ).saldo_actual,
+            50,
+        )
+        recompensa.refresh_from_db()
+        self.assertEqual(recompensa.cantidad_disponible, 0)
+
+        repetida = self.client.post('/api/v1/cupones/adquirir/', {
+            'recompensa': recompensa.pk,
+            'clave_idempotencia': str(clave),
+        }, format='json')
+        self.assertEqual(repetida.status_code, 200)
+        self.assertEqual(repetida.data['cupon']['uuid'], cupon_uuid)
+        self.assertEqual(
+            models.SaldoPuntos.objects.get(
+                usuario=self.consumer, negocio=self.business_a,
+            ).saldo_actual,
+            90,
+        )
+        self.assertEqual(
+            models.CuponUsuario.objects.filter(
+                usuario=self.consumer,
+            ).count(),
+            1,
+        )
+
+        finalizada = self.finalizar(alianza.pk, self.owner_b, self.business_b)
+        self.assertEqual(finalizada.status_code, 200)
+        canje, cupon_actualizado = cupones.canjear_cupon(
+            usuario=self.consumer, cupon_uuid=cupon_uuid,
+        )
+        self.assertEqual(cupon_actualizado.status, 'canjeado')
+        self.assertIsNotNone(canje.pk)
+
+    def test_beneficio_sigue_visible_tras_downgrade(self):
+        alianza = self.activa(self.business_a, self.business_b)
+        recompensa = models.Recompensa.objects.create(
+            titulo='Beneficio tras downgrade',
+            descripcion='Beneficio de alianza.',
+            tipo='gratis',
+            costo_desbloqueo=0,
+            terminos_condiciones='Vigente.',
+            status=True,
+            negocio=self.business_a,
+            alianza=alianza,
+            vigencia_dias=10,
+        )
+        asignar_plan(self.business_a, 'free')
+        self.client.force_authenticate(self.consumer)
+        catalogo = self.client.get(
+            f'/api/v1/negocios/{self.business_a.pk}/catalogo/',
+        )
+        self.assertEqual(catalogo.status_code, 200)
+        self.assertIn(
+            recompensa.pk,
+            [item['id'] for item in catalogo.data['recompensas']],
+        )
+
 
 def ejecutar_en_hilos(func, cantidad=2):
     barrera = threading.Barrier(cantidad)
@@ -411,6 +535,42 @@ class ConcurrenciaAlianzasTests(TransactionTestCase):
             status='pendiente',
             fecha_inicio=ahora,
             fecha_fin=ahora + timedelta(days=60),
+        )
+
+    def test_aceptacion_y_downgrade_concurrentes_no_dejan_estado_invalido(self):
+        from core.services import alianzas as servicio
+
+        # Deja una alianza activa con un negocio Free y otra pendiente.
+        servicio.responder_solicitud(
+            usuario=self.owner_a,
+            alianza_id=self.pendientes[0].pk,
+            aceptar=True,
+        )
+
+        def operacion(indice):
+            if indice == 0:
+                return servicio.responder_solicitud(
+                    usuario=self.owner_a,
+                    alianza_id=self.pendientes[1].pk,
+                    aceptar=True,
+                )
+            return asignar_plan(self.business_a, 'free')
+
+        resultados, errores = ejecutar_en_hilos(operacion)
+        self.assertLessEqual(len(errores), 1)
+        if errores:
+            self.assertIsInstance(errores[0], planes.LimitePlan)
+        self.assertGreaterEqual(len(resultados), 1)
+
+        activas = models.Alianza.objects.filter(
+            status='activa', negocio2=self.business_a,
+        ).count()
+        resumen = planes.resumen_plan(self.business_a)
+        self.assertEqual(resumen['limites']['alianzas_activas']['uso'], activas)
+        self.assertIn(activas, (1, 2))
+        self.assertEqual(
+            resumen['limites']['alianzas_activas']['excedido'],
+            activas > 1,
         )
 
     def test_dos_aceptaciones_simultaneas_no_exceden_el_cupo_free(self):

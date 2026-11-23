@@ -63,7 +63,7 @@ export default function AllianceWizard({
       onCreated(alianza);
     } catch (err) {
       if (err instanceof ApiError && err.codigo === 'limite_plan') {
-        setError(`${err.message} Puedes revisar el plan Premium para habilitar alianzas.`);
+        setError(`${err.message} Puedes revisar el plan Premium para enviar solicitudes.`);
       } else {
         setError(err instanceof Error ? err.message : 'No se pudo enviar la propuesta.');
       }
