@@ -19,7 +19,7 @@ async function validateLanding(page: Page) {
   await expect(page.getByRole('heading', { name: 'Funciones que ya forman parte de la operación.' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Free', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Premium', exact: true })).toBeVisible();
-  await expect(page.getByText('Precio orientativo. La activación actual es manual.')).toBeVisible();
+  await expect(page.getByText('También $3,990 MXN/año. Pago de demostración; no se realizan cargos reales.')).toBeVisible();
   await expect(page.locator('img[src*="points"]')).toHaveCount(3);
   await expect(page.locator('img[src*="coupons"]')).toHaveCount(2);
 
@@ -58,7 +58,7 @@ test('página de precios mantiene los límites reales', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Empieza gratis');
   await expect(page.getByRole('table', { name: 'Límites actuales de los planes Free y Premium' })).toBeVisible();
   await expect(page.getByRole('row', { name: /Sucursales activas 1 5/ })).toBeVisible();
-  await expect(page.getByText('Premium requiere activación manual.')).toBeVisible();
+  await expect(page.getByText(/Premium se contrata desde el portal del negocio/)).toBeVisible();
 
   await page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('link', { name: 'Producto' }).click();
   await expect(page).toHaveURL(/\/#producto$/);

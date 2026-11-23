@@ -29,6 +29,8 @@ async function fixture(page:any,handle:any){
   if(url.pathname.endsWith('/contexto/')){await route.fulfill({json:context});return;}
   if(url.pathname.endsWith('/plan/')){await route.fulfill({json:{negocio:1,plan:business.plan,limites:{},excedentes:[],caracteristicas:{},caracteristicas_implementadas:[]}});return;}
   if(url.pathname.endsWith('/metricas/')){await route.fulfill({json:{desde:'2026-11-01',hasta:'2026-11-17',alcance:'negocio',visitas_validas:100,clientes_unicos:10,puntos_otorgados:null,cupones_canjeados:2,top_recompensas:[]}});return;}
+  if(url.pathname.endsWith('/visitas/')){await route.fulfill({json:{count:0,next:null,previous:null,results:[]}});return;}
+  if(url.pathname.endsWith('/alianzas/')){await route.fulfill({json:[]});return;}
   throw Error('Unexpected request '+url.pathname);
  });
 }

@@ -1,8 +1,12 @@
-import {test,expect} from '@playwright/test';
+import {test,expect,type Page} from '@playwright/test';
 const biz=(id:number)=>({id,nombre:'Negocio '+id,status:true,zona_horaria:'America/Tijuana',plan:{codigo:'free',nombre:'Free'}});
 const ctx={usuario:{id:1},puede_portal:true,es_admin_sistema:false,negocios:[biz(1),biz(2)],sucursales:[{id:11,negocio:1,nombre:'Centro',status:true},{id:12,negocio:1,nombre:'Norte',status:true}],membresias:[1,2].map(id=>({id,negocio:biz(id),rol_comercio:'dueno',status:true,sucursal:null}))};
 const metrics=(id:number)=>({desde:'2026-11-01',hasta:'2026-11-17',alcance:'negocio',visitas_validas:id*100,clientes_unicos:10,puntos_otorgados:null,cupones_canjeados:2,top_recompensas:[]});
 const clients=(name:string)=>({count:45,page:1,page_size:20,results:[{id:1,nombre:name,apellido:'',correo:'audit@example.invalid',visitas:1,puntos:5,cupones:2,ultima_visita:null}]});
+async function abrirGrupo(page:Page,label:string){
+ const boton=page.getByRole('button',{name:label,exact:true});
+ if(await boton.getAttribute('aria-expanded')==='false')await boton.click();
+}
 test.beforeEach(async({page})=>{
  await page.route('**/*',async route=>{
  const u=new URL(route.request().url());
@@ -41,8 +45,28 @@ test('changing business discards pending metrics and preserves branch on navigat
  await expect(page.locator('.portal-kpi strong').first()).toHaveText('200');release();
  await expect(page.locator('h1')).toHaveText('Negocio 2');await expect(page.locator('.portal-kpi strong').first()).toHaveText('200');
  await page.unroute('**/negocios/1/metricas/**');
- await page.goto('/portal/negocio/1?sucursal=11');await page.getByRole('link',{name:'Visitas',exact:true}).click();
+ await page.goto('/portal/negocio/1?sucursal=11');await abrirGrupo(page,'Actividad');await page.getByRole('link',{name:'Visitas',exact:true}).click();
  await expect(page).toHaveURL(/visitas\?sucursal=11/);await expect(page.locator('.portal-filters select').first()).toHaveValue('11');
+});
+test('la navegación jerárquica conserva expansión, teclado y ruta activa',async({page})=>{
+ await page.goto('/portal/negocio/1');
+ const nav=page.getByRole('navigation',{name:'Navegación del portal'});
+ await expect(nav.getByRole('link',{name:'Inicio'})).toHaveAttribute('aria-current','page');
+ const actividad=nav.getByRole('button',{name:'Actividad'});
+ await expect(actividad).toHaveAttribute('aria-expanded','false');
+ await actividad.focus();await page.keyboard.press('Enter');
+ await expect(actividad).toHaveAttribute('aria-expanded','true');
+ await expect(nav.getByRole('link',{name:'Visitas'})).toBeVisible();
+ await nav.getByRole('link',{name:'Visitas'}).click();
+ await expect(page).toHaveURL(/\/visitas$/);
+ await expect(actividad).toHaveAttribute('aria-expanded','true');
+ await expect(nav.getByRole('link',{name:'Visitas'})).toHaveAttribute('aria-current','page');
+ await nav.getByRole('link',{name:'Alianzas'}).click();
+ await expect(page).toHaveURL(/\/alianzas$/);
+ await expect(nav.getByRole('link',{name:'Alianzas'})).toHaveAttribute('aria-current','page');
+ await page.goto('/portal/negocio/1/recompensas');
+ await expect(nav.getByRole('button',{name:'Fidelización'})).toHaveAttribute('aria-expanded','true');
+ await expect(nav.getByRole('link',{name:'Recompensas'})).toHaveAttribute('aria-current','page');
 });
 test('mobile drawer, responsive header and fonts',async({page})=>{
  await page.setViewportSize({width:320,height:568});

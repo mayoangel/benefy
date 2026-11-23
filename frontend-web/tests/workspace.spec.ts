@@ -74,14 +74,80 @@ for (const role of ['empleado', 'supervisor']) {
     await installVisualFixture(page, { role });
     await page.goto('/portal/negocio/1');
     const nav = page.getByRole('navigation', { name: 'Navegación del portal' });
-    await expect(nav.getByRole('link')).toHaveCount(role === 'supervisor' ? 4 : 3);
-    for (const label of ['Resumen', 'Visitas', 'Canjes']) await expect(nav.getByRole('link', { name: label })).toBeVisible();
-    await expect(nav.getByRole('link', { name: 'Configuración' })).toHaveCount(0);
+    await expect(nav.getByRole('link', { name: 'Inicio' })).toBeVisible();
+    await expect(nav.getByRole('button', { name: 'Fidelización' })).toHaveCount(0);
+    await expect(nav.getByRole('link', { name: 'Alianzas' })).toHaveCount(0);
+    await nav.getByRole('button', { name: 'Actividad' }).click();
+    await expect(nav.getByRole('link', { name: 'Visitas' })).toBeVisible();
+    await expect(nav.getByRole('link', { name: 'Canjes' })).toBeVisible();
+    await expect(nav.getByRole('link', { name: 'Clientes' })).toHaveCount(0);
+    await expect(nav.getByRole('link', { name: 'Cupones' })).toHaveCount(0);
+    if (role === 'supervisor') {
+      await nav.getByRole('button', { name: 'Administración' }).click();
+      await expect(nav.getByRole('link', { name: 'Equipo' })).toBeVisible();
+      await expect(nav.getByRole('link', { name: 'Suscripción' })).toHaveCount(0);
+    } else {
+      await expect(nav.getByRole('button', { name: 'Administración' })).toHaveCount(0);
+    }
     await page.goto('/portal/negocio/1/recompensas');
     await expect(page.getByRole('alert')).toContainText('Solo el propietario');
     await expect(page.getByRole('button', { name: 'Nueva recompensa' })).toHaveCount(0);
   });
 }
+
+test('Inicio muestra actividad y solicitudes pendientes con enlace a Recibidas', async ({ page }) => {
+  await installVisualFixture(page);
+  await page.goto('/portal/negocio/1');
+  await expect(page.getByText('Actividad reciente')).toBeVisible();
+  await expect(page.getByText(/una solicitud de alianza pendiente/i)).toBeVisible();
+  await page.getByRole('link', { name: 'Revisar solicitudes' }).click();
+  await expect(page).toHaveURL(/alianzas\?tab=recibidas/);
+  await expect(page.getByRole('tab', { name: /Recibidas/ })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('heading', { name: 'Panadería Norte' })).toBeVisible();
+});
+
+test('clientes, visitas, cupones y canjes conservan el filtro del cliente', async ({ page }) => {
+  await installVisualFixture(page);
+  await page.goto('/portal/negocio/1/clientes');
+  const mariana = page.getByRole('row').filter({ hasText: 'Mariana García' });
+  await mariana.getByRole('link', { name: '18' }).click();
+  await expect(page).toHaveURL(/visitas\?cliente=mariana/);
+  await expect(page.getByPlaceholder('correo@ejemplo.com')).toHaveValue('mariana@example.invalid');
+  const visita = page.getByRole('row').filter({ hasText: 'mariana@example.invalid' });
+  await visita.getByRole('link', { name: 'mariana@example.invalid' }).click();
+  await expect(page).toHaveURL(/clientes\?buscar=mariana/);
+  await expect(page.getByPlaceholder('Cliente o correo')).toHaveValue('mariana@example.invalid');
+
+  await page.goto('/portal/negocio/1/clientes');
+  await page.getByRole('row').filter({ hasText: 'Mariana García' }).getByRole('link', { name: '3' }).click();
+  await expect(page).toHaveURL(/cupones\?cliente=mariana/);
+  await page.getByRole('link', { name: 'Ver canjes' }).click();
+  await expect(page).toHaveURL(/canjes$/);
+  await page.getByRole('link', { name: 'Ver cupones' }).click();
+  await expect(page).toHaveURL(/cupones$/);
+});
+
+test('fidelización y QR ofrecen accesos contextuales entre pantallas', async ({ page }) => {
+  await installVisualFixture(page);
+  await page.goto('/portal/negocio/1/puntos');
+  await page.getByRole('link', { name: 'Ver recompensas' }).click();
+  await expect(page).toHaveURL(/recompensas$/);
+  await page.getByRole('link', { name: 'Programa de puntos' }).click();
+  await expect(page).toHaveURL(/puntos$/);
+
+  await page.goto('/portal/negocio/1/tarjetas');
+  await expect(page.getByText(/se edita en esta misma pantalla/)).toBeVisible();
+  await page.goto('/portal/negocio/1/recompensas');
+  await page.locator('.portal-note').getByRole('link', { name: 'Tarjetas de sellos' }).click();
+  await expect(page).toHaveURL(/tarjetas$/);
+
+  await page.goto('/portal/negocio/1');
+  await page.getByRole('link', { name: /Sucursales y QR/ }).click();
+  await expect(page).toHaveURL(/sucursales$/);
+  await page.goto('/portal/negocio/1');
+  await page.getByRole('link', { name: /Configuración y QR/ }).click();
+  await expect(page).toHaveURL(/configuracion$/);
+});
 
 test('stamp card confirmation preserves the dynamic and linked reward updates', async ({ page }) => {
   const writes: any[] = [];
