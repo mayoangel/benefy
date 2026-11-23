@@ -829,6 +829,27 @@ DIVISAS = (
     ('USD', 'Dolar americano')
 )
 
+MODOS_STRIPE = (
+    ('test', 'Sandbox / Test Mode'),
+    ('live', 'Producción'),
+)
+
+ESTADOS_CHECKOUT_STRIPE = (
+    ('creada', 'Creada'),
+    ('abierta', 'Abierta'),
+    ('completada', 'Completada'),
+    ('expirada', 'Expirada'),
+    ('cancelada', 'Cancelada'),
+    ('fallida', 'Fallida'),
+)
+
+ESTADOS_EVENTO_STRIPE = (
+    ('procesando', 'Procesando'),
+    ('procesado', 'Procesado'),
+    ('ignorado', 'Ignorado'),
+    ('fallido', 'Fallido'),
+)
+
 class PlanSuscripcion(models.Model):
     """Nivel comercial. Las capacidades se configuran en ``limites``."""
 
@@ -890,9 +911,49 @@ ESTADOS_SUSCRIPCION = (
 ESTADOS_SUSCRIPCION_VIGENTES = ('activa', 'prueba')
 
 
+class ClienteStripe(models.Model):
+    """Asociación explícita negocio ↔ Stripe Customer, aislada por entorno.
+
+    ``Negocio.stripe_id`` es una columna legacy sin modo asociado; no se usa
+    para facturación. Esta relación permite separar identificadores Sandbox de
+    futuros registros live sin mezclar datos.
+    """
+
+    negocio = models.ForeignKey(
+        Negocio, on_delete=models.CASCADE, related_name='clientes_stripe',
+    )
+    stripe_customer_id = models.CharField(
+        max_length=100, unique=True, db_index=True,
+    )
+    stripe_mode = models.CharField(
+        max_length=10, choices=MODOS_STRIPE, default='test',
+    )
+    fecha_registro = models.DateTimeField(auto_now_add=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['negocio', 'stripe_mode'],
+                name='cliente_stripe_unico_por_modo',
+            ),
+        ]
+        ordering = ['negocio_id', 'stripe_mode']
+
+    def __str__(self):
+        return f'{self.negocio.nombre} ({self.stripe_customer_id})'
+
+
 class Suscripcion(models.Model):
     stripe_subscription_id = models.CharField(
         max_length=100, unique=True, null=True, blank=True, db_index=True,
+    )
+    stripe_mode = models.CharField(
+        max_length=10, choices=MODOS_STRIPE, blank=True, default='',
+    )
+    stripe_status = models.CharField(max_length=40, blank=True, default='')
+    stripe_price_id = models.CharField(
+        max_length=100, blank=True, default='', db_index=True,
     )
     status = models.CharField(
         max_length=30, choices=ESTADOS_SUSCRIPCION,
@@ -901,6 +962,11 @@ class Suscripcion(models.Model):
     periodo_actual_inicio = models.DateTimeField(null=True, blank=True)
     periodo_actual_fin = models.DateTimeField(null=True, blank=True)
     en_cancelacion = models.BooleanField(default=False)
+    gracia_fin = models.DateTimeField(null=True, blank=True)
+    ultimo_evento_stripe_id = models.CharField(
+        max_length=255, blank=True, default='',
+    )
+    ultimo_evento_stripe_creado = models.BigIntegerField(null=True, blank=True)
     origen = models.CharField(
         max_length=30, choices=ORIGENES_SUSCRIPCION, default='manual',
     )
@@ -942,6 +1008,87 @@ class Suscripcion(models.Model):
         return f"{self.negocio.nombre} - {self.plan.nombre} ({self.get_status_display()})"
 
 
+class CheckoutStripe(models.Model):
+    """Intento de Checkout idempotente asociado a un negocio y precio del catálogo."""
+
+    negocio = models.ForeignKey(
+        Negocio, on_delete=models.CASCADE, related_name='checkouts_stripe',
+    )
+    usuario = models.ForeignKey(
+        Usuario, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='checkouts_stripe',
+    )
+    plan_precio = models.ForeignKey(
+        PlanPrecio, on_delete=models.PROTECT, related_name='checkouts_stripe',
+    )
+    stripe_session_id = models.CharField(
+        max_length=255, unique=True, null=True, blank=True, db_index=True,
+    )
+    stripe_customer_id = models.CharField(max_length=100, blank=True, default='')
+    idempotency_key = models.CharField(max_length=255, unique=True)
+    intervalo = models.CharField(max_length=30, choices=INTERVALOS_FACTURACION)
+    monto = models.DecimalField(max_digits=10, decimal_places=2)
+    divisa = models.CharField(max_length=30, choices=DIVISAS, default='MXN')
+    status = models.CharField(
+        max_length=30, choices=ESTADOS_CHECKOUT_STRIPE, default='creada',
+    )
+    url = models.URLField(max_length=1000, blank=True, default='')
+    stripe_mode = models.CharField(
+        max_length=10, choices=MODOS_STRIPE, default='test',
+    )
+    expira_en = models.DateTimeField(null=True, blank=True)
+    completado_en = models.DateTimeField(null=True, blank=True)
+    fecha_registro = models.DateTimeField(auto_now_add=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-fecha_registro', '-pk']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['negocio', 'stripe_mode'],
+                condition=models.Q(status='abierta'),
+                name='un_checkout_abierto_por_negocio',
+            ),
+        ]
+        indexes = [
+            models.Index(fields=['negocio', 'status', 'stripe_mode']),
+        ]
+
+    def __str__(self):
+        return f'Checkout {self.stripe_session_id or self.idempotency_key} ({self.status})'
+
+
+class EventoStripe(models.Model):
+    """Registro de idempotencia de webhooks; no guarda el payload sensible."""
+
+    event_id = models.CharField(max_length=255, unique=True, db_index=True)
+    event_type = models.CharField(max_length=100, db_index=True)
+    object_id = models.CharField(max_length=255, blank=True, default='')
+    stripe_created = models.BigIntegerField(null=True, blank=True)
+    stripe_mode = models.CharField(
+        max_length=10, choices=MODOS_STRIPE, default='test',
+    )
+    livemode = models.BooleanField(default=False)
+    status = models.CharField(
+        max_length=30, choices=ESTADOS_EVENTO_STRIPE, default='procesando',
+    )
+    intentos = models.PositiveSmallIntegerField(default=1)
+    error = models.CharField(max_length=500, blank=True, default='')
+    fecha_evento = models.DateTimeField(null=True, blank=True)
+    fecha_procesado = models.DateTimeField(null=True, blank=True)
+    fecha_registro = models.DateTimeField(auto_now_add=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-stripe_created', '-pk']
+        indexes = [
+            models.Index(fields=['status', 'event_type']),
+        ]
+
+    def __str__(self):
+        return f'{self.event_type} [{self.event_id}] ({self.status})'
+
+
 class PlanCambioAuditoria(models.Model):
     """Historial de cambios manuales o automáticos de plan."""
 
@@ -975,20 +1122,35 @@ class PlanCambioAuditoria(models.Model):
 
 ESTADOS_PAGO = (
     ('pagado', 'Pagado'),
+    ('pendiente', 'Pago pendiente'),
     ('fallido', 'Fallido / Rechazado'),
-    ('reembolsado', 'Reembolsado')
+    ('anulado', 'Anulado'),
+    ('reembolsado', 'Reembolsado'),
 )
 
 class Pago(models.Model):
     stripe_invoice_id = models.CharField(max_length=100, unique=True, db_index=True)
     stripe_payment_intent_id = models.CharField(max_length=100, blank=True, null=True, db_index=True)
+    stripe_mode = models.CharField(
+        max_length=10, choices=MODOS_STRIPE, blank=True, default='',
+    )
+    stripe_invoice_status = models.CharField(max_length=30, blank=True, default='')
+    intentos_pago = models.PositiveSmallIntegerField(default=0)
     monto = models.DecimalField(max_digits=10, decimal_places=2)
     divisa = models.CharField(max_length=30, choices=DIVISAS, default=DIVISAS[0][0])
     status = models.CharField(max_length=30, choices=ESTADOS_PAGO, default=ESTADOS_PAGO[0][0])
     recibo_url = models.URLField(max_length=500, blank=True, null=True)
+    periodo_inicio = models.DateTimeField(null=True, blank=True)
+    periodo_fin = models.DateTimeField(null=True, blank=True)
+    pagado_en = models.DateTimeField(null=True, blank=True)
+    ultimo_evento_stripe_creado = models.BigIntegerField(null=True, blank=True)
     fecha_pago = models.DateTimeField(auto_now_add=True, auto_now=False, db_index=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
     negocio = models.ForeignKey(Negocio, on_delete=models.PROTECT)
     suscripcion = models.ForeignKey(Suscripcion, on_delete=models.PROTECT)
+
+    class Meta:
+        ordering = ['-fecha_pago', '-pk']
 
     def __str__(self):
         return (
