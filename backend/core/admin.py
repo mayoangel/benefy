@@ -17,6 +17,7 @@ admin.site.register(
         models.InvitacionMembresia,
         models.Dinamica,
         models.Alianza,
+        models.EventoAlianza,
         models.Recompensa,
         models.RegistroActividad,
         models.ProgresoUsuario,

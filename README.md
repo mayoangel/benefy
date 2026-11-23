@@ -9,20 +9,21 @@ con `python dev.py up`, sin instalar Node ni Django en el host.
 
 | Componente | Implementado | Pendiente |
 | --- | --- | --- |
-| Backend | Django 5.2 + DRF, 25 modelos, quince migraciones de `core`, 106 rutas API, motor de visitas/puntos/tarjetas/cupones, membresías auditadas, onboarding idempotente, invitaciones, aislamiento por sucursal, planes Free/Premium y Django Admin | Analítica avanzada, Stripe y webhooks |
+| Backend | Django 5.2 + DRF, 26 modelos, diecisiete migraciones de `core`, 114 rutas API, motor de visitas/puntos/tarjetas/cupones, alianzas bilaterales auditadas, membresías auditadas, onboarding idempotente, invitaciones, aislamiento por sucursal, planes Free/Premium y Django Admin | Analítica avanzada, Stripe y webhooks |
 | Identidad | Supabase Auth con login web real, sesión persistente, refresh, recuperación, onboarding automático e invitaciones; perfiles/roles en Django | Integración de Auth en la app móvil |
-| Web | Landing React 18 + Vite y portal conectado: dashboards por rol, configuración, sucursales, puntos, tarjetas, recompensas, equipo, visitas, cupones, canjes, clientes y plan con uso/límites | Checkout, exportaciones y E2E en CI |
+| Web | Landing React 18 + Vite y portal conectado: dashboards por rol, configuración, sucursales con QR imprimible, puntos, tarjetas, recompensas, alianzas, equipo, visitas, cupones, canjes, clientes y plan con uso/límites | Checkout, exportaciones y E2E en CI |
 | Móvil | Dashboard Benefy en Expo SDK 58 con resumen de puntos, retos, cupones y pestañas de demostración | Datos reales, Auth, cámara QR/NFC y cliente API |
 | Benef AI | FastAPI y endpoint de estado | Agente, proveedor LLM, herramientas y comunicación autenticada con Django |
 | Hardware | Carpeta de documentación | Firmware ESP32-S3 e integración física |
 
 El backend implementa el flujo transaccional del MVP: visitas por QR con
 límite diario, puntos por lotes con FIFO, tarjetas de visitas, adquisición
-idempotente y canje irreversible. El CRUD genérico de esas entidades es solo
-lectura; las operaciones pasan por endpoints y servicios dedicados. La web ya
-consume la API con JWT de Supabase. Free/Premium aplica límites reales desde
-Django y el portal permite configurar el negocio y operar el programa. Faltan la
-app móvil, Stripe y las funciones Premium avanzadas. Detalles en
+idempotente, canje irreversible y alianzas bilaterales con beneficios por
+negocio. El CRUD genérico de esas entidades es solo lectura; las operaciones
+pasan por endpoints y servicios dedicados. La web ya consume la API con JWT de
+Supabase. Free/Premium aplica límites reales desde Django y el portal permite
+configurar el negocio, operar el programa, imprimir QR y gestionar alianzas.
+Faltan el escáner móvil, Stripe y las funciones Premium avanzadas. Detalles en
 [reglas de lealtad](./docs/reglas-lealtad.md),
 [planes Free/Premium](./docs/planes-free-premium.md), [API](./docs/api.md) y
 [autenticación](./docs/autenticacion.md).

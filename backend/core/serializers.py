@@ -354,6 +354,7 @@ class SucursalSerializerList(serializers.ModelSerializer):
             "ciudad",
             "status",
             "negocio",
+            "qr_uuid",
         ]
 
 #Retrieve
@@ -834,6 +835,180 @@ class AlianzaSerializerDelete(serializers.ModelSerializer):
         model = models.Alianza
         fields = "__all__"
 
+
+def _es_dueno_de(user, negocio):
+    return models.UsuarioNegocio.objects.filter(
+        usuario=user,
+        negocio=negocio,
+        rol_comercio='dueno',
+        sucursal__isnull=True,
+        status=True,
+    ).exists()
+
+
+class NegocioAliadoSerializer(serializers.ModelSerializer):
+    categoria_nombre = serializers.CharField(
+        source='categoria.nombre', read_only=True,
+    )
+
+    class Meta:
+        model = models.Negocio
+        fields = [
+            "id",
+            "nombre",
+            "descripcion",
+            "direccion",
+            "logo_url",
+            "categoria",
+            "categoria_nombre",
+        ]
+
+
+class EventoAlianzaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.EventoAlianza
+        fields = ["id", "accion", "actor_correo", "detalle", "fecha"]
+
+
+class RecompensaAlianzaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Recompensa
+        fields = [
+            "id",
+            "titulo",
+            "descripcion",
+            "tipo",
+            "descuento",
+            "costo_desbloqueo",
+            "terminos_condiciones",
+            "status",
+            "negocio",
+            "fecha_expiracion",
+            "vigencia_dias",
+            "cantidad_disponible",
+        ]
+
+
+class AlianzaSerializerResumen(serializers.ModelSerializer):
+    negocio1 = NegocioAliadoSerializer(read_only=True)
+    negocio2 = NegocioAliadoSerializer(read_only=True)
+    direccion = serializers.SerializerMethodField()
+    numero_beneficios = serializers.SerializerMethodField()
+    vigente = serializers.BooleanField(read_only=True)
+
+    class Meta:
+        model = models.Alianza
+        fields = [
+            "id",
+            "negocio1",
+            "negocio2",
+            "condicion_participacion",
+            "status",
+            "vigente",
+            "fecha_inicio",
+            "fecha_fin",
+            "fecha_solicitud",
+            "fecha_respuesta",
+            "direccion",
+            "numero_beneficios",
+        ]
+
+    def get_direccion(self, obj):
+        negocio_id = self.context.get('negocio_id')
+        if negocio_id is None:
+            return 'participante'
+        if obj.negocio1_id == negocio_id:
+            return 'enviada'
+        if obj.negocio2_id == negocio_id:
+            return 'recibida'
+        return 'participante'
+
+    def get_numero_beneficios(self, obj):
+        return len(list(obj.recompensas.all()))
+
+
+class AlianzaSerializerDetalle(AlianzaSerializerResumen):
+    eventos = EventoAlianzaSerializer(many=True, read_only=True)
+    recompensas = RecompensaAlianzaSerializer(many=True, read_only=True)
+    creado_por_correo = serializers.EmailField(
+        source='creado_por.correo', read_only=True, allow_null=True,
+    )
+    respondido_por_correo = serializers.EmailField(
+        source='respondido_por.correo', read_only=True, allow_null=True,
+    )
+    puede_responder = serializers.SerializerMethodField()
+    puede_finalizar = serializers.SerializerMethodField()
+    puede_agregar_beneficio = serializers.SerializerMethodField()
+
+    class Meta(AlianzaSerializerResumen.Meta):
+        fields = AlianzaSerializerResumen.Meta.fields + [
+            "eventos",
+            "recompensas",
+            "creado_por_correo",
+            "respondido_por_correo",
+            "puede_responder",
+            "puede_finalizar",
+            "puede_agregar_beneficio",
+        ]
+
+    def _usuario(self):
+        request = self.context.get('request')
+        return getattr(request, 'user', None)
+
+    def get_puede_responder(self, obj):
+        user = self._usuario()
+        return (
+            obj.status == 'pendiente'
+            and user is not None
+            and _es_dueno_de(user, obj.negocio2)
+        )
+
+    def get_puede_finalizar(self, obj):
+        user = self._usuario()
+        return (
+            obj.status == 'activa'
+            and user is not None
+            and (
+                _es_dueno_de(user, obj.negocio1)
+                or _es_dueno_de(user, obj.negocio2)
+            )
+        )
+
+    def get_puede_agregar_beneficio(self, obj):
+        return obj.vigente and self.get_puede_finalizar(obj)
+
+
+class AlianzaSolicitudSerializer(serializers.Serializer):
+    negocio = serializers.PrimaryKeyRelatedField(queryset=models.Negocio.objects.all())
+    negocio_destino = serializers.PrimaryKeyRelatedField(
+        queryset=models.Negocio.objects.all(),
+    )
+    condicion_participacion = serializers.CharField()
+    fecha_inicio = serializers.DateTimeField()
+    fecha_fin = serializers.DateTimeField()
+
+    def validate_condicion_participacion(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError("La condición no puede estar vacía.")
+        return value
+
+    def validate(self, attrs):
+        if attrs["negocio"].pk == attrs["negocio_destino"].pk:
+            raise serializers.ValidationError({
+                "negocio_destino": "Un negocio no puede aliarse consigo mismo."
+            })
+        if attrs["fecha_fin"] <= attrs["fecha_inicio"]:
+            raise serializers.ValidationError({
+                "fecha_fin": "La fecha de fin debe ser posterior a la fecha de inicio."
+            })
+        if attrs["fecha_fin"] <= timezone.now():
+            raise serializers.ValidationError({
+                "fecha_fin": "La fecha de fin debe ser futura."
+            })
+        return attrs
+
+
 #Recompensa Serializers
 
 #Create
@@ -921,6 +1096,34 @@ def validar_recompensa(attrs, instance=None):
             "descuento": "Una recompensa gratis no debe especificar un descuento."
         })
     return attrs
+
+
+class RecompensaAlianzaSerializerCreate(serializers.ModelSerializer):
+    class Meta:
+        model = models.Recompensa
+        fields = [
+            "titulo",
+            "descripcion",
+            "tipo",
+            "descuento",
+            "costo_desbloqueo",
+            "terminos_condiciones",
+            "status",
+            "fecha_expiracion",
+            "vigencia_dias",
+            "cantidad_disponible",
+        ]
+
+    def validate_titulo(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError("El título no puede estar vacío.")
+        return value
+
+    def validate(self, attrs):
+        attrs["alianza"] = self.context["alianza"]
+        attrs["negocio"] = self.context["negocio"]
+        return validar_recompensa(attrs)
 
 
 class RecompensaSerializerCreate(serializers.ModelSerializer):

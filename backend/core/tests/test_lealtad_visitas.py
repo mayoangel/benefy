@@ -60,6 +60,12 @@ class VisitasAPITests(TestCase):
         self.assertEqual(models.LotePuntos.objects.count(), 1)
         self.assertEqual(models.SaldoPuntos.objects.get().saldo_actual, 10)
 
+    def test_qr_de_sucursal_registra_la_sucursal_correcta(self):
+        response = self.registrar(self.branch.qr_uuid)
+        self.assertEqual(response.status_code, 201)
+        visita = models.RegistroActividad.objects.get()
+        self.assertEqual(visita.sucursal_id, self.branch.pk)
+
     def test_dos_sucursales_del_mismo_negocio_no_duplican(self):
         self.assertEqual(self.registrar(self.branch.qr_uuid).status_code, 201)
         response = self.registrar(self.other_branch.qr_uuid)

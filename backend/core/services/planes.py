@@ -30,7 +30,7 @@ CARACTERISTICAS_PLAN = (
 
 # Funciones Premium que ya tienen implementación operativa. Las demás se
 # anuncian como próximas y no deben presentarse como disponibles.
-CARACTERISTICAS_IMPLEMENTADAS = ()
+CARACTERISTICAS_IMPLEMENTADAS = ('alianzas',)
 
 NOMBRES_RECURSOS = {
     'sucursales': 'sucursales',

@@ -81,6 +81,23 @@ class OperacionesBaseTests(TestCase):
         return self.client.post(path, data, format='json')
 
 
+class SucursalesPortalTests(OperacionesBaseTests):
+    def test_detalle_del_negocio_incluye_qr_uuid(self):
+        response = self.get(f'/api/v1/negocio/detalle/{self.business.pk}/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['qr_uuid'], str(self.business.qr_uuid))
+
+    def test_sucursales_incluyen_qr_uuid_solo_en_el_alcance(self):
+        response = self.get('/api/v1/sucursales/listar/')
+        self.assertEqual(response.status_code, 200)
+        fila = next(item for item in response.data if item['id'] == self.branch1.pk)
+        self.assertEqual(fila['qr_uuid'], str(self.branch1.qr_uuid))
+
+        ajeno = self.get('/api/v1/sucursales/listar/', self.other)
+        self.assertEqual(ajeno.status_code, 200)
+        self.assertEqual(ajeno.data, [])
+
+
 class VisitasPortalTests(OperacionesBaseTests):
     def test_dueno_ve_todas_y_supervisor_su_sucursal(self):
         owner = self.get(f'/api/v1/negocios/{self.business.pk}/visitas/')

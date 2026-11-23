@@ -147,8 +147,8 @@ consumidor. `admin_sistema` es un privilegio global independiente.
 | Sucursales | Dueño: todas las propias; supervisor/empleado: su sucursal | Dueño del negocio |
 | Membresías | Propia; dueño: su negocio; supervisor: su sucursal | Dueño asigna supervisor/empleado; supervisor asigna empleados; solo admin asigna dueños |
 | Dinámicas | Miembros del negocio | Dueño del negocio |
-| Recompensas | Miembros de los negocios asociados | Dueño de la dinámica; si es de alianza, dueño de ambos negocios |
-| Alianzas | Miembros de los negocios involucrados | Solo admin hasta implementar aprobación bilateral |
+| Recompensas | Miembros de los negocios asociados | Dueño de la dinámica; en alianzas, dueño del negocio que ofrece el beneficio mediante el endpoint de alianza |
+| Alianzas | Dueños de los negocios involucrados; admin puede consultar | Dueño proponente crea la solicitud; dueño receptor acepta o rechaza; cualquiera de los dos finaliza. El CRUD genérico sigue reservado al admin |
 | Actividades | Consumidor: propias; personal: su sucursal | Solo lectura por CRUD; alta desde `POST /visitas/registrar/`; anulación solo admin |
 | Progreso y cupones | Consumidor: propios; dueño: negocio completo; supervisor/empleado: sin listado global | Solo lectura por CRUD; adquisición y emisión desde servicios de lealtad |
 | Canjes | Consumidor: propios; dueño: negocio completo; supervisor/empleado: su sucursal | Solo lectura por CRUD; canje exclusivo del dueño del cupón |

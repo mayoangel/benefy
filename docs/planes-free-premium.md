@@ -103,6 +103,15 @@ Premium con su estado de disponibilidad y un CTA informativo “Conocer Premium�
 para Free. No existe checkout ni botón que simule un pago; la única diferencia
 funcional actual es la capacidad.
 
+## Alianzas
+
+`alianzas` es una característica Premium que ya tiene implementación operativa.
+El negocio origen necesita Premium para proponer; ambos negocios necesitan
+Premium para aceptar. Un negocio Free puede consultar solicitudes recibidas y
+mejorar de plan para responder. Los beneficios se crean como recompensas del
+negocio que los ofrece y solo se muestran en el catálogo mientras la alianza
+está activa y vigente.
+
 ## Pendiente
 
 1. Precios reales, moneda y periodicidad de Premium.
@@ -112,7 +121,7 @@ funcional actual es la capacidad.
    programado.
 4. Pantalla para elegir tarjetas habilitadas y regularizar sucursales o equipo
    excedentes.
-5. Analítica avanzada, exportación, personalización y alianzas: configuradas como
+5. Analítica avanzada, exportación y personalización: configuradas como
    capacidades Premium, todavía sin implementación operativa.
 
 Migraciones: `0011` (esquema), `0012` (datos y Free para negocios existentes) y

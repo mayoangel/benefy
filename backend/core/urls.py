@@ -2,6 +2,7 @@ from django.urls import path
 
 from core import (
     views,
+    views_alianzas,
     views_invitaciones,
     views_lealtad,
     views_onboarding,
@@ -90,6 +91,16 @@ urlpatterns = [
     path("v1/alianza/detalle/<int:pk>/", views.AlianzaDetailAPIView.as_view(), name="alianza-detalle"),
     path("v1/alianza/actualizar/<int:pk>/", views.AlianzaUpdateAPIView.as_view(), name="alianza-actualizar"),
     path("v1/alianza/eliminar/<int:pk>/", views.AlianzaDeleteAPIView.as_view(), name="alianza-eliminar"),
+
+    # Flujo de alianzas para dueños de negocio
+    path("v1/alianzas/", views_alianzas.AlianzasAPIView.as_view(), name="alianzas"),
+    path("v1/alianzas/descubrir/", views_alianzas.DescubrirAlianzasAPIView.as_view(), name="alianzas-descubrir"),
+    path("v1/alianzas/solicitudes/", views_alianzas.SolicitudAlianzaAPIView.as_view(), name="alianza-solicitar"),
+    path("v1/alianzas/<int:pk>/", views_alianzas.DetalleAlianzaAPIView.as_view(), name="alianza-detalle-flujo"),
+    path("v1/alianzas/<int:pk>/aceptar/", views_alianzas.ResponderAlianzaAPIView.as_view(accion="aceptar"), name="alianza-aceptar"),
+    path("v1/alianzas/<int:pk>/rechazar/", views_alianzas.ResponderAlianzaAPIView.as_view(accion="rechazar"), name="alianza-rechazar"),
+    path("v1/alianzas/<int:pk>/finalizar/", views_alianzas.FinalizarAlianzaAPIView.as_view(), name="alianza-finalizar"),
+    path("v1/alianzas/<int:pk>/recompensas/", views_alianzas.RecompensaAlianzaAPIView.as_view(), name="alianza-recompensa"),
 
     # Recompensa URLs
     path("v1/recompensa/crear/", views.RecompensaCreateAPIView.as_view(), name="recompensa-crear"),

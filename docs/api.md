@@ -52,10 +52,12 @@ parcial.
 | Notificacion | `notificacion` | `notificaciones` |
 
 Los 16 recursos suman 80 rutas. Su existencia no concede todas las operaciones a
-todos los roles: pagos, suscripciones, alianzas, progreso y cupones limitan la
-escritura al `admin_sistema`. Las escrituras genéricas de `registro-actividad`,
-`progreso-usuario`, `cupon-usuario` y `canje` responden `405`; esos datos solo se
-crean o modifican con los endpoints transaccionales de lealtad.
+todos los roles: pagos, suscripciones, el CRUD genérico de alianzas, progreso y
+cupones limitan la escritura al `admin_sistema`. El flujo comercial de alianzas
+tiene endpoints propios para dueños. Las escrituras genéricas de
+`registro-actividad`, `progreso-usuario`, `cupon-usuario` y `canje` responden
+`405`; esos datos solo se crean o modifican con los endpoints transaccionales de
+lealtad.
 
 ## Identidad
 
@@ -65,7 +67,7 @@ crean o modifican con los endpoints transaccionales de lealtad.
 | GET | `/api/v1/mi/contexto/` | Perfil, membresías, negocios, sucursales y `puede_portal` |
 | PATCH | `/api/v1/usuario/rol/{id}/` | Cambiar `rol` o `is_active`; solo `admin_sistema` |
 
-Hay 106 rutas de API en total. El login, registro de identidad, refresh y logout
+Hay 114 rutas de API en total. El login, registro de identidad, refresh y logout
 ocurren en Supabase Auth, no bajo `/api/v1`. `usuario/crear/` crea el perfil
 Benefy después del login.
 
@@ -122,6 +124,12 @@ Las consultas aceptan `desde`, `hasta`, `sucursal`, `estado`, `buscar`, `page` y
 `page_size` cuando aplica. La respuesta paginada usa `{count, next, previous,
 results}`; clientes usa `{count, page, page_size, results}`.
 
+`GET /api/v1/sucursales/listar/` y `GET /api/v1/negocio/detalle/{id}/` incluyen
+`qr_uuid` para que el portal genere los QR imprimibles de sucursal y de negocio.
+El valor se envía tal cual a `POST /api/v1/visitas/registrar/`; no es una URL ni
+un token de un solo uso. El QR del negocio completo también se acepta en el
+registro de visitas.
+
 ## Invitaciones
 
 | Método | Ruta | Acceso y uso |
@@ -133,6 +141,46 @@ results}`; clientes usa `{count, page, page_size, results}`.
 
 Solo un `admin_sistema` puede invitar a otro propietario. El sistema impide
 dejar un negocio sin propietario activo.
+
+## Alianzas comerciales
+
+El CRUD genérico de `alianza` sigue reservado al `admin_sistema`. El portal usa
+el flujo bilateral, disponible solo para propietarios de los negocios y con la
+característica Premium `alianzas`.
+
+| Método | Ruta | Uso |
+| --- | --- | --- |
+| GET | `/api/v1/alianzas/?negocio={id}&vista=recibidas` | Solicitudes recibidas pendientes |
+| GET | `/api/v1/alianzas/?negocio={id}&vista=enviadas` | Solicitudes enviadas pendientes |
+| GET | `/api/v1/alianzas/?negocio={id}&vista=activas` | Alianzas vigentes |
+| GET | `/api/v1/alianzas/?negocio={id}&vista=historial` | Rechazadas y finalizadas |
+| GET | `/api/v1/alianzas/descubrir/?negocio={id}&q=&categoria=` | Directorio público de comercios elegibles |
+| POST | `/api/v1/alianzas/solicitudes/` | Propuesta con condición y fechas |
+| GET | `/api/v1/alianzas/{id}/?negocio={id}` | Detalle, eventos y beneficios |
+| POST | `/api/v1/alianzas/{id}/aceptar/` | Solo el dueño receptor |
+| POST | `/api/v1/alianzas/{id}/rechazar/` | Solo el dueño receptor |
+| POST | `/api/v1/alianzas/{id}/finalizar/` | Cualquiera de los dos dueños |
+| POST | `/api/v1/alianzas/{id}/recompensas/` | Beneficio de uno de los negocios participantes |
+
+Crear una propuesta requiere que el negocio origen tenga Premium. Aceptarla
+requiere Premium en ambos negocios. La máquina de estados es:
+
+```text
+pendiente -> activa
+pendiente -> rechazada
+activa -> finalizada
+```
+
+La condición se guarda en `Alianza.condicion_participacion`. Los beneficios
+estructurados son `Recompensa` con `alianza` y `negocio`; cada negocio ofrece
+los suyos y el catálogo solo los muestra mientras la alianza está activa y
+vigente. No se comparten clientes, ventas ni datos privados entre negocios.
+
+La propuesta incluye `negocio`, `negocio_destino`, `condicion_participacion`,
+`fecha_inicio` y `fecha_fin` en ISO 8601. Las respuestas de listado y detalle
+incluyen los nombres y datos públicos de ambos negocios, la dirección relativa
+al negocio consultado (`enviada` o `recibida`), los eventos y los beneficios.
+El administrador puede consultar, pero no responder por los negocios.
 
 ## Roles
 
@@ -222,6 +270,10 @@ puede reactivarse.
 | `conflicto_idempotencia` | 409 | Clave reutilizada con otros parámetros |
 | `saldo_negativo` | 409 | Ajuste que dejaría saldo negativo |
 | `alianza_vencida` | 409 | Alianza fuera de vigencia |
+| `alianza_duplicada` | 409 | Ya existe una solicitud pendiente o alianza activa |
+| `alianza_ya_respondida` | 409 | La solicitud ya fue aceptada o rechazada |
+| `alianza_no_activa` | 409 | Se intentó operar una alianza no activa |
+| `sin_permiso_alianza` | 403 | El usuario no es dueño de un negocio participante |
 
 Formato: `{"codigo":"...","detalle":"..."}`.
 

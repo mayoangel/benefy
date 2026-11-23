@@ -1,12 +1,12 @@
 # Backend
 
 API Django 5.2 + Django REST Framework. La configuración está en `config/`;
-`core/` contiene 25 modelos, serializers, vistas, permisos y quince migraciones
+`core/` contiene 26 modelos, serializers, vistas, permisos y diecisiete migraciones
 de dominio. La entrada de URLs es `config/urls.py`.
 
 ## Funcionalidad disponible
 
-- 80 rutas CRUD, cuatro rutas de identidad/contexto/onboarding y 22 rutas de lealtad, planes, operaciones e invitaciones.
+- 80 rutas CRUD, cuatro rutas de identidad/contexto/onboarding y 30 rutas de lealtad, planes, operaciones, invitaciones y alianzas.
 - Verificación de sesiones Supabase Auth y permisos según usuario, negocio y sucursal.
 - Onboarding comercial idempotente: perfil, negocio, membresía de dueño y plan Free desde una sola captura.
 - Aislamiento por sucursal en visitas, registros de actividad, canjes y métricas; los cupones globales solo los ve el dueño.
@@ -14,6 +14,7 @@ de dominio. La entrada de URLs es `config/urls.py`.
 - Invitaciones con aceptación por correo verificado y protección del último propietario activo.
 - Consultas paginadas de visitas, cupones, canjes y clientes, y creación atómica de tarjetas con recompensa meta.
 - Registro de visitas por QR de negocio o sucursal con límite diario por zona horaria.
+- Flujo bilateral de alianzas: descubrimiento, propuesta, aceptación, rechazo, finalización y beneficios por negocio, con auditoría y gating Premium.
 - Puntos por lotes con consumo FIFO, expiración configurable y ajustes auditados.
 - Tarjetas de visitas repetibles o de una sola vez, con snapshots por ciclo.
 - Adquisición idempotente de cupones con stock y canje irreversible iniciado por el cliente.
@@ -25,9 +26,9 @@ de dominio. La entrada de URLs es `config/urls.py`.
 Consulta [API](../docs/api.md) para las rutas y
 [autenticación](../docs/autenticacion.md) para los payloads y la matriz de acceso.
 Los modelos de Stripe y notificaciones no implican que esas integraciones estén
-implementadas. El portal web incluye CRUD comercial y consultas operativas; los
-detalles avanzados de Stripe, analítica, alianzas y el cliente móvil siguen
-pendientes.
+implementadas. El portal web incluye CRUD comercial, consultas operativas, QR
+imprimible de sucursal y flujo de alianzas; los detalles avanzados de Stripe,
+analítica y el cliente móvil siguen pendientes.
 
 ## Configuración y operación
 

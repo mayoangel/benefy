@@ -1,6 +1,7 @@
 import uuid
 
 from django.db import models
+from django.utils import timezone
 from django.utils.text import slugify
 
 # USUARIO
@@ -357,12 +358,63 @@ class Alianza(models.Model):
     fecha_fin = models.DateTimeField()
     fecha_solicitud = models.DateTimeField(auto_now_add=True, auto_now=False)
     fecha_respuesta = models.DateTimeField(null=True, blank=True)
+    creado_por = models.ForeignKey(
+        Usuario, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='alianzas_creadas',
+    )
+    respondido_por = models.ForeignKey(
+        Usuario, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='alianzas_respondidas',
+    )
+
+    class Meta:
+        ordering = ['-fecha_solicitud', '-pk']
+
+    @property
+    def vigente(self):
+        """Una alianza activa también debe estar dentro de sus fechas."""
+        ahora = timezone.now()
+        return (
+            self.status == 'activa'
+            and self.fecha_inicio <= ahora <= self.fecha_fin
+        )
 
     def __str__(self):
         return (
             f"Alianza: {self.negocio1.nombre} -> {self.negocio2.nombre} "
             f"({self.get_status_display()})"
         )
+
+
+ACCIONES_ALIANZA = (
+    ('solicitud', 'Solicitud enviada'),
+    ('aceptacion', 'Alianza aceptada'),
+    ('rechazo', 'Solicitud rechazada'),
+    ('finalizacion', 'Alianza finalizada'),
+    ('recompensa', 'Beneficio de alianza creado'),
+)
+
+
+class EventoAlianza(models.Model):
+    """Historial explícito del ciclo de vida de una alianza."""
+
+    alianza = models.ForeignKey(
+        Alianza, on_delete=models.CASCADE, related_name='eventos',
+    )
+    accion = models.CharField(max_length=30, choices=ACCIONES_ALIANZA)
+    actor = models.ForeignKey(
+        Usuario, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='eventos_alianza',
+    )
+    actor_correo = models.CharField(max_length=255, blank=True, default='')
+    detalle = models.TextField(blank=True, default='')
+    fecha = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ['-fecha', '-pk']
+
+    def __str__(self):
+        return f"{self.alianza_id}: {self.get_accion_display()}"
 
 TIPOS_RECOMPENSAS = (
     ('gratis', 'Producto/servicio gratis'),
@@ -386,7 +438,10 @@ class Recompensa(models.Model):
     vigencia_dias = models.PositiveIntegerField(null=True, blank=True)
     cantidad_disponible = models.PositiveIntegerField(null=True, blank=True)
     dinamica = models.ForeignKey(Dinamica, on_delete=models.PROTECT, null=True, blank=True)
-    alianza = models.ForeignKey(Alianza, on_delete=models.PROTECT, null=True, blank=True)
+    alianza = models.ForeignKey(
+        Alianza, on_delete=models.PROTECT, null=True, blank=True,
+        related_name='recompensas',
+    )
 
     class Meta:
         constraints = [
