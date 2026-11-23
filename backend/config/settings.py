@@ -44,6 +44,15 @@ def _env_int(name, default):
     return value if value > 0 else default
 
 
+def _env_nonnegative_int(name, default):
+    """Lee un entero mayor o igual a cero; un valor inválido usa el respaldo."""
+    try:
+        value = int(os.getenv(name, str(default)))
+    except (TypeError, ValueError):
+        return default
+    return value if value >= 0 else default
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
@@ -229,6 +238,43 @@ CSRF_COOKIE_SECURE = _env_bool('CSRF_COOKIE_SECURE', IS_PRODUCTION)
 # Auth verifica tokens en Supabase; los permisos se resuelven con los datos de Django.
 SUPABASE_URL = os.getenv('SUPABASE_URL', '').rstrip('/')
 SUPABASE_PUBLISHABLE_KEY = os.getenv('SUPABASE_PUBLISHABLE_KEY', '')
+
+# ---------------------------------------------------------------------------
+# Stripe Sandbox / Test Mode
+# ---------------------------------------------------------------------------
+# Esta integración nunca debe procesar dinero real. El arranque rechaza claves
+# live y cualquier modo distinto de "test". El frontend no recibe secretos.
+STRIPE_ENABLED = _env_bool('STRIPE_ENABLED', False)
+STRIPE_MODE = os.getenv('STRIPE_MODE', 'test').strip().lower()
+STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', '').strip()
+STRIPE_PUBLISHABLE_KEY = os.getenv('STRIPE_PUBLISHABLE_KEY', '').strip()
+STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', '').strip()
+STRIPE_PREMIUM_PRICE_ID = os.getenv('STRIPE_PREMIUM_PRICE_ID', '').strip()
+STRIPE_PREMIUM_ANNUAL_PRICE_ID = os.getenv('STRIPE_PREMIUM_ANNUAL_PRICE_ID', '').strip()
+STRIPE_PREMIUM_PRODUCT_ID = os.getenv('STRIPE_PREMIUM_PRODUCT_ID', '').strip()
+STRIPE_PORTAL_CONFIGURATION_ID = os.getenv('STRIPE_PORTAL_CONFIGURATION_ID', '').strip()
+STRIPE_GRACE_DAYS = _env_nonnegative_int('STRIPE_GRACE_DAYS', 3)
+STRIPE_CHECKOUT_TTL_MINUTES = _env_int('STRIPE_CHECKOUT_TTL_MINUTES', 60)
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173').rstrip('/')
+
+if STRIPE_ENABLED:
+    if STRIPE_MODE != 'test':
+        raise ImproperlyConfigured(
+            'STRIPE_MODE debe ser "test". Benefy no permite Stripe en vivo en esta fase.'
+        )
+    for nombre, valor in (
+        ('STRIPE_SECRET_KEY', STRIPE_SECRET_KEY),
+        ('STRIPE_PUBLISHABLE_KEY', STRIPE_PUBLISHABLE_KEY),
+    ):
+        if valor.startswith(('sk_live_', 'rk_live_', 'pk_live_')):
+            raise ImproperlyConfigured(
+                f'{nombre} es una clave live. Solo se permiten claves de Sandbox/Test Mode.'
+            )
+    if STRIPE_SECRET_KEY and not STRIPE_SECRET_KEY.startswith(('sk_test_', 'rk_test_')):
+        raise ImproperlyConfigured(
+            'STRIPE_SECRET_KEY no tiene un formato de clave de prueba reconocido.'
+        )
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': ['core.authentication.SupabaseAuthentication'],
     'DEFAULT_PERMISSION_CLASSES': ['core.permissions.EsUsuarioBenefy'],

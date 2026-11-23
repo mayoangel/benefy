@@ -10,6 +10,9 @@ psycopg2-binary==2.9.13
 # Lectura de variables de entorno desde archivos .env
 python-dotenv==1.2.4
 
+# SDK oficial de Stripe (solo Sandbox/Test Mode en esta fase)
+stripe==17.1.0
+
 # Base de datos IANA de zonas horarias (necesaria en Windows).
 tzdata==2025.2
 

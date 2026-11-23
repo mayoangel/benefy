@@ -4,6 +4,7 @@
 *.env
 .env
 .env.*
+.env.production
 !.env.example
 !.env.*.example
 
@@ -68,6 +69,8 @@ Thumbs.db
 # Instrucciones locales para asistentes de desarrollo
 AGENTS.md
 CLAUDE.md
+# Skills oficiales instaladas con `stripe agent setup`; son herramientas locales.
+.agents/
 
 # =========================
 # Logs y Monitoreo local
@@ -77,3 +80,4 @@ sentry-debug.meta
 
 # Respaldo de datos y recibos locales; nunca se incluyen en Git.
 backups/
+.agents/
