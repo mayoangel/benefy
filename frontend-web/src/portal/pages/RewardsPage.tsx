@@ -2,7 +2,7 @@ import { usePortalConfirmation } from '../components/PortalConfirmation';
 import { PortalPageHeader, PortalIcon, PortalForm } from '../components/PortalUI';
 import { useRequestGuard } from '../hooks/useRequestGuard';
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 
 import { useAuth } from '../../auth/AuthProvider.tsx';
 import { ApiError, api } from '../../lib/api.ts';
@@ -165,10 +165,21 @@ export default function RewardsPage() {
   return (
     <section className="portal-page">
       <PortalPageHeader eyebrow="Fidelización" title="Recompensas" description={<>Beneficios que los clientes pueden adquirir con puntos.</>}>
+        <Link className="portal-button-secondary" to={`/portal/negocio/${id}/puntos`}>
+          Programa de puntos
+        </Link>
         <button className="portal-button" type="button" onClick={nueva}>
           Nueva recompensa
         </button>
       </PortalPageHeader>
+
+      <p className="portal-note">
+        Estas recompensas se adquieren con puntos. Las recompensas meta de las
+        tarjetas de sellos se administran en{' '}
+        <Link className="portal-inline-link" to={`/portal/negocio/${id}/tarjetas`}>
+          Tarjetas de sellos
+        </Link>.
+      </p>
 
       {plan ? (
         <div className="portal-note">

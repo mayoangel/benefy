@@ -195,7 +195,7 @@ export default function TeamPage() {
 
   return (
     <section className="portal-page">
-      <PortalPageHeader eyebrow="Equipo" title="Membresías y accesos" description={<>Invita personas y controla su rol, sucursal y estado.</>}>
+      <PortalPageHeader eyebrow="Administración" title="Membresías y accesos" description={<>Invita personas y controla su rol, sucursal y estado.</>}>
         <button
           className="portal-button"
           type="button"

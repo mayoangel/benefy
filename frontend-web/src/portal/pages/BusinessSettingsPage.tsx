@@ -107,7 +107,7 @@ export default function BusinessSettingsPage() {
 
   return (
     <section className="portal-page">
-      <PortalPageHeader eyebrow="Configuración" title="Datos del negocio" description={<>Información pública y de contacto que verán tus clientes.</>}>
+      <PortalPageHeader eyebrow="Administración" title="Datos del negocio" description={<>Información pública y de contacto que verán tus clientes.</>}>
         <button
           className="portal-button-secondary"
           type="button"

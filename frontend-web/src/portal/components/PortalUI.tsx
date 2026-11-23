@@ -3,6 +3,11 @@ import { nombreRol } from '../../lib/portal';
 
 const paths: Record<string, string> = {
   resumen: 'M3 11 12 3l9 8M5 10v11h5v-7h4v7h5V10',
+  inicio: 'M3 11 12 3l9 8M5 10v11h5v-7h4v7h5V10',
+  actividad: 'M3 12h4l2.5-6 4 12L16 12h5',
+  fidelizacion: 'M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z',
+  administracion: 'M4 6h16M4 12h16M4 18h16M8 3v6m8 6v6',
+  chevron: 'm6 9 6 6 6-6',
   clientes: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
   visitas: 'M12 8v4l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0',
   canjes: 'M7 7h14l-4-4M17 17H3l4 4M21 7v5M3 17v-5',

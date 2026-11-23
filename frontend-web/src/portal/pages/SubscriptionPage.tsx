@@ -247,7 +247,7 @@ export default function SubscriptionPage({
     return (
       <section className="portal-page">
         <PortalPageHeader
-          eyebrow="Suscripción"
+          eyebrow="Administración"
           title="Suscripción del negocio"
           description="La facturación solo puede administrarla el propietario del negocio."
         />
@@ -315,7 +315,7 @@ export default function SubscriptionPage({
   return (
     <section className="portal-page">
       <PortalPageHeader
-        eyebrow="Suscripción"
+        eyebrow="Administración"
         title="Tu plan y facturación"
         description="Consulta tu plan, contrata Premium y administra la suscripción de prueba desde Stripe Sandbox."
       >

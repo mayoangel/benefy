@@ -1,6 +1,6 @@
 import React from 'react';
 import {test,expect,vi} from 'vitest';
-import {render,screen,fireEvent,act,cleanup} from '@testing-library/react';
+import {render,screen,fireEvent,act,cleanup,within} from '@testing-library/react';
 import {MemoryRouter,Routes,Route} from 'react-router-dom';
 import ClientsPage from './ClientsPage';
 vi.mock('../../auth/AuthProvider',()=>({useAuth:()=>({session:{user:{id:'one'}},context:{membresias:[]}})}));
@@ -30,5 +30,25 @@ test('typing does not issue a request before the debounce delay',async()=>{
  const baseline=vi.mocked(api.getBusinessClients).mock.calls.length;
  fireEvent.change(screen.getByPlaceholderText('Cliente o correo'),{target:{value:'abc'}});
  expect(vi.mocked(api.getBusinessClients).mock.calls.length).toBe(baseline);
+ cleanup();
+});
+
+test('los conteos enlazan a visitas y cupones filtrados por correo',async()=>{
+ vi.mocked(api.getBusinessClients).mockClear().mockResolvedValue({
+  count:1,page:1,page_size:20,results:[{
+   id:1,nombre:'Mariana',apellido:'García',correo:'mariana@example.invalid',
+   visitas:18,puntos:240,cupones:3,ultima_visita:null,
+  }],
+ });
+ render(
+  <MemoryRouter initialEntries={['/portal/negocio/1/clientes?buscar=mariana']}>
+   <Routes><Route path="/portal/negocio/:negocioId/clientes" element={<ClientsPage/>}/></Routes>
+  </MemoryRouter>,
+ );
+ const fila=await screen.findByRole('row',{name:/Mariana García/});
+ expect(vi.mocked(api.getBusinessClients)).toHaveBeenCalledWith(1,{buscar:'mariana',page:1,page_size:20});
+ expect(within(fila).getByRole('link',{name:'18'}).getAttribute('href')).toBe('/portal/negocio/1/visitas?cliente=mariana%40example.invalid');
+ expect(within(fila).getByRole('link',{name:'3'}).getAttribute('href')).toBe('/portal/negocio/1/cupones?cliente=mariana%40example.invalid');
+ expect((screen.getByPlaceholderText('Cliente o correo') as HTMLInputElement).value).toBe('mariana');
  cleanup();
 });
