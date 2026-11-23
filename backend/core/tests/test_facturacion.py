@@ -3,6 +3,7 @@
 from datetime import timedelta
 from decimal import Decimal
 import threading
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from django.core.cache import cache
@@ -713,11 +714,13 @@ class PortalTests(BaseFacturacionTests):
         cliente.v1.billing_portal.configurations.create.return_value = {
             'id': 'bpc_test_1', 'livemode': False,
         }
-        cliente.v1.billing_portal.sessions.create.return_value = {
-            'id': 'bps_test_1',
-            'livemode': False,
-            'url': 'https://billing.stripe.com/p/session/test',
-        }
+        # Reproduce el contrato real de Stripe: es un objeto con atributos,
+        # no un dict, por lo que no implementa ``.get()``.
+        cliente.v1.billing_portal.sessions.create.return_value = SimpleNamespace(
+            id='bps_test_1',
+            livemode=False,
+            url='https://billing.stripe.com/p/session/test',
+        )
         with patch.object(facturacion, '_cliente', return_value=cliente):
             response = self.client.post(
                 f'/api/v1/negocios/{self.business.pk}/facturacion/portal/',
@@ -737,6 +740,37 @@ class PortalTests(BaseFacturacionTests):
         )
         self.assertFalse(config['features']['subscription_update']['enabled'])
         self.assertEqual(planes.plan_actual(self.business).codigo, 'free')
+
+    def test_servicio_portal_devuelve_contrato_plano_y_no_stripe_object(self):
+        self.cliente_stripe_local()
+        cliente = self.fake_cliente()
+        cliente.v1.billing_portal.sessions.create.return_value = SimpleNamespace(
+            id='bps_test_1',
+            livemode=False,
+            url='https://billing.stripe.com/p/session/test',
+        )
+        with patch.object(facturacion, '_cliente', return_value=cliente):
+            sesion = facturacion.crear_sesion_portal(self.business)
+        self.assertIsInstance(sesion, dict)
+        self.assertEqual(sesion['url'], 'https://billing.stripe.com/p/session/test')
+
+    def test_portal_no_expone_detalle_de_error_inesperado(self):
+        self.cliente_stripe_local()
+        self.auth()
+        with patch.object(
+            facturacion,
+            'crear_sesion_portal',
+            side_effect=RuntimeError('sk_test_secreto_no_debe_salir'),
+        ):
+            response = self.client.post(
+                f'/api/v1/negocios/{self.business.pk}/facturacion/portal/',
+            )
+        self.assertEqual(response.status_code, 502)
+        self.assertEqual(response.data['codigo'], 'portal_no_disponible')
+        contenido = str(response.data)
+        self.assertNotIn('sk_test_', contenido)
+        self.assertNotIn('RuntimeError', contenido)
+        self.assertNotIn('secreto', contenido)
 
     def test_regreso_del_portal_no_cambia_plan_sin_stripe(self):
         self.cliente_stripe_local()

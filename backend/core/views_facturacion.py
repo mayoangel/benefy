@@ -65,9 +65,28 @@ class PortalAPIView(APIView):
         negocio, error = _negocio_administrable(request, pk)
         if error is not None:
             return error
-        sesion = facturacion.crear_sesion_portal(negocio)
+        try:
+            sesion = facturacion.crear_sesion_portal(negocio)
+        except facturacion.ErrorFacturacion:
+            raise
+        except Exception as exc:
+            logger.warning(
+                'stripe_portal_error_no_controlado negocio_id=%s tipo=%s',
+                negocio.pk,
+                type(exc).__name__,
+            )
+            return Response(
+                {
+                    'codigo': 'portal_no_disponible',
+                    'detalle': (
+                        'No se pudo abrir el Customer Portal. '
+                        'Intenta de nuevo.'
+                    ),
+                },
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
         return Response({
-            'url': sesion.get('url'),
+            'url': sesion['url'],
             'modo': 'test',
         })
 

@@ -980,7 +980,12 @@ def crear_sesion_portal(negocio):
         raise ErrorStripeAPI(
             'Stripe no devolvió una URL para el Customer Portal.'
         )
-    return session
+    # No devolver el StripeObject a la vista: sus atributos no implementan
+    # ``dict.get`` y el contrato HTTP debe ser un dato plano y estable.
+    return {
+        'id': _id(_v(session, 'id')),
+        'url': url,
+    }
 
 
 def _suscripcion_referencia(negocio):

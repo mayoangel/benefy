@@ -39,7 +39,7 @@ vi.mock('../../lib/api', () => ({
   },
 }));
 
-import { api } from '../../lib/api';
+import { api, ApiError } from '../../lib/api';
 import SubscriptionPage from './SubscriptionPage';
 
 function facturacion(overrides: Record<string, unknown> = {}) {
@@ -189,6 +189,51 @@ test('un Premium con cancelación programada muestra el aviso y administra el po
 
   await waitFor(() => expect(api.createBillingPortal).toHaveBeenCalledWith(1));
   expect(redirect).toHaveBeenCalledWith('https://billing.stripe.com/test');
+});
+
+test('un fallo del portal muestra un mensaje seguro y no filtra el detalle', async () => {
+  const suscripcion = {
+    id: 5,
+    status: 'activa',
+    stripe_status: 'active',
+    origen: 'stripe',
+    en_cancelacion: false,
+    gracia_fin: null,
+    fecha_inicio: '2026-01-01T00:00:00Z',
+    fecha_fin: null,
+    periodo_actual_inicio: '2026-01-01T00:00:00Z',
+    periodo_actual_fin: '2026-12-31T00:00:00Z',
+    proxima_renovacion: '2026-12-31T00:00:00Z',
+    cancelacion_programada: false,
+    acceso_premium: true,
+  };
+  vi.mocked(api.getBilling).mockResolvedValue(facturacion({
+    plan: {
+      id: 2,
+      codigo: 'premium',
+      nombre: 'Premium',
+      descripcion: 'Plan de pago.',
+      orden: 20,
+      status: true,
+    },
+    facturacion: {
+      puede_contratar: false,
+      puede_administrar: true,
+      cliente_stripe_configurado: true,
+      suscripcion,
+    },
+  }) as never);
+  vi.mocked(api.createBillingPortal).mockRejectedValue(
+    new ApiError(502, 'detalle sensible de Stripe', 'portal_no_disponible'),
+  );
+  renderPage();
+
+  fireEvent.click(await screen.findByRole('button', { name: 'Administrar suscripción' }));
+
+  expect(
+    await screen.findByText(/No se pudo abrir el Customer Portal/),
+  ).toBeTruthy();
+  expect(screen.queryByText(/detalle sensible de Stripe/)).toBeNull();
 });
 
 test('el retorno exitoso sincroniza con Stripe y no activa por la URL sola', async () => {

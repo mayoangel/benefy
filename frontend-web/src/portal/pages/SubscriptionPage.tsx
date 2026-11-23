@@ -58,6 +58,9 @@ function mensajeError(error: unknown): string {
     if (error.codigo === 'stripe_error') {
       return 'Stripe Sandbox no respondió. No se realizó ningún cargo; intenta de nuevo.';
     }
+    if (error.codigo === 'portal_no_disponible') {
+      return 'No se pudo abrir el Customer Portal. Intenta de nuevo en unos segundos.';
+    }
     if (error.status === 403) {
       return 'Solo el propietario del negocio puede administrar la suscripción.';
     }
