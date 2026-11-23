@@ -1843,7 +1843,6 @@ class SuscripcionSerializerCreate(serializers.ModelSerializer):
     class Meta:
         model = models.Suscripcion
         fields = [
-            "stripe_subscription_id",
             "status",
             "periodo_actual_inicio",
             "periodo_actual_fin",
@@ -1859,9 +1858,12 @@ class SuscripcionSerializerCreate(serializers.ModelSerializer):
         attrs = super().validate(attrs)
         estado = attrs.get("status", "incompleta")
         if estado in models.ESTADOS_SUSCRIPCION_VIGENTES:
+            ahora = timezone.now()
             if models.Suscripcion.objects.filter(
                 negocio=attrs["negocio"],
-                status__in=models.ESTADOS_SUSCRIPCION_VIGENTES,
+            ).filter(
+                models.Q(status__in=models.ESTADOS_SUSCRIPCION_VIGENTES)
+                | models.Q(status='pendiente', gracia_fin__gt=ahora)
             ).exists():
                 raise serializers.ValidationError({
                     "negocio": "El negocio ya tiene una suscripción vigente."
@@ -1916,7 +1918,6 @@ class SuscripcionSerializerUpdate(serializers.ModelSerializer):
     class Meta:
         model = models.Suscripcion
         fields = [
-            "stripe_subscription_id",
             "status",
             "periodo_actual_inicio",
             "periodo_actual_fin",
@@ -1949,9 +1950,12 @@ class SuscripcionSerializerUpdate(serializers.ModelSerializer):
         estado = attrs.get("status", self.instance.status)
         negocio = attrs.get("negocio", self.instance.negocio)
         if estado in models.ESTADOS_SUSCRIPCION_VIGENTES:
+            ahora = timezone.now()
             vigentes = models.Suscripcion.objects.filter(
                 negocio=negocio,
-                status__in=models.ESTADOS_SUSCRIPCION_VIGENTES,
+            ).filter(
+                models.Q(status__in=models.ESTADOS_SUSCRIPCION_VIGENTES)
+                | models.Q(status='pendiente', gracia_fin__gt=ahora)
             ).exclude(pk=self.instance.pk)
             if vigentes.exists():
                 raise serializers.ValidationError({

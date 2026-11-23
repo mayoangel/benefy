@@ -3,6 +3,7 @@ from django.urls import path
 from core import (
     views,
     views_alianzas,
+    views_facturacion,
     views_invitaciones,
     views_lealtad,
     views_onboarding,
@@ -41,6 +42,13 @@ urlpatterns = [
     path("v1/planes/", views_planes.CatalogoPlanesAPIView.as_view(), name="planes-catalogo"),
     path("v1/negocios/<int:pk>/plan/", views_planes.PlanNegocioAPIView.as_view(), name="negocio-plan"),
     path("v1/negocios/<int:pk>/plan/cambios/", views_planes.HistorialPlanAPIView.as_view(), name="negocio-plan-cambios"),
+
+    # Suscripción Stripe Sandbox
+    path("v1/negocios/<int:pk>/facturacion/", views_facturacion.FacturacionAPIView.as_view(), name="negocio-facturacion"),
+    path("v1/negocios/<int:pk>/facturacion/checkout/", views_facturacion.CheckoutAPIView.as_view(), name="negocio-facturacion-checkout"),
+    path("v1/negocios/<int:pk>/facturacion/portal/", views_facturacion.PortalAPIView.as_view(), name="negocio-facturacion-portal"),
+    path("v1/negocios/<int:pk>/facturacion/sincronizar/", views_facturacion.SincronizarFacturacionAPIView.as_view(), name="negocio-facturacion-sincronizar"),
+    path("v1/stripe/webhook/", views_facturacion.StripeWebhookAPIView.as_view(), name="stripe-webhook"),
 
     path("v1/usuario/rol/<int:pk>/", views.UsuarioRolAPIView.as_view(), name="usuario-rol"),
     # Usuario URLs

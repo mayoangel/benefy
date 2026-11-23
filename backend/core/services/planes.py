@@ -147,10 +147,26 @@ def _plan_free():
 
 
 def suscripcion_actual(negocio):
-    return models.Suscripcion.objects.filter(
+    """Suscripción con acceso al plan.
+
+    Además de ``activa`` y ``prueba``, un estado ``pendiente`` conserva el
+    acceso Premium únicamente mientras ``gracia_fin`` siga en el futuro. Al
+    vencer la gracia, la suscripción impaga deja de conceder capacidades y el
+    negocio vuelve a Free sin borrar su historial.
+    """
+    ahora = timezone.now()
+    suscripciones = models.Suscripcion.objects.filter(
         negocio=negocio,
+    ).select_related('plan').order_by('-fecha_inicio', '-pk')
+    en_gracia = suscripciones.filter(
+        status='pendiente',
+        gracia_fin__gt=ahora,
+    ).first()
+    if en_gracia is not None:
+        return en_gracia
+    return suscripciones.filter(
         status__in=models.ESTADOS_SUSCRIPCION_VIGENTES,
-    ).select_related('plan').order_by('-fecha_inicio', '-pk').first()
+    ).first()
 
 
 def plan_actual(negocio):
@@ -349,8 +365,10 @@ def resumen_plan(negocio):
         suscripcion_data = {
             'id': suscripcion.pk,
             'status': suscripcion.status,
+            'stripe_status': suscripcion.stripe_status,
             'origen': suscripcion.origen,
             'en_cancelacion': suscripcion.en_cancelacion,
+            'gracia_fin': suscripcion.gracia_fin,
             'fecha_inicio': suscripcion.fecha_inicio,
             'fecha_fin': suscripcion.fecha_fin,
             'periodo_actual_inicio': suscripcion.periodo_actual_inicio,
@@ -373,13 +391,21 @@ def planes_por_negocio(negocios):
     ids = [negocio.pk for negocio in negocios]
     if not ids:
         return {}
+    ahora = timezone.now()
     suscripciones = models.Suscripcion.objects.filter(
         negocio_id__in=ids,
-        status__in=models.ESTADOS_SUSCRIPCION_VIGENTES,
+    ).filter(
+        Q(status__in=models.ESTADOS_SUSCRIPCION_VIGENTES)
+        | Q(status='pendiente', gracia_fin__gt=ahora)
     ).select_related('plan').order_by('negocio_id', '-fecha_inicio', '-pk')
     vigentes = {}
     for suscripcion in suscripciones:
-        vigentes.setdefault(suscripcion.negocio_id, suscripcion)
+        actual = vigentes.get(suscripcion.negocio_id)
+        if actual is None or (
+            suscripcion.status == 'pendiente'
+            and actual.status != 'pendiente'
+        ):
+            vigentes[suscripcion.negocio_id] = suscripcion
     free = _plan_free()
     resultado = {}
     for negocio in negocios:
@@ -422,9 +448,12 @@ def cambiar_plan(negocio, plan, actor, motivo, origen='manual'):
         raise ErrorPlan('El plan solicitado está inactivo.')
     _limites(plan)
     models.Negocio.objects.select_for_update().get(pk=negocio.pk)
+    ahora = timezone.now()
     actual = models.Suscripcion.objects.select_for_update().filter(
         negocio=negocio,
-        status__in=models.ESTADOS_SUSCRIPCION_VIGENTES,
+    ).filter(
+        Q(status__in=models.ESTADOS_SUSCRIPCION_VIGENTES)
+        | Q(status='pendiente', gracia_fin__gt=ahora)
     ).select_related('plan').order_by('-fecha_inicio', '-pk').first()
 
     if actual is not None and actual.plan_id == plan.pk:
@@ -433,7 +462,6 @@ def cambiar_plan(negocio, plan, actor, motivo, origen='manual'):
     plan_anterior = (
         actual.plan if actual is not None else _plan_free()
     )
-    ahora = timezone.now()
     if actual is not None:
         actual.status = 'cancelada'
         actual.en_cancelacion = False
