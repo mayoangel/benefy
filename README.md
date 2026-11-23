@@ -9,7 +9,7 @@ con `python dev.py up`, sin instalar Node ni Django en el host.
 
 | Componente | Implementado | Pendiente |
 | --- | --- | --- |
-| Backend | Django 5.2 + DRF, 26 modelos, diecisiete migraciones de `core`, 114 rutas API, motor de visitas/puntos/tarjetas/cupones, alianzas bilaterales auditadas, membresías auditadas, onboarding idempotente, invitaciones, aislamiento por sucursal, planes Free/Premium y Django Admin | Analítica avanzada, Stripe y webhooks |
+| Backend | Django 5.2 + DRF, 26 modelos, dieciocho migraciones de `core`, 114 rutas API, motor de visitas/puntos/tarjetas/cupones, alianzas bilaterales auditadas con cupos Free/Premium, membresías auditadas, onboarding idempotente, invitaciones, aislamiento por sucursal, planes Free/Premium y Django Admin | Analítica avanzada, Stripe y webhooks |
 | Identidad | Supabase Auth con login web real, sesión persistente, refresh, recuperación, onboarding automático e invitaciones; perfiles/roles en Django | Integración de Auth en la app móvil |
 | Web | Landing React 18 + Vite y portal conectado: dashboards por rol, configuración, sucursales con QR imprimible, puntos, tarjetas, recompensas, alianzas, equipo, visitas, cupones, canjes, clientes y plan con uso/límites | Checkout, exportaciones y E2E en CI |
 | Móvil | Dashboard Benefy en Expo SDK 58 con resumen de puntos, retos, cupones y pestañas de demostración | Datos reales, Auth, cámara QR/NFC y cliente API |

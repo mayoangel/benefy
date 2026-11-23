@@ -93,7 +93,10 @@ class AlianzasBaseTests(TestCase):
         )
 
     def crear_activa(self):
-        response = self.proponer()
+        inicio, fin = self.fechas(dias=-1)
+        response = self.proponer(
+            fecha_inicio=inicio.isoformat(), fecha_fin=fin.isoformat(),
+        )
         self.assertEqual(response.status_code, 201)
         self.assertEqual(self.aceptar(response.data['id']).status_code, 200)
         return response.data['id']
@@ -177,20 +180,17 @@ class SolicitudAlianzaTests(AlianzasBaseTests):
         reintento = self.proponer()
         self.assertEqual(reintento.status_code, 201)
 
-    def test_ambos_negocios_requieren_premium_para_aceptar(self):
+    def test_free_puede_aceptar_solicitud_de_premium(self):
         asignar_plan(self.business_a)
         response = self.proponer()
         self.assertEqual(response.status_code, 201)
         pendiente = self.aceptar(response.data['id'])
-        self.assertEqual(pendiente.status_code, 403)
-        self.assertEqual(pendiente.data['codigo'], 'limite_plan')
+        self.assertEqual(pendiente.status_code, 200)
+        self.assertEqual(pendiente.data['status'], 'activa')
         self.assertEqual(
             models.Alianza.objects.get(pk=response.data['id']).status,
-            'pendiente',
+            'activa',
         )
-
-        asignar_plan(self.business_b)
-        self.assertEqual(self.aceptar(response.data['id']).status_code, 200)
 
     def test_negocio_free_no_puede_proponer(self):
         response = self.proponer()

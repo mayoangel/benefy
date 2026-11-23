@@ -13,6 +13,7 @@ const comparison = [
   ['Recompensas activas', '5', '30'],
   ['Supervisores activos', '1', '5'],
   ['Empleados activos', '3', '20'],
+  ['Alianzas activas', '1', '4'],
   ['Clientes, visitas y cupones', 'Ilimitados', 'Ilimitados'],
 ];
 
@@ -44,6 +45,7 @@ export default function PricingPage() {
               <span><FontAwesomeIcon icon={faLock} /> Los límites se validan al crear o reactivar recursos.</span>
               <span><FontAwesomeIcon icon={faRotate} /> Un cambio de plan no borra datos ni historial.</span>
               <span><FontAwesomeIcon icon={faCircleInfo} /> Los recursos inactivos no consumen cupo.</span>
+              <span><FontAwesomeIcon icon={faLock} /> Free puede recibir y aceptar una alianza activa; proponer es exclusivo de Premium. Premium permite una alianza activa con Free y tres con Premium.</span>
             </div>
           </div>
 

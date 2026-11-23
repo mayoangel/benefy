@@ -57,9 +57,17 @@ class CatalogoYContextoTests(PlanBaseTests):
         self.assertEqual(set(planes_data), {'free', 'premium'})
         self.assertEqual(planes_data['free']['limites']['sucursales'], 1)
         self.assertEqual(planes_data['premium']['limites']['sucursales'], 5)
+        self.assertEqual(planes_data['free']['limites']['alianzas_activas'], 1)
+        self.assertEqual(planes_data['premium']['limites']['alianzas_activas'], 4)
+        self.assertEqual(planes_data['premium']['limites']['alianzas_con_free'], 1)
+        self.assertEqual(planes_data['premium']['limites']['alianzas_con_premium'], 3)
         self.assertFalse(planes_data['free']['caracteristicas']['metricas_avanzadas'])
         self.assertTrue(planes_data['premium']['caracteristicas']['metricas_avanzadas'])
+        self.assertTrue(planes_data['free']['caracteristicas']['alianzas'])
+        self.assertFalse(planes_data['free']['caracteristicas']['alianzas_proponer'])
+        self.assertTrue(planes_data['premium']['caracteristicas']['alianzas_proponer'])
         self.assertIn('alianzas', planes_data['premium']['caracteristicas_implementadas'])
+        self.assertIn('alianzas_proponer', planes_data['premium']['caracteristicas_implementadas'])
         self.assertEqual(len(planes_data['premium']['precios']), 2)
 
     def test_plan_del_negocio_solo_para_miembros(self):

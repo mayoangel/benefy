@@ -202,8 +202,8 @@ class DinamicaDeleteAPIView(ResourceAccessMixin, generics.DestroyAPIView):
     serializer_class = serializers.DinamicaSerializerDelete
 
 
-# Alianza: las cinco operaciones mantienen sus rutas independientes.
-class AlianzaCreateAPIView(ResourceAccessMixin, generics.CreateAPIView):
+# Alianza: lectura genérica. La gestión pasa por el flujo de dueños.
+class AlianzaCreateAPIView(SoloLecturaMixin, ResourceAccessMixin, generics.CreateAPIView):
     queryset = models.Alianza.objects.all()
     serializer_class = serializers.AlianzaSerializerCreate
 
@@ -218,12 +218,12 @@ class AlianzaDetailAPIView(ResourceAccessMixin, generics.RetrieveAPIView):
     serializer_class = serializers.AlianzaSerializerDetail
 
 
-class AlianzaUpdateAPIView(ResourceAccessMixin, generics.UpdateAPIView):
+class AlianzaUpdateAPIView(SoloLecturaMixin, ResourceAccessMixin, generics.UpdateAPIView):
     queryset = models.Alianza.objects.all()
     serializer_class = serializers.AlianzaSerializerUpdate
 
 
-class AlianzaDeleteAPIView(ResourceAccessMixin, generics.DestroyAPIView):
+class AlianzaDeleteAPIView(SoloLecturaMixin, ResourceAccessMixin, generics.DestroyAPIView):
     queryset = models.Alianza.objects.all()
     serializer_class = serializers.AlianzaSerializerDelete
 

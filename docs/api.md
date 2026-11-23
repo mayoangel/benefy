@@ -52,12 +52,11 @@ parcial.
 | Notificacion | `notificacion` | `notificaciones` |
 
 Los 16 recursos suman 80 rutas. Su existencia no concede todas las operaciones a
-todos los roles: pagos, suscripciones, el CRUD genérico de alianzas, progreso y
-cupones limitan la escritura al `admin_sistema`. El flujo comercial de alianzas
-tiene endpoints propios para dueños. Las escrituras genéricas de
-`registro-actividad`, `progreso-usuario`, `cupon-usuario` y `canje` responden
-`405`; esos datos solo se crean o modifican con los endpoints transaccionales de
-lealtad.
+todos los roles: pagos y suscripciones limitan la escritura al `admin_sistema`;
+el CRUD genérico de alianzas es de solo lectura y la gestión pasa por el flujo de
+dueños. Las escrituras genéricas de `registro-actividad`, `progreso-usuario`,
+`cupon-usuario`, `canje` y `alianza` responden `405`; esos datos solo se crean o
+modifican con los endpoints transaccionales correspondientes.
 
 ## Identidad
 
@@ -144,9 +143,9 @@ dejar un negocio sin propietario activo.
 
 ## Alianzas comerciales
 
-El CRUD genérico de `alianza` sigue reservado al `admin_sistema`. El portal usa
-el flujo bilateral, disponible solo para propietarios de los negocios y con la
-característica Premium `alianzas`.
+El CRUD genérico de `alianza` es de solo lectura. El portal usa el flujo
+bilateral, disponible solo para propietarios de los negocios; Free puede recibir
+y aceptar, y Premium además puede proponer.
 
 | Método | Ruta | Uso |
 | --- | --- | --- |
@@ -162,8 +161,13 @@ característica Premium `alianzas`.
 | POST | `/api/v1/alianzas/{id}/finalizar/` | Cualquiera de los dos dueños |
 | POST | `/api/v1/alianzas/{id}/recompensas/` | Beneficio de uno de los negocios participantes |
 
-Crear una propuesta requiere que el negocio origen tenga Premium. Aceptarla
-requiere Premium en ambos negocios. La máquina de estados es:
+Crear una propuesta requiere `alianzas_proponer`, disponible en Premium. Un
+negocio Free sí puede recibir, aceptar, rechazar, finalizar y administrar los
+beneficios del negocio que ofrece. Al aceptar se valida el cupo de ambos
+negocios: Free permite 1 alianza activa total; Premium permite 1 activa con
+negocios Free, 3 con negocios Premium y 4 en total. Las solicitudes pendientes no
+consumen cupo y una alianza finalizada o vencida lo libera. La validación bloquea
+ambos negocios en orden de PK dentro de una transacción.
 
 ```text
 pendiente -> activa
@@ -173,8 +177,9 @@ activa -> finalizada
 
 La condición se guarda en `Alianza.condicion_participacion`. Los beneficios
 estructurados son `Recompensa` con `alianza` y `negocio`; cada negocio ofrece
-los suyos y el catálogo solo los muestra mientras la alianza está activa y
-vigente. No se comparten clientes, ventas ni datos privados entre negocios.
+los suyos, puede administrarlos con `PATCH /api/v1/recompensa/actualizar/{id}/`
+y el catálogo solo los muestra mientras la alianza está activa y vigente. No se
+comparten clientes, ventas ni datos privados entre negocios.
 
 La propuesta incluye `negocio`, `negocio_destino`, `condicion_participacion`,
 `fecha_inicio` y `fecha_fin` en ISO 8601. Las respuestas de listado y detalle

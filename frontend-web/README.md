@@ -73,6 +73,8 @@ comercial se completa automáticamente tras confirmar el correo, sin repetir el
 formulario. El portal consulta `/planes/` y `/negocios/{id}/plan/`; Django
 conserva la autoridad sobre los límites. El QR se genera localmente a partir del `qr_uuid` de la sucursal; su descarga e
 impresión están disponibles, pero el escáner de la app móvil sigue pendiente.
+En alianzas, Free puede recibir y aceptar dentro de su cupo, pero proponer es
+exclusivo de Premium; el portal muestra el uso y los sublímites del plan.
 El detalle está en [autenticación](../docs/autenticacion.md),
 [API](../docs/api.md) y [planes](../docs/planes-free-premium.md).
 

@@ -47,17 +47,18 @@ test('branch and business QR are generated from the real UUID and remain accessi
   await expect(businessDialog.getByText('Café Nómada · Negocio completo')).toBeVisible();
 });
 
-test('alliances page separates tabs and explains the Premium requirement', async ({ page }) => {
+test('alliances page lets Free receive proposals while sending stays Premium', async ({ page }) => {
   await installVisualFixture(page);
   await page.goto('/portal/negocio/1/alianzas');
   await expect(page.getByRole('heading', { name: 'Alianzas comerciales' })).toBeVisible();
-  await expect(page.getByText(/Las alianzas están incluidas en Premium/)).toBeVisible();
+  await expect(page.getByText(/puedes recibir, aceptar y rechazar solicitudes/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Proponer alianza' })).toBeDisabled();
   await page.getByRole('tab', { name: /Recibidas/ }).click();
   await expect(page.getByRole('heading', { name: 'Panadería Norte' })).toBeVisible();
   await page.getByRole('button', { name: 'Revisar solicitud' }).click();
   const dialog = page.getByRole('dialog', { name: 'Panadería Norte' });
   await expect(dialog).toBeVisible();
-  await expect(dialog.getByRole('button', { name: 'Aceptar alianza' })).toBeDisabled();
+  await expect(dialog.getByRole('button', { name: 'Aceptar alianza' })).toBeEnabled();
 });
 
 test('admin retains global tables and distinct table names', async ({ page }) => {

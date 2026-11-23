@@ -31,6 +31,7 @@ export type CaracteristicasPlan = {
   exportacion_reportes: boolean;
   personalizacion_avanzada: boolean;
   alianzas: boolean;
+  alianzas_proponer: boolean;
 };
 
 export type PlanNegocio = {

@@ -25,6 +25,9 @@ LIMITES_FREE = {
     'recompensas': 5,
     'supervisores': 1,
     'empleados': 3,
+    'alianzas_activas': 1,
+    'alianzas_con_free': 1,
+    'alianzas_con_premium': 1,
 }
 
 LIMITES_PREMIUM = {
@@ -34,13 +37,17 @@ LIMITES_PREMIUM = {
     'recompensas': 30,
     'supervisores': 5,
     'empleados': 20,
+    'alianzas_activas': 4,
+    'alianzas_con_free': 1,
+    'alianzas_con_premium': 3,
 }
 
 CARACTERISTICAS_FREE = {
     'metricas_avanzadas': False,
     'exportacion_reportes': False,
     'personalizacion_avanzada': False,
-    'alianzas': False,
+    'alianzas': True,
+    'alianzas_proponer': False,
 }
 
 CARACTERISTICAS_PREMIUM = {
@@ -48,6 +55,7 @@ CARACTERISTICAS_PREMIUM = {
     'exportacion_reportes': True,
     'personalizacion_avanzada': True,
     'alianzas': True,
+    'alianzas_proponer': True,
 }
 
 

@@ -9,6 +9,9 @@ const RECURSOS: { clave: string; etiqueta: string }[] = [
   { clave: 'supervisores', etiqueta: 'Supervisores' },
   { clave: 'empleados', etiqueta: 'Empleados' },
   { clave: 'programas_puntos', etiqueta: 'Programa de puntos' },
+  { clave: 'alianzas_activas', etiqueta: 'Alianzas activas (total)' },
+  { clave: 'alianzas_con_free', etiqueta: 'Alianzas con negocios Free' },
+  { clave: 'alianzas_con_premium', etiqueta: 'Alianzas con negocios Premium' },
 ];
 
 const CARACTERISTICAS: {
@@ -19,6 +22,7 @@ const CARACTERISTICAS: {
   { clave: 'exportacion_reportes', etiqueta: 'Exportación de reportes' },
   { clave: 'personalizacion_avanzada', etiqueta: 'Personalización avanzada' },
   { clave: 'alianzas', etiqueta: 'Alianzas comerciales' },
+  { clave: 'alianzas_proponer', etiqueta: 'Proponer alianzas' },
 ];
 
 function estadoCaracteristica(
@@ -100,6 +104,13 @@ export default function PlanPanel({ plan }: { plan: PlanNegocio }) {
           );
         })}
       </div>
+
+      {plan.limites.alianzas_activas ? (
+        <p className="portal-muted portal-plan-limits-note">
+          Los topes con negocios Free y Premium se aplican dentro del total de
+          alianzas activas; no son cupos adicionales.
+        </p>
+      ) : null}
 
       <div className="portal-plan-features">
         <h3>Funciones del plan</h3>

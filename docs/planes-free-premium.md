@@ -15,6 +15,9 @@ Stripe, cobros y facturación no están implementados.
 | Recompensas activas | 5 | 30 |
 | Supervisores activos | 1 | 5 |
 | Empleados activos | 3 | 20 |
+| Alianzas activas (total) | 1 | 4 |
+| Alianzas activas con negocios Free | 1 | 1 |
+| Alianzas activas con negocios Premium | 1 | 3 |
 | Clientes, visitas y cupones | Ilimitados | Ilimitados |
 
 Los límites se guardan en `PlanSuscripcion.limites` y pueden ajustarse desde
@@ -27,7 +30,10 @@ Django Admin o el CRUD administrativo sin migrar:
   "tarjetas_sellos": 2,
   "recompensas": 5,
   "supervisores": 1,
-  "empleados": 3
+  "empleados": 3,
+  "alianzas_activas": 1,
+  "alianzas_con_free": 1,
+  "alianzas_con_premium": 1
 }
 ```
 
@@ -105,12 +111,18 @@ funcional actual es la capacidad.
 
 ## Alianzas
 
-`alianzas` es una característica Premium que ya tiene implementación operativa.
-El negocio origen necesita Premium para proponer; ambos negocios necesitan
-Premium para aceptar. Un negocio Free puede consultar solicitudes recibidas y
-mejorar de plan para responder. Los beneficios se crean como recompensas del
-negocio que los ofrece y solo se muestran en el catálogo mientras la alianza
-está activa y vigente.
+Free puede participar en una alianza activa: recibir, aceptar, rechazar,
+finalizar y administrar los beneficios del negocio que ofrece, pero no puede
+enviar solicitudes. Premium puede enviar y recibir solicitudes, con una alianza
+activa máxima con un negocio Free, tres con negocios Premium y cuatro en total.
+
+Los cupos se comprueban al aceptar para ambos negocios, bloqueando sus filas en
+orden de PK dentro de una transacción. Las solicitudes pendientes no consumen
+cupo; las activas lo consumen hasta finalizar o vencer. Un downgrade no finaliza
+alianzas existentes: deja los excedentes visibles y bloquea nuevas solicitudes o
+aceptaciones que superen el cupo vigente. Los beneficios son recompensas del
+negocio que los ofrece y solo aparecen en el catálogo mientras la alianza está
+activa y vigente.
 
 ## Pendiente
 
@@ -124,5 +136,7 @@ está activa y vigente.
 5. Analítica avanzada, exportación y personalización: configuradas como
    capacidades Premium, todavía sin implementación operativa.
 
-Migraciones: `0011` (esquema), `0012` (datos y Free para negocios existentes) y
-`0013` (restricciones y retiro de campos legacy), aplicadas en local y Supabase.
+Migraciones: `0011` (esquema), `0012` (datos y Free para negocios existentes),
+`0013` (restricciones y retiro de campos legacy) y `0018` (cupos y capacidades de
+alianzas). La `0018` debe aplicarse en cada entorno antes de desplegar el flujo
+de alianzas.

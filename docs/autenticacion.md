@@ -148,7 +148,7 @@ consumidor. `admin_sistema` es un privilegio global independiente.
 | Membresías | Propia; dueño: su negocio; supervisor: su sucursal | Dueño asigna supervisor/empleado; supervisor asigna empleados; solo admin asigna dueños |
 | Dinámicas | Miembros del negocio | Dueño del negocio |
 | Recompensas | Miembros de los negocios asociados | Dueño de la dinámica; en alianzas, dueño del negocio que ofrece el beneficio mediante el endpoint de alianza |
-| Alianzas | Dueños de los negocios involucrados; admin puede consultar | Dueño proponente crea la solicitud; dueño receptor acepta o rechaza; cualquiera de los dos finaliza. El CRUD genérico sigue reservado al admin |
+| Alianzas | Dueños de los negocios involucrados; admin puede consultar | Solo un dueño Premium del negocio proponente crea; el dueño receptor acepta o rechaza (Free también puede hacerlo dentro de su cupo); cualquiera de los dos finaliza y administra los beneficios de su negocio. El CRUD genérico de alianzas es de solo lectura |
 | Actividades | Consumidor: propias; personal: su sucursal | Solo lectura por CRUD; alta desde `POST /visitas/registrar/`; anulación solo admin |
 | Progreso y cupones | Consumidor: propios; dueño: negocio completo; supervisor/empleado: sin listado global | Solo lectura por CRUD; adquisición y emisión desde servicios de lealtad |
 | Canjes | Consumidor: propios; dueño: negocio completo; supervisor/empleado: su sucursal | Solo lectura por CRUD; canje exclusivo del dueño del cupón |

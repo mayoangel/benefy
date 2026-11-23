@@ -21,7 +21,30 @@ vi.mock('../hooks/usePlan', () => ({
   usePlan: () => ({
     plan: {
       plan: { codigo: planState.premium ? 'premium' : 'free', nombre: planState.premium ? 'Premium' : 'Free' },
-      caracteristicas: { alianzas: planState.premium },
+      caracteristicas: {
+        alianzas: true,
+        alianzas_proponer: planState.premium,
+      },
+      limites: {
+        alianzas_activas: {
+          uso: 0,
+          limite: planState.premium ? 4 : 1,
+          disponible: planState.premium ? 4 : 1,
+          excedido: false,
+        },
+        alianzas_con_free: {
+          uso: 0,
+          limite: 1,
+          disponible: 1,
+          excedido: false,
+        },
+        alianzas_con_premium: {
+          uso: 0,
+          limite: planState.premium ? 3 : 1,
+          disponible: planState.premium ? 3 : 1,
+          excedido: false,
+        },
+      },
     },
     loading: false,
   }),
@@ -93,7 +116,7 @@ test('received proposals are visible and actionable from the received tab', asyn
   cleanup();
 });
 
-test('free plan explains that alliances require Premium', async () => {
+test('free plan can receive proposals but cannot send them', async () => {
   planState.premium = false;
   vi.mocked(api.getAlliances).mockResolvedValue([]);
   vi.mocked(api.discoverAlliances).mockResolvedValue([negocio]);
@@ -106,6 +129,6 @@ test('free plan explains that alliances require Premium', async () => {
     </MemoryRouter>,
   );
 
-  expect(await screen.findByText(/Las alianzas están incluidas en Premium/)).toBeTruthy();
+  expect(await screen.findByText(/puedes recibir, aceptar y rechazar solicitudes/)).toBeTruthy();
   cleanup();
 });

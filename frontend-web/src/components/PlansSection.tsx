@@ -101,9 +101,9 @@ export default function PlansSection({
 
         <Reveal delay={0.08}>
           <p className="plans-truth-note">
-            Premium amplía los límites operativos. Analítica avanzada, exportación,
-            personalización y alianzas figuran en el esquema futuro del plan, pero todavía
-            no están disponibles y no se incluyen como beneficios actuales.
+            Premium amplía los límites operativos. Las alianzas ya están disponibles con
+            cupos separados por tipo de contraparte; analítica avanzada, exportación y
+            personalización todavía figuran como funciones futuras.
           </p>
         </Reveal>
       </div>

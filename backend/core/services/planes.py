@@ -6,6 +6,7 @@ significa que el recurso no está permitido.
 """
 
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 from rest_framework.exceptions import APIException
 
@@ -19,6 +20,9 @@ LIMITES_PLAN = (
     'recompensas',
     'supervisores',
     'empleados',
+    'alianzas_activas',
+    'alianzas_con_free',
+    'alianzas_con_premium',
 )
 
 CARACTERISTICAS_PLAN = (
@@ -26,11 +30,12 @@ CARACTERISTICAS_PLAN = (
     'exportacion_reportes',
     'personalizacion_avanzada',
     'alianzas',
+    'alianzas_proponer',
 )
 
-# Funciones Premium que ya tienen implementación operativa. Las demás se
-# anuncian como próximas y no deben presentarse como disponibles.
-CARACTERISTICAS_IMPLEMENTADAS = ('alianzas',)
+# Funciones que ya tienen implementación operativa. Las demás se anuncian como
+# próximas y no deben presentarse como disponibles.
+CARACTERISTICAS_IMPLEMENTADAS = ('alianzas', 'alianzas_proponer')
 
 NOMBRES_RECURSOS = {
     'sucursales': 'sucursales',
@@ -39,6 +44,9 @@ NOMBRES_RECURSOS = {
     'recompensas': 'recompensas',
     'supervisores': 'supervisores',
     'empleados': 'empleados',
+    'alianzas_activas': 'alianzas activas',
+    'alianzas_con_free': 'alianzas activas con negocios Free',
+    'alianzas_con_premium': 'alianzas activas con negocios Premium',
 }
 
 
@@ -160,6 +168,32 @@ def limite(negocio, recurso):
     return _limites(plan_actual(negocio))[recurso]
 
 
+def _alianzas_activas(negocio):
+    """Alianzas que ocupan cupo: activas y todavía no vencidas.
+
+    Una alianza programada para iniciar después también reserva cupo para no
+    aceptar compromisos futuros que excedan la capacidad del plan.
+    """
+    return models.Alianza.objects.filter(
+        status='activa',
+        fecha_fin__gte=timezone.now(),
+    ).filter(
+        Q(negocio1=negocio) | Q(negocio2=negocio),
+    ).select_related('negocio1', 'negocio2')
+
+
+def _contraparte(negocio, alianza):
+    if alianza.negocio1_id == negocio.pk:
+        return alianza.negocio2
+    return alianza.negocio1
+
+
+def _codigo_plan(negocio, cache):
+    if negocio.pk not in cache:
+        cache[negocio.pk] = plan_actual(negocio).codigo
+    return cache[negocio.pk]
+
+
 def _queryset_recurso(negocio, recurso):
     if recurso == 'sucursales':
         return models.Sucursal.objects.filter(negocio=negocio, status=True)
@@ -181,10 +215,28 @@ def _queryset_recurso(negocio, recurso):
         return models.UsuarioNegocio.objects.filter(
             negocio=negocio, rol_comercio='empleado', status=True,
         )
+    if recurso == 'alianzas_activas':
+        return _alianzas_activas(negocio)
     raise ValueError(f'Recurso de plan desconocido: {recurso}.')
 
 
 def uso_actual(negocio, recurso, excluir_ids=()):
+    if recurso in (
+        'alianzas_activas', 'alianzas_con_free', 'alianzas_con_premium',
+    ):
+        alianzas = list(_alianzas_activas(negocio))
+        if excluir_ids:
+            excluidos = set(excluir_ids)
+            alianzas = [alianza for alianza in alianzas if alianza.pk not in excluidos]
+        if recurso == 'alianzas_activas':
+            return len(alianzas)
+        buscado = 'free' if recurso == 'alianzas_con_free' else 'premium'
+        cache = {}
+        return sum(
+            1 for alianza in alianzas
+            if _codigo_plan(_contraparte(negocio, alianza), cache) == buscado
+        )
+
     queryset = _queryset_recurso(negocio, recurso)
     if excluir_ids:
         queryset = queryset.exclude(pk__in=excluir_ids)
@@ -221,6 +273,39 @@ def verificar_capacidad(
         'uso': uso,
         'disponible': max(maximo - uso, 0),
     }
+
+
+def verificar_capacidad_alianza(negocio, contraparte):
+    """Bloquea ambos negocios y valida sus cupos de alianza al aceptar.
+
+    El orden por PK evita interbloqueos cuando dos aceptaciones comparten
+    negocios. El bloqueo de ambas filas serializa las comprobaciones y evita que
+    dos solicitudes concurrentes consuman el mismo cupo.
+    """
+    list(models.Negocio.objects.select_for_update().filter(
+        pk__in=(negocio.pk, contraparte.pk),
+    ).order_by('pk'))
+    cache = {}
+    for actual, otra in ((negocio, contraparte), (contraparte, negocio)):
+        plan = plan_actual(actual)
+        maximos = _limites(plan)
+        maximo_total = maximos['alianzas_activas']
+        uso_total = uso_actual(actual, 'alianzas_activas')
+        if maximo_total is not None and uso_total + 1 > maximo_total:
+            raise LimitePlan(
+                f'El plan {plan.nombre} permite {maximo_total} alianzas activas.'
+            )
+
+        es_free = _codigo_plan(otra, cache) == 'free'
+        clave = 'alianzas_con_free' if es_free else 'alianzas_con_premium'
+        maximo = maximos[clave]
+        uso = uso_actual(actual, clave)
+        if maximo is not None and uso + 1 > maximo:
+            raise LimitePlan(
+                f'El plan {plan.nombre} permite {maximo} '
+                f'{NOMBRES_RECURSOS[clave]}.'
+            )
+    return True
 
 
 def tiene_caracteristica(negocio, clave):

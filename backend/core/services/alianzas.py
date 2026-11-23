@@ -44,11 +44,11 @@ def _validar_fechas(fecha_inicio, fecha_fin):
         raise ErrorAlianza('La fecha de fin de la alianza debe ser futura.')
 
 
-def _validar_caracteristica(negocio):
-    if not planes.tiene_caracteristica(negocio, 'alianzas'):
+def _validar_puede_proponer(negocio):
+    if not planes.tiene_caracteristica(negocio, 'alianzas_proponer'):
         raise planes.LimitePlan(
-            'El plan actual no incluye alianzas comerciales. Mejora el plan '
-            'para proponer o aceptar alianzas.'
+            'El plan actual no permite enviar solicitudes de alianza. '
+            'Puedes recibir y aceptar solicitudes dentro de tu cupo.'
         )
 
 
@@ -182,12 +182,13 @@ def crear_solicitud(
     if not condicion_participacion:
         raise ErrorAlianza('La condición de participación no puede estar vacía.')
     _validar_fechas(fecha_inicio, fecha_fin)
-    _validar_caracteristica(negocio_origen)
 
-    # Bloquear ambos negocios evita propuestas duplicadas concurrentes.
+    # Bloquear ambos negocios serializa la propuesta con cambios de plan y
+    # evita propuestas duplicadas concurrentes.
     list(models.Negocio.objects.select_for_update().filter(
         pk__in=(negocio_origen.pk, negocio_destino.pk),
     ).order_by('pk'))
+    _validar_puede_proponer(negocio_origen)
 
     existente = models.Alianza.objects.select_for_update().filter(
         status__in=('pendiente', 'activa'),
@@ -249,8 +250,22 @@ def responder_solicitud(*, usuario, alianza_id, aceptar, ahora=None):
         )
 
     if aceptar:
-        _validar_caracteristica(alianza.negocio1)
-        _validar_caracteristica(alianza.negocio2)
+        planes.verificar_capacidad_alianza(
+            alianza.negocio1, alianza.negocio2,
+        )
+        duplicada = models.Alianza.objects.filter(
+            status__in=('pendiente', 'activa'),
+            fecha_fin__gte=ahora,
+        ).filter(
+            Q(negocio1=alianza.negocio1, negocio2=alianza.negocio2)
+            | Q(negocio1=alianza.negocio2, negocio2=alianza.negocio1),
+        ).exclude(pk=alianza.pk).exists()
+        if duplicada:
+            raise ErrorAlianza(
+                'Ya existe otra solicitud pendiente o alianza activa con este negocio.',
+                codigo='alianza_duplicada',
+                status_code=409,
+            )
         alianza.status = 'activa'
     else:
         alianza.status = 'rechazada'
@@ -317,8 +332,12 @@ def crear_recompensa(*, usuario, alianza, negocio, datos):
     if negocio.pk not in (alianza.negocio1_id, alianza.negocio2_id):
         raise ErrorAlianza('El beneficio debe pertenecer a uno de los negocios de la alianza.')
     _validar_dueno(usuario, negocio)
-    _validar_caracteristica(negocio)
-    if alianza.status != 'activa' or alianza.fecha_fin <= timezone.now():
+    ahora = timezone.now()
+    if (
+        alianza.status != 'activa'
+        or alianza.fecha_inicio > ahora
+        or alianza.fecha_fin <= ahora
+    ):
         raise ErrorAlianza(
             'Solo puedes agregar beneficios a una alianza activa y vigente.',
             codigo='alianza_no_activa',

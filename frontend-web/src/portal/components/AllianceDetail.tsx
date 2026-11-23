@@ -1,5 +1,4 @@
 import { FormEvent, useCallback, useEffect, useId, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 
 import { ApiError, api } from '../../lib/api.ts';
 import type { AlianzaDetalle, EstadoAlianza, RecompensaAlianza } from '../../lib/types.ts';
@@ -61,13 +60,11 @@ function estadoAlianza(detalle: AlianzaDetalle) {
 export default function AllianceDetail({
   businessId,
   allianceId,
-  puedeOperar,
   onClose,
   onChanged,
 }: {
   businessId: number;
   allianceId: number;
-  puedeOperar: boolean;
   onClose: () => void;
   onChanged: () => void;
 }) {
@@ -213,6 +210,22 @@ export default function AllianceDetail({
     setOk(null);
   }
 
+  async function cambiarEstadoBeneficio(recompensa: RecompensaAlianza) {
+    setBusy(true);
+    setError(null);
+    setOk(null);
+    try {
+      await api.updateReward(recompensa.id, { status: !recompensa.status });
+      setOk(recompensa.status ? 'Beneficio desactivado.' : 'Beneficio activado.');
+      await cargar();
+      onChanged();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo cambiar el beneficio.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const estado = detalle ? estadoAlianza(detalle) : ESTADOS.pendiente;
   const otro = detalle?.direccion === 'recibida' ? detalle.negocio1 : detalle?.negocio2;
 
@@ -260,15 +273,9 @@ export default function AllianceDetail({
             </dl>
           </div>
 
-          {!puedeOperar && detalle.status === 'pendiente' ? (
-            <p className="portal-note">
-              Las alianzas están incluidas en Premium. <Link to="/precios">Conoce Premium</Link> para aceptar esta solicitud.
-            </p>
-          ) : null}
-
           {detalle.status === 'pendiente' && detalle.direccion === 'recibida' ? (
             <div className="portal-alliance-actions">
-              <button type="button" className="portal-button" onClick={() => void responder(true)} disabled={busy || !puedeOperar}>
+              <button type="button" className="portal-button" onClick={() => void responder(true)} disabled={busy}>
                 Aceptar alianza
               </button>
               <button type="button" className="portal-button-secondary" onClick={() => void responder(false)} disabled={busy}>
@@ -291,7 +298,7 @@ export default function AllianceDetail({
                 <h3 id={`${id}-beneficios`}>Beneficios</h3>
                 <p className="portal-muted">Recompensas que los clientes pueden adquirir en cada negocio.</p>
               </div>
-              {detalle.puede_agregar_beneficio && puedeOperar && !showBenefit ? (
+              {detalle.puede_agregar_beneficio && !showBenefit ? (
                 <button type="button" className="portal-button-secondary" onClick={agregarBeneficio}>
                   Agregar beneficio
                 </button>
@@ -309,6 +316,9 @@ export default function AllianceDetail({
                         ? detalle.negocio1.nombre
                         : detalle.negocio2.nombre
                     }
+                    puedeAdministrar={recompensa.negocio === businessId}
+                    busy={busy}
+                    onToggle={() => void cambiarEstadoBeneficio(recompensa)}
                   />
                 ))}
               </ul>
@@ -442,9 +452,15 @@ export default function AllianceDetail({
 function Beneficio({
   recompensa,
   negocioNombre,
+  puedeAdministrar,
+  busy,
+  onToggle,
 }: {
   recompensa: RecompensaAlianza;
   negocioNombre: string;
+  puedeAdministrar: boolean;
+  busy: boolean;
+  onToggle: () => void;
 }) {
   return (
     <li>
@@ -458,6 +474,11 @@ function Beneficio({
           {recompensa.status ? 'Disponible' : 'Inactivo'}
         </span>
         <small>{recompensa.costo_desbloqueo} puntos · {recompensa.vigencia_dias ?? '—'} días</small>
+        {puedeAdministrar ? (
+          <button type="button" className="portal-row-action" onClick={onToggle} disabled={busy}>
+            {recompensa.status ? 'Desactivar' : 'Activar'}
+          </button>
+        ) : null}
       </div>
     </li>
   );

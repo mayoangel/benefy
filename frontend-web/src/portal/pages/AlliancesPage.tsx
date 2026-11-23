@@ -182,7 +182,13 @@ export default function AlliancesPage() {
     : tab === 'enviadas' ? enviadas
       : tab === 'activas' ? activas
         : historial;
-  const puedeOperar = plan?.caracteristicas.alianzas === true;
+  const puedeProponer = plan?.caracteristicas.alianzas_proponer === true;
+  const limites = plan?.limites;
+  const totalActivas = limites?.alianzas_activas;
+  const conFree = limites?.alianzas_con_free;
+  const conPremium = limites?.alianzas_con_premium;
+  const limiteTexto = (limite: number | null | undefined) => limite === null || limite === undefined
+    ? '∞' : limite;
 
   function alCrear(alianza: AlianzaDetalle) {
     setMerchant(null);
@@ -211,10 +217,25 @@ export default function AlliancesPage() {
         </button>
       </PortalPageHeader>
 
-      {!planLoading && !puedeOperar ? (
-        <p className="portal-note">
-          Las alianzas están incluidas en Premium. Puedes consultar solicitudes y alianzas existentes, pero para proponer o aceptar necesitas mejorar el plan. <Link to="/precios">Conocer Premium</Link>.
-        </p>
+      {!planLoading && plan ? (
+        <div className="portal-note portal-alliance-capacity">
+          <strong>Plan {plan.plan.nombre}:</strong>{' '}
+          {puedeProponer
+            ? 'puedes enviar y recibir solicitudes de alianza.'
+            : 'puedes recibir, aceptar y rechazar solicitudes, pero no enviar nuevas.'}{' '}
+          {totalActivas ? (
+            <span>
+              Alianzas activas: {totalActivas.uso} de {limiteTexto(totalActivas.limite)}.
+            </span>
+          ) : null}{' '}
+          {plan.plan.codigo === 'premium' && conFree && conPremium ? (
+            <span>
+              Capacidad separada: {conFree.uso} de {limiteTexto(conFree.limite)} con Free y{' '}
+              {conPremium.uso} de {limiteTexto(conPremium.limite)} con Premium.
+            </span>
+          ) : null}{' '}
+          {!puedeProponer ? <Link to="/precios">Conocer Premium</Link> : null}
+        </div>
       ) : null}
       {ok ? <p className="portal-note" role="status">{ok}</p> : null}
       {error ? <PortalError message={error} onRetry={() => void cargar()} /> : null}
@@ -282,7 +303,7 @@ export default function AlliancesPage() {
                           type="button"
                           className="portal-button"
                           onClick={() => setMerchant(negocio)}
-                          disabled={!puedeOperar}
+                          disabled={!puedeProponer}
                         >
                           Proponer alianza
                         </button>
@@ -320,7 +341,7 @@ export default function AlliancesPage() {
         </div>
       </div>
 
-      {merchant ? (
+      {merchant && puedeProponer ? (
         <AllianceWizard
           businessId={id}
           merchant={merchant}
@@ -333,7 +354,6 @@ export default function AlliancesPage() {
         <AllianceDetail
           businessId={id}
           allianceId={detailId}
-          puedeOperar={puedeOperar}
           onClose={() => setDetailId(null)}
           onChanged={alCambiar}
         />

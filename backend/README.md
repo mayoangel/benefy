@@ -1,7 +1,7 @@
 # Backend
 
 API Django 5.2 + Django REST Framework. La configuración está en `config/`;
-`core/` contiene 26 modelos, serializers, vistas, permisos y diecisiete migraciones
+`core/` contiene 26 modelos, serializers, vistas, permisos y dieciocho migraciones
 de dominio. La entrada de URLs es `config/urls.py`.
 
 ## Funcionalidad disponible
@@ -14,7 +14,7 @@ de dominio. La entrada de URLs es `config/urls.py`.
 - Invitaciones con aceptación por correo verificado y protección del último propietario activo.
 - Consultas paginadas de visitas, cupones, canjes y clientes, y creación atómica de tarjetas con recompensa meta.
 - Registro de visitas por QR de negocio o sucursal con límite diario por zona horaria.
-- Flujo bilateral de alianzas: descubrimiento, propuesta, aceptación, rechazo, finalización y beneficios por negocio, con auditoría y gating Premium.
+- Flujo bilateral de alianzas: descubrimiento, propuesta, aceptación, rechazo, finalización y beneficios por negocio, con auditoría, cupos Free/Premium por contraparte y CRUD genérico de alianzas de solo lectura.
 - Puntos por lotes con consumo FIFO, expiración configurable y ajustes auditados.
 - Tarjetas de visitas repetibles o de una sola vez, con snapshots por ciclo.
 - Adquisición idempotente de cupones con stock y canje irreversible iniciado por el cliente.

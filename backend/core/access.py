@@ -226,8 +226,20 @@ def authorize_write(user, model, data, instance=None, method='POST', supplied_fi
         if program and not alliance:
             allowed = permissions.puede_administrar_negocio(user, program.negocio)
         elif alliance and not program:
-            allowed = all(permissions.puede_administrar_negocio(user, negocio)
-                          for negocio in (alliance.negocio1, alliance.negocio2))
+            # El beneficio pertenece al negocio que lo ofrece. Su dueño puede
+            # administrarlo; crear uno nuevo desde el CRUD genérico conserva la
+            # regla anterior de ambos dueños porque el flujo usa su endpoint.
+            if (
+                instance is not None
+                and instance.alianza_id == alliance.pk
+                and instance.negocio_id is not None
+            ):
+                allowed = permissions.puede_administrar_negocio(
+                    user, instance.negocio,
+                )
+            else:
+                allowed = all(permissions.puede_administrar_negocio(user, socio)
+                              for socio in (alliance.negocio1, alliance.negocio2))
         elif business and not program and not alliance:
             allowed = permissions.puede_administrar_negocio(user, business)
         # El origen de una recompensa existente no se puede trasladar a otro negocio.
@@ -241,8 +253,9 @@ def authorize_write(user, model, data, instance=None, method='POST', supplied_fi
     elif model is models.Notificacion:
         allowed = (instance is not None and instance.usuario_id == user.pk
                    and method in ('PUT', 'PATCH') and set(supplied_fields) <= {'leida'})
-    # Saldos, emisión de cupones, alianzas y facturación requieren procesos de
-    # negocio específicos; el CRUD de escritura queda reservado al admin.
+    # Saldos, emisión de cupones y facturación requieren procesos de negocio
+    # específicos. Las alianzas se gestionan en su flujo propio y su CRUD
+    # genérico es de solo lectura.
     if not allowed:
         raise PermissionDenied('No tienes permisos para realizar esta operación.')
 
