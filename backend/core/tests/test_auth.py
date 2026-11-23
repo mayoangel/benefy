@@ -119,6 +119,9 @@ class AuthAndPermissionsTests(TestCase):
 
     def test_todas_las_rutas_api_requieren_identidad(self):
         for pattern in urls.urlpatterns:
+            # El webhook de Stripe se autentica con firma, no con Supabase.
+            if pattern.name == 'stripe-webhook':
+                continue
             path = '/api/' + str(pattern.pattern)
             path = path.replace('<int:pk>', '1').replace('<uuid:uuid>', str(uuid4()))
             path = path.replace('<uuid:token>', str(uuid4()))
