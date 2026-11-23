@@ -66,7 +66,7 @@ modifican con los endpoints transaccionales correspondientes.
 | GET | `/api/v1/mi/contexto/` | Perfil, membresías, negocios, sucursales y `puede_portal` |
 | PATCH | `/api/v1/usuario/rol/{id}/` | Cambiar `rol` o `is_active`; solo `admin_sistema` |
 
-Hay 114 rutas de API en total. El login, registro de identidad, refresh y logout
+Hay 119 rutas de API en total. El login, registro de identidad, refresh y logout
 ocurren en Supabase Auth, no bajo `/api/v1`. `usuario/crear/` crea el perfil
 Benefy después del login.
 
@@ -95,6 +95,24 @@ Crear o reactivar recursos por encima del plan responde `403`:
 Aplica a sucursales, tarjetas de sellos (`Dinamica` tipo `sellos`), recompensas,
 supervisores y empleados. Los recursos inactivos no consumen cupo. Reglas y
 política de downgrade en [planes Free y Premium](./planes-free-premium.md).
+
+## Suscripción y facturación Sandbox
+
+Requieren propietario (`dueno`) o `admin_sistema`; supervisores, empleados y
+consumidores reciben `403`.
+
+| Método | Ruta | Uso |
+| --- | --- | --- |
+| GET | `/api/v1/negocios/{id}/facturacion/` | Plan, precios, límites, estado Stripe, aviso demo e historial |
+| POST | `/api/v1/negocios/{id}/facturacion/checkout/` | `{"intervalo":"mensual"}` o `"anual"`; devuelve URL de Checkout |
+| POST | `/api/v1/negocios/{id}/facturacion/portal/` | Devuelve URL temporal del Customer Portal |
+| POST | `/api/v1/negocios/{id}/facturacion/sincronizar/` | Reconcilia desde Stripe; `session_id` opcional |
+| POST | `/api/v1/stripe/webhook/` | Público; valida la firma Stripe sobre el body original |
+
+El precio nunca se acepta desde React: solo el intervalo. Un intento con Premium
+vigente responde `409 premium_activo`. El webhook rechaza firmas inválidas y
+eventos `livemode=true`. Detalle de estados, gracia y Customer Portal en
+[Facturación Stripe Sandbox](./facturacion-stripe-sandbox.md).
 
 ## Registro comercial
 
@@ -337,5 +355,6 @@ Benef AI documenta su API en `/docs`; el backend Django no genera OpenAPI.
 - Los CRUD de saldo/cupón no sustituyen los servicios de acumulación y emisión.
 - Crear un canje por CRUD no consume el cupón de forma atómica; usa
   `POST /cupones/{uuid}/canjear/`.
-- No hay métricas agregadas avanzadas, ranking, exportaciones, webhooks Stripe
-  ni envío push.
+- No hay métricas agregadas avanzadas, ranking, exportaciones ni envío push.
+- Los pagos son de demostración Stripe Sandbox; no hay CFDI, impuestos ni cobros
+  reales.

@@ -153,13 +153,14 @@ consumidor. `admin_sistema` es un privilegio global independiente.
 | Progreso y cupones | Consumidor: propios; dueño: negocio completo; supervisor/empleado: sin listado global | Solo lectura por CRUD; adquisición y emisión desde servicios de lealtad |
 | Canjes | Consumidor: propios; dueño: negocio completo; supervisor/empleado: su sucursal | Solo lectura por CRUD; canje exclusivo del dueño del cupón |
 | Saldos y lotes de puntos | Consumidor: propios; personal: su negocio | Solo servicios; ajustes exclusivos de `admin_sistema` |
-| Pagos y suscripciones | Plan del negocio: miembros y admin; pagos: dueño y admin | Cambio de plan solo `admin_sistema` con auditoría; pagos solo admin hasta implementar webhooks |
+| Pagos y suscripciones | Plan del negocio: miembros y admin; facturación: dueño y admin | Cambio manual de plan solo `admin_sistema` con auditoría; Checkout, Customer Portal y webhooks Stripe Sandbox solo para el dueño (o admin); estados de Stripe no se editan desde el CRUD genérico |
 | Notificaciones | Propias y admin | Usuario solo marca `leida`; crear/borrar solo admin |
 
 La sucursal y su negocio deben estar activos para registrar actividades o
 canjes. Los usuarios de negocio no pueden cambiar el origen de una recompensa,
 trasladar una dinámica o sucursal a otro negocio, ni transferir una membresía.
-`stripe_id` solo lo establece el administrador.
+`stripe_id` (columna legacy) solo lo establece el administrador; la facturación
+Sandbox usa `ClienteStripe` y no acepta identificadores Stripe desde el cliente.
 
 Al crear un negocio se conserva el rol global `consumidor` y se crea la membresía
 `dueno` en una transacción. El canje del MVP lo inicia el cliente desde

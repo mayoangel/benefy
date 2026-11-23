@@ -1,12 +1,12 @@
 # Backend
 
 API Django 5.2 + Django REST Framework. La configuración está en `config/`;
-`core/` contiene 26 modelos, serializers, vistas, permisos y dieciocho migraciones
+`core/` contiene 29 modelos, serializers, vistas, permisos y 20 migraciones
 de dominio. La entrada de URLs es `config/urls.py`.
 
 ## Funcionalidad disponible
 
-- 80 rutas CRUD, cuatro rutas de identidad/contexto/onboarding y 30 rutas de lealtad, planes, operaciones, invitaciones y alianzas.
+- 119 rutas API: CRUD administrativo, identidad/contexto/onboarding, lealtad, planes, operaciones, invitaciones, alianzas y facturación Stripe Sandbox.
 - Verificación de sesiones Supabase Auth y permisos según usuario, negocio y sucursal.
 - Onboarding comercial idempotente: perfil, negocio, membresía de dueño y plan Free desde una sola captura.
 - Aislamiento por sucursal en visitas, registros de actividad, canjes y métricas; los cupones globales solo los ve el dueño.
@@ -20,15 +20,16 @@ de dominio. La entrada de URLs es `config/urls.py`.
 - Adquisición idempotente de cupones con stock y canje irreversible iniciado por el cliente.
 - Django Admin con los modelos registrados y cuentas staff separadas de los perfiles Benefy.
 - PostgreSQL Supabase con SSL para desarrollo/demo y PostgreSQL aislado para pruebas.
-- Comandos `db_info`, `expirar_puntos` y `verificar_puntos`.
-- Pruebas de salud, configuración, autenticación, permisos, membresías, onboarding, invitaciones, portal, planes, límites, concurrencia, operaciones, aislamiento, migración, lealtad y PostgreSQL.
+- Stripe Checkout/Billing, webhooks idempotentes, Customer Portal, precios 399/3,990 MXN y reconciliación, exclusivamente en Sandbox/Test Mode.
+- Comandos `db_info`, `expirar_puntos`, `verificar_puntos`, `configurar_stripe_sandbox` y `reconciliar_stripe`.
+- Pruebas de salud, configuración, autenticación, permisos, membresías, onboarding, invitaciones, portal, planes, límites, concurrencia, operaciones, aislamiento, migración, lealtad, facturación Sandbox y PostgreSQL.
 
-Consulta [API](../docs/api.md) para las rutas y
-[autenticación](../docs/autenticacion.md) para los payloads y la matriz de acceso.
-Los modelos de Stripe y notificaciones no implican que esas integraciones estén
-implementadas. El portal web incluye CRUD comercial, consultas operativas, QR
-imprimible de sucursal y flujo de alianzas; los detalles avanzados de Stripe,
-analítica y el cliente móvil siguen pendientes.
+Consulta [API](../docs/api.md) para las rutas,
+[autenticación](../docs/autenticacion.md) para la matriz de acceso y
+[facturación Stripe Sandbox](../docs/facturacion-stripe-sandbox.md) para el
+checkout, webhooks y portal. Las notificaciones push siguen sin integración.
+Stripe live, impuestos/CFDI, analítica avanzada y el cliente móvil siguen
+pendientes.
 
 ## Configuración y operación
 

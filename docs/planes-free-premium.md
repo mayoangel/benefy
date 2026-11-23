@@ -3,7 +3,9 @@
 El plan pertenece al **negocio**, no al usuario. Una cuenta puede administrar
 varios negocios con planes distintos. Los roles `dueno`, `supervisor`,
 `empleado` y el privilegio global `admin_sistema` son independientes del plan.
-Stripe, cobros y facturación no están implementados.
+Premium se contrata con Stripe Checkout/Billing exclusivamente en Sandbox/Test
+Mode. No se procesa dinero real ni se emiten facturas fiscales. Ver
+[Facturación Stripe Sandbox](./facturacion-stripe-sandbox.md).
 
 ## Límites iniciales
 
@@ -50,16 +52,24 @@ Django Admin o el CRUD administrativo sin migrar:
 | --- | --- |
 | `PlanSuscripcion` | Nivel comercial (`free`, `premium`) con `nombre`, `descripcion`, `orden`, `limites`, `caracteristicas` y `status` |
 | `PlanPrecio` | Modalidad de cobro: `plan`, `intervalo` (`mensual`/`anual`), `stripe_price_id` opcional, `monto`, `divisa` y `status` |
-| `Suscripcion` | Negocio y plan con `status`, `origen` (`manual`, `stripe`, `migracion`, `automatico`), fechas, cancelación y referencias Stripe opcionales |
+| `ClienteStripe` | Customer de Stripe aislado por negocio y modo (`test`/`live`) |
+| `CheckoutStripe` | Checkout idempotente, snapshot de monto y estado |
+| `EventoStripe` | Idempotencia de webhooks sin payload sensible |
+| `Suscripcion` | Negocio y plan con `status`, `origen` (`manual`, `stripe`, `migracion`, `automatico`), fechas, cancelación, estado/Price de Stripe, gracia y último evento |
 | `PlanCambioAuditoria` | Negocio, plan anterior y nuevo, origen, motivo, actor, correo y fecha |
+| `Pago` | Factura de prueba única por `stripe_invoice_id`, estado, periodo, intentos y recibo |
 
-Solo `activa` y `prueba` conceden capacidades. Una cancelación programada puede
-conservarse `activa` con `en_cancelacion=true` hasta el final del periodo. Una
-restricción de Postgres impide más de una suscripción vigente por negocio; los
-cambios cierran la anterior y crean la nueva en una transacción.
+`activa` y `prueba` conceden capacidades. `pendiente` conserva Premium solo
+mientras `gracia_fin` siga en el futuro, después de un pago fallido; al vencer la
+gracia el negocio pasa a Free. `incompleta` y `cancelada` no conceden acceso. Una
+cancelación programada se conserva `activa` con `en_cancelacion=true` hasta el
+final del periodo. Una restricción de Postgres impide más de una suscripción
+vigente por negocio; los cambios cierran la anterior y crean/activan la nueva en
+una transacción.
 
-Premium tiene una fila mensual y otra anual con los mismos límites. Free no
-requiere precio.
+Premium tiene una fila mensual y otra anual con los mismos límites: `399.00 MXN`
+al mes y `3,990.00 MXN` al año. Free no requiere precio. Los Price IDs de Sandbox
+se vinculan con `python manage.py configurar_stripe_sandbox`.
 
 ## Asignación de Free
 
@@ -105,9 +115,16 @@ Los endpoints de plan están en [api.md](./api.md#planes-y-límites).
 
 El portal muestra el plan actual y su etiqueta, el uso y límite de cada recurso
 con barra de progreso, avisos de “Límite alcanzado” y excedentes, funciones
-Premium con su estado de disponibilidad y un CTA informativo “Conocer Premium”
-para Free. No existe checkout ni botón que simule un pago; la única diferencia
-funcional actual es la capacidad.
+Premium con su estado de disponibilidad y una pantalla **Suscripción** con:
+
+- precio mensual/anual y aviso claro de demostración Sandbox;
+- botón “Contratar Premium” que redirige a Stripe Checkout;
+- estado de la suscripción, próxima renovación, cancelación programada y gracia;
+- botón “Administrar suscripción” para el Customer Portal;
+- historial de pagos de prueba.
+
+No hay formularios propios de tarjeta. El retorno de Checkout/Portal no cambia el
+plan; Django sincroniza desde Stripe.
 
 ## Alianzas
 
@@ -126,17 +143,16 @@ activa y vigente.
 
 ## Pendiente
 
-1. Precios reales, moneda y periodicidad de Premium.
-2. Stripe Checkout, webhooks y sincronización de `stripe_price_id` /
-   `stripe_subscription_id`.
-3. Renovaciones, pruebas, cancelación al final del periodo y downgrade
-   programado.
+1. Aplicar migraciones en Supabase remoto con respaldo y autorización expresa.
+2. Configurar el endpoint de webhooks y el signing secret del despliegue.
+3. Impuestos, CFDI y conciliación contable: fuera de esta fase.
 4. Pantalla para elegir tarjetas habilitadas y regularizar sucursales o equipo
    excedentes.
 5. Analítica avanzada, exportación y personalización: configuradas como
    capacidades Premium, todavía sin implementación operativa.
 
 Migraciones: `0011` (esquema), `0012` (datos y Free para negocios existentes),
-`0013` (restricciones y retiro de campos legacy) y `0018` (cupos y capacidades de
-alianzas). La `0018` debe aplicarse en cada entorno antes de desplegar el flujo
-de alianzas.
+`0013` (restricciones y retiro de campos legacy), `0018` (cupos y capacidades de
+alianzas), `0019` (esquema Stripe Sandbox) y `0020` (precios 399/3,990). Las
+migraciones `0019` y `0020` solo se aplicaron en PostgreSQL local aislado; no en
+Supabase remoto.
