@@ -40,8 +40,10 @@ export type PlanNegocio = {
   suscripcion: {
     id: number;
     status: string;
+    stripe_status?: string;
     origen: string;
     en_cancelacion: boolean;
+    gracia_fin?: string | null;
     fecha_inicio: string | null;
     fecha_fin: string | null;
     periodo_actual_inicio: string | null;
@@ -51,6 +53,58 @@ export type PlanNegocio = {
   caracteristicas: CaracteristicasPlan;
   caracteristicas_implementadas: string[];
   excedentes: string[];
+};
+
+export type PrecioFacturacion = {
+  intervalo: 'mensual' | 'anual';
+  monto: string | null;
+  divisa: string;
+  disponible: boolean;
+};
+
+export type SuscripcionFacturacion = {
+  id: number;
+  status: string;
+  stripe_status: string;
+  origen: string;
+  en_cancelacion: boolean;
+  gracia_fin: string | null;
+  fecha_inicio: string | null;
+  fecha_fin: string | null;
+  periodo_actual_inicio: string | null;
+  periodo_actual_fin: string | null;
+  proxima_renovacion: string | null;
+  cancelacion_programada: boolean;
+  acceso_premium: boolean;
+};
+
+export type PagoFacturacion = {
+  id: number;
+  fecha: string;
+  monto: string;
+  divisa: string;
+  status: string;
+  stripe_invoice_status: string;
+  intentos_pago: number;
+  periodo_inicio: string | null;
+  periodo_fin: string | null;
+  recibo_url: string | null;
+};
+
+export type FacturacionNegocio = PlanNegocio & {
+  facturacion: {
+    habilitada: boolean;
+    modo: 'test' | 'deshabilitado';
+    motivo: string;
+    aviso: string;
+    webhook_configurado: boolean;
+    precios: PrecioFacturacion[];
+    puede_contratar: boolean;
+    puede_administrar: boolean;
+    cliente_stripe_configurado: boolean;
+    suscripcion: SuscripcionFacturacion | null;
+    pagos: PagoFacturacion[];
+  };
 };
 
 export type PlanCatalogo = PlanResumenNegocio & {

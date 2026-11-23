@@ -8,6 +8,7 @@ import type {
   ContextoPortal,
   CuponResumen,
   DinamicaResumen,
+  FacturacionNegocio,
   InvitacionResumen,
   MembresiaResumen,
   MetricasPortal,
@@ -165,6 +166,23 @@ export const api = {
   getPlans: () => request<PlanCatalogo[]>('/planes/'),
   getBusinessPlan: (businessId: number) =>
     request<PlanNegocio>(`/negocios/${businessId}/plan/`),
+  getBilling: (businessId: number) =>
+    request<FacturacionNegocio>(`/negocios/${businessId}/facturacion/`),
+  createCheckout: (businessId: number, intervalo: 'mensual' | 'anual') =>
+    request<{ url: string; session_id: string; reutilizada: boolean; modo: string }>(
+      `/negocios/${businessId}/facturacion/checkout/`,
+      jsonBody({ intervalo }),
+    ),
+  createBillingPortal: (businessId: number) =>
+    request<{ url: string; modo: string }>(
+      `/negocios/${businessId}/facturacion/portal/`,
+      { method: 'POST' },
+    ),
+  syncBilling: (businessId: number, sessionId?: string) =>
+    request<FacturacionNegocio>(
+      `/negocios/${businessId}/facturacion/sincronizar/`,
+      jsonBody(sessionId ? { session_id: sessionId } : {}),
+    ),
   getAlliances: (businessId: number, params: Record<string, ValorQuery> = {}) =>
     request<AlianzaResumen[]>(
       `/alianzas/${query({ negocio: businessId, ...params })}`,

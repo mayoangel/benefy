@@ -32,8 +32,8 @@ const plans = [
     code: 'premium',
     name: 'Premium',
     icon: faCrown,
-    price: '$899',
-    cadence: 'MXN/mes · referencia',
+    price: '$399',
+    cadence: 'MXN/mes · demo Sandbox',
     summary: 'Para operaciones que necesitan más sucursales, equipo, tarjetas y recompensas activas.',
     features: [
       'Hasta 5 sucursales activas',
@@ -45,7 +45,7 @@ const plans = [
     ],
     action: 'Conocer Premium',
     to: '/precios#contacto',
-    note: 'Precio orientativo. La activación actual es manual.',
+    note: 'También $3,990 MXN/año. Pago de demostración; no se realizan cargos reales.',
   },
 ];
 

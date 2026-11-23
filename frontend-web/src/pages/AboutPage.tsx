@@ -195,9 +195,10 @@ function Transparency() {
         </div>
         <div>
           <p>
-            Facturación con Stripe, analítica avanzada, exportación de reportes,
-            personalización avanzada y alianzas comerciales no se presentan como
-            capacidades actuales.
+            La facturación ya existe como demostración con Stripe Sandbox: alta,
+            renovación, cancelación y portal de cliente se simulan sin dinero real.
+            La analítica avanzada, exportación de reportes y personalización siguen
+            en desarrollo; las alianzas comerciales ya están disponibles.
           </p>
           <p>
             Premium amplía hoy la capacidad de sucursales, tarjetas, recompensas y equipo.

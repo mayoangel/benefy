@@ -125,7 +125,7 @@ const faqs: [string, string][] = [
   ],
   [
     '¿Premium se puede comprar en línea?',
-    'Todavía no. El sistema contempla precios y suscripciones, pero Stripe, cobro y facturación no están implementados. La activación actual se realiza manualmente con el equipo de Benefy.',
+    'Sí, desde el portal del negocio. En esta fase la contratación, renovación y cancelación se simulan con Stripe Sandbox; no se realizan cargos reales ni se emiten facturas fiscales.',
   ],
   [
     '¿Cómo se acumulan y vencen los puntos?',

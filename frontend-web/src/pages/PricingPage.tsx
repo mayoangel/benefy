@@ -29,7 +29,7 @@ export default function PricingPage() {
       <main className="pricing-real-page">
       <PlansSection
         headingLevel="h1"
-        intro="Los límites de esta página provienen del catálogo real del backend. Premium se muestra con un precio de referencia porque el cobro aún no está definido."
+        intro="Los límites y precios de esta página provienen del catálogo real del backend. Premium se contrata desde el portal con Stripe Sandbox: los pagos son de demostración y no generan cargos reales."
       />
 
       <section className="landing-section pricing-real-comparison" aria-labelledby="pricing-comparison-title">
@@ -69,8 +69,9 @@ export default function PricingPage() {
             <span className="landing-kicker landing-kicker-light">Activación transparente</span>
             <h2 id="pricing-contact-title">Free está listo al registrar tu negocio.</h2>
             <p>
-              Premium requiere activación manual. Benefy todavía no procesa pagos,
-              renovaciones o cancelaciones desde la web.
+              Premium se contrata desde el portal del negocio. En esta fase Stripe
+              opera en Sandbox: se simulan alta, renovación, cancelación y portal
+              de cliente sin procesar dinero real.
             </p>
           </div>
           <div className="landing-actions">

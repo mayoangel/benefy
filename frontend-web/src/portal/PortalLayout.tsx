@@ -20,13 +20,14 @@ const NAV_GROUPS = [
   { label: 'Actividad', paths: ['', 'clientes', 'visitas', 'canjes', 'cupones'] },
   { label: 'Fidelización', paths: ['puntos', 'tarjetas', 'recompensas'] },
   { label: 'Crecimiento', paths: ['alianzas'] },
-  { label: 'Tu negocio', paths: ['sucursales', 'equipo', 'configuracion'] },
+  { label: 'Tu negocio', paths: ['suscripcion', 'sucursales', 'equipo', 'configuracion'] },
 ];
 
 function navItems(rol: RolComercio | null) {
   if (rol === 'dueno') {
     return [
       { label: 'Resumen', path: '' },
+      { label: 'Suscripción', path: 'suscripcion' },
       { label: 'Configuración', path: 'configuracion' },
       { label: 'Sucursales', path: 'sucursales' },
       { label: 'Puntos', path: 'puntos' },

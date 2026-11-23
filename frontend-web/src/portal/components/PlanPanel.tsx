@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
 import type { CaracteristicasPlan, PlanNegocio } from '../../lib/types.ts';
@@ -41,7 +42,13 @@ function estadoCaracteristica(
   return { texto: 'Premium · próximamente', clase: '' };
 }
 
-export default function PlanPanel({ plan }: { plan: PlanNegocio }) {
+export default function PlanPanel({
+  plan,
+  pie,
+}: {
+  plan: PlanNegocio;
+  pie?: ReactNode;
+}) {
   const esFree = plan.plan.codigo === 'free';
 
   return (
@@ -129,14 +136,17 @@ export default function PlanPanel({ plan }: { plan: PlanNegocio }) {
         </ul>
       </div>
 
-      {esFree ? (
+      {pie !== undefined ? pie : esFree ? (
         <div className="portal-plan-cta">
           <p>
             Premium amplía la capacidad de sucursales, tarjetas, recompensas y
-            equipo. La activación es manual por el equipo de Benefy.
+            equipo. La contratación se realiza desde la pantalla de Suscripción.
           </p>
-          <Link className="portal-button-secondary" to="/precios">
-            Conocer Premium
+          <Link
+            className="portal-button-secondary"
+            to={`/portal/negocio/${plan.negocio}/suscripcion`}
+          >
+            Ver suscripción
           </Link>
         </div>
       ) : (

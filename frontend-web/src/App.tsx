@@ -16,6 +16,7 @@ const FinishRegistrationPage = lazy(() => import('./pages/FinishRegistrationPage
 const PortalLayout = lazy(() => import('./portal/PortalLayout.tsx'));
 const PortalIndexRedirect = lazy(() => import('./portal/pages/PortalIndexRedirect.tsx'));
 const BusinessOverviewPage = lazy(() => import('./portal/pages/BusinessOverviewPage.tsx'));
+const SubscriptionPage = lazy(() => import('./portal/pages/SubscriptionPage.tsx'));
 const BranchesPage = lazy(() => import('./portal/pages/BranchesPage.tsx'));
 const TeamPage = lazy(() => import('./portal/pages/TeamPage.tsx'));
 const VisitsPage = lazy(() => import('./portal/pages/VisitsPage.tsx'));
@@ -58,6 +59,7 @@ export default function App() {
             <Route index element={<PortalIndexRedirect />} />
             <Route path="negocio/:negocioId" element={<Outlet />}>
               <Route index element={<BusinessOverviewPage />} />
+              <Route path="suscripcion" element={<SubscriptionPage />} />
               <Route path="configuracion" element={<BusinessSettingsPage />} />
               <Route path="sucursales" element={<BranchesPage />} />
               <Route path="puntos" element={<PointsPage />} />
