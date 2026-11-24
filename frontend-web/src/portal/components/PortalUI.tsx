@@ -21,6 +21,7 @@ const paths: Record<string, string> = {
   configuracion: 'M4 7h16M4 17h16M8 4v6m8 4v6',
   suscripcion: 'M3 7h18v10H3V7Zm0 4h18M7 15h3',
   admin: 'M4 21v-9l8-5 8 5v9M9 21v-5h6v5M3 21h18M8 9V5h8v4',
+  ia: 'M12 2.8l1.7 5.5L19.2 10l-5.5 1.7L12 17.2l-1.7-5.5L4.8 10l5.5-1.7L12 2.8Zm6.5 11.2.8 2.5 2.5.8-2.5.8-.8 2.5-.8-2.5-2.5-.8 2.5-.8.8-2.5Z',
   menu: 'M4 6h16M4 12h16M4 18h16',
   salir: 'M9 4H4v16h5M14 8l4 4-4 4M8 12h12',
 };

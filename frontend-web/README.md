@@ -27,7 +27,7 @@ carga `src/App.tsx`. Las rutas implementadas son:
 | `/invitacion/:token` | Consulta y aceptación de una invitación |
 | `/acceso-restringido` | Consumidor sin membresía comercial |
 | `/portal` | Redirección según rol y contexto |
-| `/portal/negocio/:id` | Resumen del negocio o sucursal |
+| `/portal/negocio/:id` | Resumen del negocio, sucursal y panel Benef AI |
 | `/portal/negocio/:id/configuracion` | Datos públicos y de contacto |
 | `/portal/negocio/:id/sucursales` | CRUD de sucursales y QR imprimible |
 | `/portal/negocio/:id/puntos` | Programa de puntos |
@@ -59,7 +59,9 @@ comercial: no implican pagos ni analítica implementados.
 - `src/auth/guards.tsx`: `RequireSession`, `RequirePortalAccess` y `RequireAdmin`.
   Solo controlan navegación; Django valida cada petición.
 - `src/portal/PortalLayout.tsx`: shell compartido, selector de negocio y
-  sucursal, navegación por rol y adaptación móvil.
+  sucursal, navegación por rol, adaptación móvil y botón de Benef AI.
+- `src/portal/components/BenefAIChat.tsx`: panel conversacional con historial en
+  memoria, sugerencias, estados de carga/error, cancelación y accesibilidad.
 - `src/portal/components/PlanPanel.tsx`: plan actual, uso y límites, excedentes
   y funciones Premium con su estado de disponibilidad.
 - `src/portal/pages/`: configuración, sucursales con QR, puntos, tarjetas,
@@ -77,6 +79,21 @@ En alianzas, Free puede recibir y aceptar dentro de su cupo, pero proponer es
 exclusivo de Premium; el portal muestra el uso y los sublímites del plan.
 El detalle está en [autenticación](../docs/autenticacion.md),
 [API](../docs/api.md) y [planes](../docs/planes-free-premium.md).
+
+## Benef AI
+
+El botón **Benef AI** de la barra superior abre un panel lateral con el negocio
+seleccionado. React llama únicamente a
+`POST /api/v1/negocios/{id}/benef-ai/chat/`; Django valida membresía, longitud,
+historial y rate limit antes de firmar la solicitud hacia Benef AI. El navegador
+nunca recibe la clave de Gemini ni el token de servicio.
+
+El historial vive en memoria durante la sesión. Al cambiar de negocio, cerrar
+sesión o reiniciar la conversación se aborta la solicitud pendiente y se
+descartan respuestas tardías. La UI incluye Enter para enviar, Shift+Enter para
+nueva línea, sugerencias, estado de carga, errores recuperables y navegación por
+teclado. La arquitectura completa está en
+[Benef AI en el dashboard](../docs/benef-ai-chat.md).
 
 ## Ejecución y verificación
 
@@ -97,6 +114,10 @@ npm run typecheck
 npm run build
 npm run test:e2e
 ```
+
+En esta entrega se ejecutaron **52 pruebas Vitest**, TypeScript, build de Vite
+y la suite de componentes del chat. Las E2E de Playwright requieren el entorno
+controlado descrito en `tests/`.
 
 Las E2E usan respuestas controladas en el puerto 5174 y Edge; no modifican la
 base remota. `tests/smoke.mjs` comprueba el servidor real y HMR sin credenciales.

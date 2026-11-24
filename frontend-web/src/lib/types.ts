@@ -162,6 +162,16 @@ export type ContextoPortal = {
   sucursales: SucursalPortal[];
 };
 
+export type BenefAIChatTurn = {
+  role: 'user' | 'assistant';
+  content: string;
+};
+
+export type BenefAIChatResponse = {
+  answer: string;
+  tools_used: string[];
+};
+
 export type MetricasPortal = {
   desde: string;
   hasta: string;

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Link,
   NavLink,
@@ -13,6 +13,7 @@ import {
 import { useAuth } from '../auth/AuthProvider.tsx';
 import logoMark from '../assets/logo_no_name.png';
 import { membresiaDelNegocio } from '../lib/portal.ts';
+import BenefAIChat from './components/BenefAIChat';
 import { PortalIcon, PortalRoleBadge } from './components/PortalUI';
 import { areaForRelativePath, areasForRole } from './navigation.ts';
 
@@ -22,12 +23,15 @@ export default function PortalLayout() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const [mobile, setMobile] = useState(() => window.matchMedia('(max-width: 860px)').matches);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const sidebar = useRef<HTMLElement>(null);
   const main = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
+  const chatTrigger = useRef<HTMLButtonElement>(null);
   const location = useLocation();
+  const cerrarChat = useCallback(() => setChatOpen(false), []);
 
   useEffect(() => {
     const query = window.matchMedia('(max-width: 860px)');
@@ -71,13 +75,6 @@ export default function PortalLayout() {
     return context.sucursales.filter((sucursal) => sucursal.negocio === id);
   }, [context, id]);
 
-  if (!context) {
-    return <Navigate to="/acceso-restringido" replace />;
-  }
-  if (id && !membresia) {
-    return <Navigate to="/portal" replace />;
-  }
-
   const selectedSucursal = searchParams.get('sucursal') ?? '';
   const base = id ? `/portal/negocio/${id}` : '/portal/admin';
   const relativePath = id && location.pathname.startsWith(base)
@@ -95,6 +92,13 @@ export default function PortalLayout() {
       actual[activeArea.key] ? actual : { ...actual, [activeArea.key]: true }
     ));
   }, [activeArea]);
+
+  if (!context) {
+    return <Navigate to="/acceso-restringido" replace />;
+  }
+  if (id && !membresia) {
+    return <Navigate to="/portal" replace />;
+  }
 
   function toggleGroup(key: string) {
     setOpenGroups((actual) => ({ ...actual, [key]: !actual[key] }));
@@ -262,6 +266,21 @@ export default function PortalLayout() {
             <span>{profile?.correo}</span>
           </div>
           <PortalRoleBadge className="portal-role" role={esAdmin ? 'admin_sistema' : rol} />
+          {!esAdmin && id && membresia ? (
+            <button
+              type="button"
+              ref={chatTrigger}
+              className="portal-ai-trigger"
+              aria-expanded={chatOpen}
+              aria-controls="benef-ai-panel"
+              onClick={() => setChatOpen((value) => !value)}
+            >
+              <span className="portal-ai-trigger-mark" aria-hidden="true">
+                <PortalIcon name="ia" />
+              </span>
+              <span>Benef AI</span>
+            </button>
+          ) : null}
           {!esAdmin && planNegocio ? (
             <span className={`portal-plan-tag${planNegocio.codigo === 'premium' ? ' is-premium' : ''}`}>
               Plan {planNegocio.nombre}
@@ -272,6 +291,16 @@ export default function PortalLayout() {
           <Outlet key={JSON.stringify([session?.user.id, id, context.membresias, context.es_admin_sistema])} />
         </main>
       </div>
+      {!esAdmin && id && membresia ? (
+        <BenefAIChat
+          key={`${id}-${session?.user.id ?? 'anon'}`}
+          open={chatOpen}
+          businessId={id}
+          businessName={membresia.negocio.nombre}
+          onClose={cerrarChat}
+          triggerRef={chatTrigger}
+        />
+      ) : null}
     </div>
   );
 }

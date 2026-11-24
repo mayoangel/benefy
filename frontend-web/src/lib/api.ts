@@ -2,9 +2,10 @@ import { supabase } from './supabase.ts';
 import type {
   AlianzaDetalle,
   AlianzaResumen,
+  BenefAIChatResponse,
+  BenefAIChatTurn,
   CanjeResumen,
   CategoriaResumen,
-  ClienteResumen,
   ContextoPortal,
   CuponResumen,
   DinamicaResumen,
@@ -163,6 +164,19 @@ export const api = {
   completeOnboarding: () =>
     request<OnboardingResultado>('/onboarding/comercial/', { method: 'POST' }),
   getContext: () => request<ContextoPortal>('/mi/contexto/'),
+  askBenefAI: (
+    businessId: number,
+    message: string,
+    history: BenefAIChatTurn[],
+    signal?: AbortSignal,
+  ) => request<BenefAIChatResponse>(
+    `/negocios/${businessId}/benef-ai/chat/`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ message, history }),
+      signal,
+    },
+  ),
   getPlans: () => request<PlanCatalogo[]>('/planes/'),
   getBusinessPlan: (businessId: number) =>
     request<PlanNegocio>(`/negocios/${businessId}/plan/`),
