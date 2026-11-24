@@ -126,6 +126,12 @@ Enviar `rol`, `correo`, `supabase_uid`, `firebase_uid` o `is_active` produce
 `400`. Los perfiles no almacenan contraseñas.
 
 `GET /api/v1/autenticacion/perfil/` devuelve el perfil y QR propio.
+`PATCH /api/v1/autenticacion/perfil/` actualiza `nombre`, `apellido`, `telefono`
+y `foto_perfil`. El correo no se edita desde el perfil: es la identidad
+verificada de Supabase. `POST /api/v1/mi/cuenta/eliminar/` inicia una baja
+idempotente, anonimiza el perfil y elimina la identidad de Supabase. El
+procedimiento y los bloqueos por propiedad de negocio están en
+[eliminación de cuenta](./eliminacion-cuenta.md).
 `PATCH /api/v1/usuario/rol/{id}/` permite a `admin_sistema` cambiar `rol` o
 `is_active`. Los roles globales válidos son `consumidor` y `admin_sistema`; el
 alias `negocio` se convierte en `consumidor`. `usuarios/listar/` devuelve solo el
@@ -141,7 +147,7 @@ consumidor. `admin_sistema` es un privilegio global independiente.
 
 | Recurso | Lectura | Escritura |
 | --- | --- | --- |
-| Usuarios | Propio; admin puede consultar todos | Perfil propio; roles/bloqueo y borrado solo admin |
+| Usuarios | Propio; admin puede consultar todos | Perfil propio; roles/bloqueo solo admin; baja propia anonimizada con protección de propiedad |
 | Categorías y planes | Todos los perfiles autenticados | Solo admin del sistema |
 | Negocios | Miembros del negocio | Cualquier perfil crea su propio negocio; dueño modifica; borrado solo admin |
 | Sucursales | Dueño: todas las propias; supervisor/empleado: su sucursal | Dueño del negocio |

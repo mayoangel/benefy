@@ -16,6 +16,7 @@ app_name = "core"
 
 urlpatterns = [
     path("v1/autenticacion/perfil/", views.PerfilAPIView.as_view(), name="autenticacion-perfil"),
+    path("v1/mi/cuenta/eliminar/", views.EliminarCuentaAPIView.as_view(), name="mi-cuenta-eliminar"),
     path("v1/onboarding/comercial/", views_onboarding.CompletarRegistroComercialAPIView.as_view(), name="onboarding-comercial"),
 
     # Motor de lealtad

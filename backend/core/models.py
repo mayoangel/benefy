@@ -35,7 +35,39 @@ class Usuario(models.Model):
     @property
     def is_anonymous(self):
         return False
-    
+
+
+class EliminacionCuenta(models.Model):
+    """Solicitud idempotente de baja con anonimización y borrado en Supabase."""
+
+    ESTADOS = (
+        ('pendiente', 'Pendiente de anonimizar'),
+        ('anonimizada', 'Anonimizada, pendiente de Supabase'),
+        ('completada', 'Completada'),
+        ('fallida', 'Fallida'),
+    )
+
+    usuario = models.OneToOneField(
+        Usuario,
+        on_delete=models.PROTECT,
+        related_name='eliminacion_cuenta',
+    )
+    supabase_uid = models.UUIDField(null=True, blank=True)
+    estado = models.CharField(max_length=20, choices=ESTADOS, default='pendiente')
+    solicitada_en = models.DateTimeField(auto_now_add=True)
+    anonimizada_en = models.DateTimeField(null=True, blank=True)
+    supabase_eliminado_en = models.DateTimeField(null=True, blank=True)
+    intentos = models.PositiveIntegerField(default=0)
+    ultimo_error = models.TextField(blank=True, default='')
+    actualizada_en = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-solicitada_en', '-pk']
+
+    def __str__(self):
+        return f'Eliminación de cuenta {self.pk}: {self.get_estado_display()}'
+
+
 class CategoriaNegocio(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
     descripcion = models.TextField(blank=True, null=True, default='No hay descripción para esta categoría')

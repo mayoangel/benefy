@@ -71,7 +71,7 @@ class UrlLanguageTests(SimpleTestCase):
     acciones_espanol = ("crear", "listar", "detalle", "actualizar", "eliminar")
 
     def test_rutas_y_nombres_de_url_estan_en_espanol(self):
-        self.assertEqual(len(urls.urlpatterns), 120)
+        self.assertEqual(len(urls.urlpatterns), 121)
 
         rutas = [str(pattern.pattern) for pattern in urls.urlpatterns]
         nombres = [pattern.name for pattern in urls.urlpatterns]
@@ -85,9 +85,10 @@ class UrlLanguageTests(SimpleTestCase):
 
         for accion in self.acciones_espanol:
             with self.subTest(accion=accion):
+                esperado = 17 if accion == 'eliminar' else 16
                 self.assertEqual(
                     sum(f"/{accion}/" in f"/{ruta}" for ruta in rutas),
-                    16,
+                    esperado,
                 )
 
 

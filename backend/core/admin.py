@@ -8,6 +8,7 @@ from core import models
 admin.site.register(
     [
         models.Usuario,
+        models.EliminacionCuenta,
         models.CategoriaNegocio,
         models.Negocio,
         models.Sucursal,
