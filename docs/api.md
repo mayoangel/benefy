@@ -66,9 +66,10 @@ modifican con los endpoints transaccionales correspondientes.
 | PATCH | `/api/v1/autenticacion/perfil/` | Edita nombre, apellido, teléfono y foto del perfil propio |
 | POST | `/api/v1/mi/cuenta/eliminar/` | Baja idempotente: anonimiza y revoca la identidad Supabase |
 | GET | `/api/v1/mi/contexto/` | Perfil, membresías, negocios, sucursales y `puede_portal` |
+| POST | `/api/v1/negocios/{id}/benef-ai/chat/` | Chat de solo lectura con Benef AI; exige membresía y rate limit |
 | PATCH | `/api/v1/usuario/rol/{id}/` | Cambiar `rol` o `is_active`; solo `admin_sistema` |
 
-Hay 122 rutas de API en total. El login, registro de identidad, refresh y logout
+Hay 123 rutas de API en total. El login, registro de identidad, refresh y logout
 ocurren en Supabase Auth, no bajo `/api/v1`. `usuario/crear/` crea el perfil
 Benefy después del login.
 
@@ -121,6 +122,17 @@ un resumen del plan de cada negocio. Solo incluye membresías activas de negocio
 y sucursales habilitados. Un consumidor sin membresías recibe `puede_portal:
 false` y listas vacías; `admin_sistema` recibe los negocios activos de la
 plataforma. Los guards de React no sustituyen los permisos de Django.
+
+### Benef AI
+
+`POST /api/v1/negocios/{id}/benef-ai/chat/` es el único punto de entrada del
+portal al asistente. Requiere bearer de Supabase, membresía efectiva en el
+negocio, mensaje de hasta 2000 caracteres e historial de hasta 12 turnos y 12000
+caracteres. Rechaza `admin_sistema` y consumidores sin membresía. Aplica
+`THROTTLE_BENEF_AI_CHAT` (20/hour por defecto) y reenvía a Benef AI con firma
+HMAC-SHA256, timestamp y token de servicio. La respuesta es
+`{"answer": "...", "tools_used": ["metricas"]}`. Los detalles de arquitectura,
+errores y configuración están en [Benef AI en el dashboard](./benef-ai-chat.md).
 
 ## Planes y límites
 

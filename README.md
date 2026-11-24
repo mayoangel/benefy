@@ -9,11 +9,11 @@ con `python dev.py up`, sin instalar Node ni Django en el host.
 
 | Componente | Implementado | Pendiente |
 | --- | --- | --- |
-| Backend | Django 5.2 + DRF, 30 modelos, 22 migraciones de `core`, 122 rutas API, motor de visitas/puntos/tarjetas/cupones, alianzas bilaterales auditadas con cupos Free/Premium, membresías auditadas, onboarding idempotente, invitaciones, aislamiento por sucursal, planes Free/Premium, Stripe Billing Sandbox y Django Admin | Analítica avanzada, Stripe live y facturación fiscal |
+| Backend | Django 5.2 + DRF, 30 modelos, 22 migraciones de `core`, 123 rutas API, motor de visitas/puntos/tarjetas/cupones, alianzas bilaterales auditadas con cupos Free/Premium, membresías auditadas, onboarding idempotente, invitaciones, aislamiento por sucursal, planes Free/Premium, Stripe Billing Sandbox y Django Admin | Analítica avanzada, Stripe live y facturación fiscal |
 | Identidad | Supabase Auth con login web real, sesión persistente, refresh, recuperación, onboarding automático e invitaciones; perfiles/roles en Django | Google OAuth |
-| Web | Landing React 18 + Vite y portal conectado: dashboards por rol, configuración, sucursales con QR imprimible, puntos, tarjetas, recompensas, alianzas, equipo, visitas, cupones, canjes, clientes y pantalla de suscripción con Checkout/Customer Portal Sandbox | Exportaciones y E2E en CI |
+| Web | Landing React 18 + Vite y portal conectado: dashboards por rol, configuración, sucursales con QR imprimible, puntos, tarjetas, recompensas, alianzas, equipo, visitas, cupones, canjes, clientes, chat de Benef AI y pantalla de suscripción con Checkout/Customer Portal Sandbox | Exportaciones y E2E en CI |
 | Móvil | Expo SDK 58 con Auth Supabase, perfil/foto/baja, cartera, historial, directorio, catálogo, cupones, canje, notificaciones y escáner QR reales | Notificaciones push y E2E en dispositivo |
-| Benef AI | FastAPI con chat, consultas autenticadas, health checks y Docker de producción | Despliegue en Railway y validación de red real |
+| Benef AI | FastAPI con chat, tools de solo lectura, autenticación HMAC de servicio, proxy Django y panel en el portal | Despliegue en Railway/VPS y E2E con Gemini real |
 | Hardware | Carpeta de documentación | Firmware ESP32-S3 e integración física |
 
 El backend implementa el flujo transaccional del MVP: visitas por QR con
@@ -53,7 +53,7 @@ la sección de IA y los servicios externos.
 | [backend/](./backend/README.md) | `manage.py`, `config/urls.py` y app `core/`: API y persistencia |
 | [frontend-web/](./frontend-web/README.md) | `src/main.tsx` → `src/App.tsx`: landing y portal de negocios |
 | [mobile-app/](./mobile-app/README.md) | `src/app/`: aplicación de consumidores con Expo Router |
-| [benef-ai/](./benef-ai/README.md) | `main.py`: servicio IA en preparación |
+| [benef-ai/](./benef-ai/README.md) | `main.py`: microservicio FastAPI de chat y tools de solo lectura |
 | [hardware/](./hardware/README.md) | Futuro firmware ESP32-S3 |
 | [docs/](./docs/README.md) | Guías técnicas y SRS revisión 1.0 |
 | [compose.yaml](./compose.yaml) | Desarrollo y demostración con Vite, Django y Supabase |
@@ -95,6 +95,7 @@ configuración y verificación están en [docs/movil.md](./docs/movil.md).
 ## Documentación y convenciones
 
 - [API](./docs/api.md): rutas, permisos y errores implementados.
+- [Benef AI en el dashboard](./docs/benef-ai-chat.md): proxy Django, HMAC, tools y UI del chat.
 - [Aplicación móvil](./docs/movil.md): pantallas, endpoints, caché y verificación Expo.
 - [Autenticación y permisos](./docs/autenticacion.md): Supabase Auth, sesión web, roles y onboarding.
 - [Eliminación de cuenta](./docs/eliminacion-cuenta.md): anonimización, propiedad y reintentos.
@@ -103,7 +104,7 @@ configuración y verificación están en [docs/movil.md](./docs/movil.md).
 - [Planes Free y Premium](./docs/planes-free-premium.md): límites y cambios de plan.
 - [Facturación Stripe Sandbox](./docs/facturacion-stripe-sandbox.md): Checkout, webhooks, portal y pruebas sin dinero real.
 - [Despliegue en Railway](./docs/despliegue-railway.md): imagen de producción, variables, dominio y verificación.
-- [Despliegue de Benef AI](./docs/despliegue-benef-ai.md): servicio FastAPI, red privada y timeouts.
+- [Despliegue de Benef AI](./docs/despliegue-benef-ai.md): servicio FastAPI, autenticación HMAC, URLs y timeouts.
 - [Migraciones de producción](./docs/migraciones-produccion.md): respaldo, aplicación y recuperación.
 - [SRS original](./docs/Benefy%20SRS.pdf): requisitos de producto; no certifica implementación.
 

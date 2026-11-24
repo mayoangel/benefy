@@ -10,6 +10,7 @@ propia guía.
 | [Eliminación de cuenta](./eliminacion-cuenta.md) | Baja, anonimización, bloqueo de propietarios y reintentos |
 | [Avatares en Supabase Storage](./supabase-storage-avatares.md) | Bucket, RLS, contrato de URL y validación |
 | [API](./api.md) | Rutas, permisos, payloads, errores y límites implementados |
+| [Benef AI en el dashboard](./benef-ai-chat.md) | Proxy Django, autenticación HMAC, tools y chat React |
 | [Aplicación móvil](./movil.md) | Pantallas, endpoints, caché, configuración y verificación Expo |
 | [Reglas de lealtad](./reglas-lealtad.md) | Visitas, puntos, tarjetas, cupones y canje |
 | [Planes Free y Premium](./planes-free-premium.md) | Límites, suscripciones y cambios de plan |

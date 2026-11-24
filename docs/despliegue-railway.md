@@ -139,14 +139,18 @@ Benef AI es un servicio FastAPI independiente. Sigue la guía
 
 - Root Directory: `benef-ai`.
 - Dockerfile: `Dockerfile.prod`.
-- `BACKEND_API_URL=http://<backend-service>.railway.internal:8000/api/v1`.
-- Django debe permitir el host privado en `ALLOWED_HOSTS`.
+- `BACKEND_API_URL=https://api.example.com/api/v1` o una URL privada de Railway.
+- `BENEF_AI_SERVICE_TOKEN` compartido con Django (32+ caracteres).
+- Django configura `BENEF_AI_URL` y firma cada solicitud con HMAC-SHA256.
+- Django debe permitir el host privado en `ALLOWED_HOSTS` si se usa la red interna.
 - No necesita service role, base de datos ni secretos Stripe.
-- Health check: `/health/live`.
+- Health check: `/health/live`; readiness: `/health/ready`.
 - Timeouts configurables de Django y Gemini.
 - El bearer de Supabase se reenvía; Django vuelve a validar permisos.
+- El portal usa el proxy de Django; no requiere CORS directo.
 
-No se requiere modificar la lógica de Benef AI para el despliegue de Django.
+No se requiere modificar React al mover Benef AI entre Railway y un VPS: solo
+cambia `BENEF_AI_URL` en Django.
 
 ## 9. Rollback
 
