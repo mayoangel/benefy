@@ -45,14 +45,22 @@ Mínimas:
 | `SUPABASE_PUBLISHABLE_KEY` | Verificación de sesiones |
 | `SUPABASE_SERVICE_ROLE_KEY` | Borrado de identidades en Auth; solo servidor |
 | `SUPABASE_STORAGE_BUCKET_AVATARS` | Bucket de avatares |
+| `SUPABASE_STORAGE_MAX_BYTES` | Límite de avatar; por defecto 5 MB |
+| `SUPABASE_STORAGE_ALLOWED_TYPES` | `image/jpeg,image/png,image/webp` |
 | `CORS_ALLOWED_ORIGINS` | Dominio del portal web |
 | `CSRF_TRUSTED_ORIGINS` | Dominio del portal y del API |
 | `FRONTEND_URL` | Redirecciones de Stripe Sandbox |
 | `SECURE_SSL_REDIRECT=True` | Redirección HTTPS |
 | `SECURE_HSTS_SECONDS=31536000` | HSTS |
-| `SECURE_HSTS_INCLUDE_SUBDOMAINS` | `True` solo si controlas todos los subdominios |
-| `SECURE_HSTS_PRELOAD` | `True` solo si el dominio está listo para preload |
+| `SECURE_HSTS_INCLUDE_SUBDOMAINS` | `False` por defecto; actívalo solo si controlas todos los subdominios |
+| `SECURE_HSTS_PRELOAD` | `False` por defecto; no lo actives para el dominio temporal |
 | `ADMIN_ENABLED=False` | Recomendado; o protege `/admin/` con Cloudflare Access |
+
+Con `SECURE_HSTS_INCLUDE_SUBDOMAINS=False` y `SECURE_HSTS_PRELOAD=False`,
+`check --deploy` reportará las advertencias W005/W021. Es deliberado mientras se
+use el dominio temporal de Railway. Actívalos solo cuando el dominio
+personalizado esté bajo control y no afecte subdominios ajenos. `SECURE_SSL_REDIRECT`
+y `SECURE_HSTS_SECONDS` permanecen activos.
 
 Para Stripe Sandbox, mantén `STRIPE_ENABLED=true`, `STRIPE_MODE=test` y claves
 `sk_test_`/`pk_test_`. El backend rechaza claves live al arrancar. Configura el
@@ -85,7 +93,8 @@ pre-deploy command de Railway o una shell del servicio:
 python manage.py migrate --noinput
 ```
 
-La migración `0021_eliminacion_cuenta` debe aplicarse de forma controlada.
+Las migraciones `0021_eliminacion_cuenta` y
+`0022_eliminacion_cuenta_storage` deben aplicarse de forma controlada.
 
 ## 5. Verificación posterior
 
@@ -125,14 +134,17 @@ producción:
 
 ## 8. Benef AI
 
-Benef AI es un servicio FastAPI independiente. Si se despliega en Railway:
+Benef AI es un servicio FastAPI independiente. Sigue la guía
+[despliegue de Benef AI](./despliegue-benef-ai.md). Resumen:
 
-- configura `BACKEND_API_URL=https://<dominio-backend>/api/v1`;
-- configura `BENEF_AI_ALLOWED_ORIGINS` con el portal autorizado;
-- el servicio reenvía el bearer de Supabase a Django y Django vuelve a validar
-  identidad, negocio y sucursal;
-- no necesita la service role key ni acceso directo a PostgreSQL;
-- su health check actual no comprueba Django ni Gemini; eso es intencional.
+- Root Directory: `benef-ai`.
+- Dockerfile: `Dockerfile.prod`.
+- `BACKEND_API_URL=http://<backend-service>.railway.internal:8000/api/v1`.
+- Django debe permitir el host privado en `ALLOWED_HOSTS`.
+- No necesita service role, base de datos ni secretos Stripe.
+- Health check: `/health/live`.
+- Timeouts configurables de Django y Gemini.
+- El bearer de Supabase se reenvía; Django vuelve a validar permisos.
 
 No se requiere modificar la lógica de Benef AI para el despliegue de Django.
 
