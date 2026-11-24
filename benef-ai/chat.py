@@ -2,9 +2,16 @@ import json
 import os
 from typing import Any, Literal
 
-from fastapi import APIRouter, HTTPException, Security
+from fastapi import APIRouter, Depends, HTTPException, Security
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field, PositiveInt, ValidationError, field_validator
+from pydantic import (
+    BaseModel,
+    Field,
+    PositiveInt,
+    ValidationError,
+    field_validator,
+    model_validator,
+)
 
 from google import genai
 from google.genai import types
@@ -36,11 +43,13 @@ from queries import ( #Consultas para hacer
     restaurar_acceso_chat,
     validar_acceso_chat,
 )
+from service_auth import verify_service_request
 
 router = APIRouter(tags=["Chat"])
 MAX_TOOL_ROUNDS = 4
 MAX_TOOL_CALLS = 4
 MAX_HISTORY_TURNS = 12
+MAX_HISTORY_CHARS = 12000
 
 
 def _gemini_timeout_ms():
@@ -125,6 +134,13 @@ class ChatTurn(BaseModel):
     role: Literal["user", "assistant"]
     content: str = Field(min_length=1, max_length=2000)
 
+    @field_validator("content")
+    @classmethod
+    def content_not_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("El contenido del historial no puede estar vacío.")
+        return value.strip()
+
 
 class ChatRequest(BaseModel):
     negocio_id: PositiveInt
@@ -137,6 +153,12 @@ class ChatRequest(BaseModel):
         if not value.strip():
             raise ValueError("El mensaje no puede estar vacío.")
         return value.strip()
+
+    @model_validator(mode="after")
+    def history_within_context(self):
+        if sum(len(turn.content) for turn in self.history) > MAX_HISTORY_CHARS:
+            raise ValueError("El historial supera el contexto permitido.")
+        return self
 
 
 class ChatResponse(BaseModel):
@@ -189,6 +211,7 @@ def _interaction_history(request: ChatRequest) -> list[dict[str, Any]]:
 def chat(
     request: ChatRequest,
     access_token: str = Security(get_bearer_token),
+    _service: None = Depends(verify_service_request),
 ) -> ChatResponse | JSONResponse:
     access_result = validar_acceso_chat(access_token, request.negocio_id)
     if isinstance(access_result, JSONResponse):

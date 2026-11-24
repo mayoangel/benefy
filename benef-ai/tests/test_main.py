@@ -1,5 +1,6 @@
 """Pruebas de configuración y health checks de Benef AI."""
 
+import json
 import unittest
 from unittest.mock import patch
 
@@ -36,10 +37,20 @@ class HealthTests(unittest.TestCase):
         self.assertEqual(response.status_code, 503)
 
     def test_readiness_con_backend_es_ok(self):
-        with patch.object(main, "BACKEND_API_URL", "https://api.example.com/api/v1"):
+        with patch.object(main, "BACKEND_API_URL", "https://api.example.com/api/v1"), \
+                patch.object(main, "service_token", return_value="x" * 32):
             response = main.health_ready()
         self.assertEqual(response["status"], "ok")
         self.assertTrue(response["backend_configurado"])
+        self.assertTrue(response["service_auth_configurado"])
+
+    def test_readiness_sin_autenticacion_interna_es_503(self):
+        with patch.object(main, "BACKEND_API_URL", "https://api.example.com/api/v1"), \
+                patch.object(main, "service_token", return_value=""):
+            response = main.health_ready()
+        self.assertIsInstance(response, JSONResponse)
+        self.assertEqual(response.status_code, 503)
+        self.assertFalse(json.loads(response.body)["service_auth_configurado"])
 
 
 if __name__ == "__main__":

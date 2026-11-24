@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 
 from chat import router as chat_router
 from queries import router as queries_router
+from service_auth import MIN_TOKEN_LENGTH, service_token
 
 if os.getenv("BENEFY_LOAD_DOTENV", "1") != "0":
     load_dotenv(Path(__file__).resolve().parent / ".env")
@@ -21,7 +22,7 @@ BACKEND_API_URL = os.getenv("BACKEND_API_URL", "").rstrip("/")
 ALLOWED_ORIGINS = [
     origin.strip()
     for origin in os.getenv(
-        "BENEF_AI_ALLOWED_ORIGINS", "http://localhost:5173",
+        "BENEF_AI_ALLOWED_ORIGINS", "",
     ).split(",")
     if origin.strip()
 ]
@@ -55,8 +56,10 @@ if ENVIRONMENT == "production":
     if not BACKEND_API_URL:
         raise RuntimeError("Producción requiere BACKEND_API_URL.")
     _validar_backend_url(BACKEND_API_URL)
-    if not ALLOWED_ORIGINS:
-        raise RuntimeError("Producción requiere BENEF_AI_ALLOWED_ORIGINS.")
+    if len(service_token()) < MIN_TOKEN_LENGTH:
+        raise RuntimeError(
+            "Producción requiere BENEF_AI_SERVICE_TOKEN de al menos 32 caracteres."
+        )
 
 logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO").upper(),
@@ -106,12 +109,14 @@ def health_ready():
     """Readiness de configuración; no realiza llamadas externas."""
     backend_configurado = bool(BACKEND_API_URL)
     gemini_configurado = bool(os.getenv("GEMINI_API_KEY", "").strip())
+    service_auth_configurado = len(service_token()) >= MIN_TOKEN_LENGTH
     cuerpo = {
         "service": "benef-ai",
-        "status": "ok" if backend_configurado else "error",
+        "status": "ok" if backend_configurado and service_auth_configurado else "error",
         "backend_configurado": backend_configurado,
+        "service_auth_configurado": service_auth_configurado,
         "gemini_configurado": gemini_configurado,
     }
-    if not backend_configurado:
+    if not backend_configurado or not service_auth_configurado:
         return JSONResponse(status_code=503, content=cuerpo)
     return cuerpo

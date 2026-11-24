@@ -1,9 +1,8 @@
 # Benef AI
 
-> El entorno se inicia con `python dev.py up` desde la raíz.
-
 Microservicio FastAPI de Benefy. Ofrece un chat con Gemini y consultas
-autenticadas de solo lectura para usuarios de negocio.
+autenticadas de solo lectura para usuarios de negocio. El portal web lo consume
+a través del proxy autenticado de Django.
 
 ## Endpoints
 
@@ -11,120 +10,108 @@ autenticadas de solo lectura para usuarios de negocio.
 | --- | --- |
 | `GET /` | JSON con `service`, `status`, `environment` y `version` |
 | `GET /health/live` | Liveness; no consulta Django ni Gemini |
-| `GET /health/ready` | Readiness de configuración del backend |
+| `GET /health/ready` | Configuración de backend, autenticación interna y Gemini |
 | `POST /chat` | Conversa con Gemini y ejecuta tools de consulta permitidas |
-| `POST /consultas/metricas` | Consulta métricas del backend con la sesión del usuario |
-| `POST /consultas/visitas` | Lista visitas, filtradas por periodo, sucursal y estado |
-| `POST /consultas/canjes` | Lista canjes autorizados, con filtro de periodo/sucursal |
-| `POST /consultas/cupones` | Lista cupones del negocio; solo dueño según Django |
-| `POST /consultas/programas` | Consulta programas activos o el detalle de uno |
-| `POST /consultas/recompensas` | Consulta recompensas del negocio |
-| `POST /consultas/plan` | Consulta plan, suscripción, límites y uso |
-| `POST /consultas/negocio` | Consulta datos básicos del negocio, sin credenciales ni QR |
-| `POST /consultas/equipo` | Devuelve conteos de membresías, sin nombres ni correos |
-| `POST /consultas/clientes` | Devuelve clientes únicos del periodo, sin identidades |
-| `POST /consultas/sucursales` | Lista sucursales accesibles, sin datos QR/NFC |
-| `POST /consultas/invitaciones` | Devuelve conteos de invitaciones, sin tokens ni correos |
-| `POST /consultas/alianzas` | Devuelve estado y vigencia de alianzas visibles |
+| `POST /consultas/*` | Consultas internas de solo lectura con bearer de usuario |
 | `GET /docs` | Swagger UI generado por FastAPI |
 | `GET /redoc` | Documentación ReDoc generada por FastAPI |
 | `GET /openapi.json` | Esquema OpenAPI de este microservicio |
 
-Todas las rutas `/consultas/*` requieren `Authorization: Bearer <access_token>`
-de Supabase y reciben `negocio_id`; las rutas de actividad aceptan `desde`,
-`hasta` y `sucursal_id` cuando aplica. Por ejemplo:
+## Contrato de `/chat`
+
+Requiere **dos** cosas:
+
+1. `Authorization: Bearer <access_token>` de Supabase.
+2. Firma HMAC-SHA256 de servicio:
+   `X-Benef-Timestamp` y `X-Benef-Signature`.
+
+La firma se calcula sobre los bytes exactos del cuerpo con
+`HMAC-SHA256(BENEF_AI_SERVICE_TOKEN, timestamp + "." + body)`. Se rechazan
+timestamps con más de 5 minutos de diferencia. El token de servicio debe tener
+al menos 32 caracteres.
 
 ```json
 {
-	"negocio_id": 12,
-	"desde": "2026-11-01",
-	"hasta": "2026-11-18",
-	"sucursal_id": 3,
-	"page": 1,
-	"page_size": 20
+  "negocio_id": 12,
+  "message": "¿Cuántas visitas tuvimos este mes?",
+  "history": [
+    {"role": "user", "content": "Hola"},
+    {"role": "assistant", "content": "¿Qué necesitas?"}
+  ]
 }
 ```
 
-`POST /chat` requiere el mismo bearer y un cuerpo como:
+Respuesta:
 
 ```json
 {
-	"negocio_id": 12,
-	"message": "¿Cuántas visitas tuvimos este mes?",
-	"history": []
+  "answer": "Tuvimos 42 visitas válidas...",
+  "tools_used": ["metricas", "visitas"]
 }
 ```
 
-El historial acepta hasta 12 mensajes previos con rol `user` o `assistant`.
-Gemini puede solicitar la tool `consultar_datos_negocio`, que tiene un catálogo
-cerrado de consultas y nunca recibe el token ni puede elegir otro negocio. El
-servidor ejecuta directamente el endpoint correspondiente de Django con el
-bearer del usuario y devuelve a Gemini únicamente los datos autorizados y
-sanitizados. Antes de llamar a Gemini y antes de cada ruta `/consultas/*`,
-Benef-AI consulta `/mi/contexto/`, rechaza a `admin_sistema` y confirma que el
-usuario tenga acceso al negocio seleccionado. Después, Django vuelve a aplicar
-los permisos específicos del recurso y la sucursal. Esto agrega una petición de
-contexto por cada consulta. Se limita cada respuesta a cuatro rondas de tools y
-las interacciones usan `store=false`.
+Límites: mensaje de hasta 4000 caracteres, historial de hasta 12 turnos y 12000
+caracteres. Benef AI consulta `/mi/contexto/` con el bearer del usuario, rechaza
+`admin_sistema` y negocios fuera de su contexto. Cada tool vuelve a llamar a
+Django, que aplica los permisos de recurso y sucursal.
 
-El token se reenvía a Django, que valida identidad, membresía, rol y sucursal en
-el endpoint solicitado. En listados multi-negocio, filtra la respuesta
-autorizada al `negocio_id` elegido. Las recompensas de alianzas visibles para el
-negocio también se incluyen. El conteo de clientes usa la métrica agregada del
-periodo y no descarga identidades; el resumen de equipo indica que solo cuenta
-las membresías visibles para el usuario. Solo llama rutas de lectura fijas; no
-permite elegir una URL arbitraria ni ejecutar acciones. Si se omiten fechas en
-métricas, Django aplica los últimos 30 días. Visitas y canjes omiten identidades
-y tokens; equipo e invitaciones se resumen sin datos personales.
+## Tools
 
-La consulta de clientes de Benef-AI usa `clientes_unicos` de las métricas por
-periodo y no consume el listado identificable de Django. No se ofrece un
-ranking de clientes. Las alianzas solo exponen estado y vigencia; no hay
-métricas de captación cruzada. Ninguna ruta realiza cambios en el backend.
+`consultar_datos_negocio` permite únicamente:
+`metricas`, `visitas`, `canjes`, `cupones`, `programas`, `recompensas`, `plan`,
+`negocio`, `equipo`, `clientes`, `sucursales`, `invitaciones`, `alianzas`.
 
-Los errores de autorización del backend se conservan. Si el backend no está
-configurado o disponible, la ruta responde con `503`; ante timeout, con `504`.
-El health check no comprueba Django, PostgreSQL, Supabase Auth ni Gemini.
+Todas son de lectura. No hay tools para modificar puntos, visitas, cupones,
+pagos, membresías ni alianzas. Cada respuesta se limita a 4 rondas y 4
+llamadas; Gemini usa `store=false`. Los datos devueltos se sanitizan: sin
+identidades, tokens, QR, correos ni información de otros negocios.
 
-Agrega `GEMINI_API_KEY` al `.env` de la raíz. Opcionalmente define `GEMINI_MODEL`
-(por defecto `gemini-3.1-flash-lite`); la clave es opcional al arrancar y `/chat`
-devuelve `503` si no está configurada. `BACKEND_TIMEOUT_SECONDS` (10 s) y
-`GEMINI_TIMEOUT_MS` (30 s) acotan las llamadas externas. Compose permite definir
-`BENEF_AI_ALLOWED_ORIGINS` para los orígenes web autorizados.
+## Variables
+
+```dotenv
+ENVIRONMENT=development
+BACKEND_API_URL=http://127.0.0.1:8000/api/v1
+BACKEND_TIMEOUT_SECONDS=10
+BENEF_AI_SERVICE_TOKEN=<token-aleatorio-de-32-o-mas-caracteres>
+GEMINI_API_KEY=<clave>
+GEMINI_MODEL=gemini-3.1-flash-lite
+GEMINI_TIMEOUT_MS=30000
+BENEF_AI_ALLOWED_ORIGINS=
+LOG_LEVEL=INFO
+```
+
+En Docker Compose, `BACKEND_API_URL=http://backend:8000/api/v1` y
+`BENEF_AI_SERVICE_TOKEN` se inyecta desde el `.env` raíz. El portal no recibe
+ninguna de estas variables.
 
 ## Desarrollo
 
 Desde la raíz: `python dev.py up`. El servicio se publica en
-http://localhost:5001, monta el código en solo lectura y usa Uvicorn con recarga
-automática y polling para Docker Desktop.
+http://localhost:5001. Django usa `BENEF_AI_URL=http://127.0.0.1:5001` cuando se
+ejecuta fuera de Compose.
 
 ## Producción
 
 La imagen de producción es `Dockerfile.prod` (Uvicorn sin `--reload`, usuario no
 root, health check `/health/live`). Railway detecta `railway.json` con Root
-Directory `benef-ai`. La conexión con Django usa la red privada:
+Directory `benef-ai`.
 
-```text
-BACKEND_API_URL=http://<backend-service>.railway.internal:8000/api/v1
-```
+- `BACKEND_API_URL` puede ser `https://api.example.com/api/v1` o una URL privada
+  `http://<backend-service>.railway.internal:8000/api/v1`.
+- `BENEF_AI_SERVICE_TOKEN` debe coincidir con el de Django.
+- `BENEF_AI_URL` se configura en Django, no aquí.
+- No se necesita CORS para el portal porque React usa Django.
 
-Variables, timeouts, CORS, health checks y pruebas están documentados en
-[despliegue de Benef AI](../docs/despliegue-benef-ai.md).
+Detalles en [despliegue de Benef AI](../docs/despliegue-benef-ai.md) y
+[arquitectura del chat](../docs/benef-ai-chat.md).
 
 ## Pruebas
 
-Con las dependencias de `benef-ai/requirements.txt` instaladas, ejecuta desde la
-raíz:
-
 ```powershell
-cd benef-ai
-python -m unittest discover -s tests -v
+docker run --rm -v "${PWD}:/app" -w /app --entrypoint python `
+  -e ENVIRONMENT=development -e BENEFY_LOAD_DOTENV=0 `
+  -e BENEF_AI_SERVICE_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx `
+  benefy-benef-ai:latest -m unittest discover -s tests -v
 ```
 
-```powershell
-docker compose logs --tail 50 benef-ai
-docker compose stop benef-ai
-```
-
-No utiliza un archivo de entorno propio. Compose inyecta `ENVIRONMENT` y
-`BACKEND_API_URL`; la configuración compartida está en `.env` en la raíz.
+Las pruebas usan mocks y no consumen Gemini, Django ni Supabase reales.
