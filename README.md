@@ -10,9 +10,9 @@ con `python dev.py up`, sin instalar Node ni Django en el host.
 | Componente | Implementado | Pendiente |
 | --- | --- | --- |
 | Backend | Django 5.2 + DRF, 30 modelos, 22 migraciones de `core`, 122 rutas API, motor de visitas/puntos/tarjetas/cupones, alianzas bilaterales auditadas con cupos Free/Premium, membresías auditadas, onboarding idempotente, invitaciones, aislamiento por sucursal, planes Free/Premium, Stripe Billing Sandbox y Django Admin | Analítica avanzada, Stripe live y facturación fiscal |
-| Identidad | Supabase Auth con login web real, sesión persistente, refresh, recuperación, onboarding automático e invitaciones; perfiles/roles en Django | Perfil, foto y baja desde la app móvil |
+| Identidad | Supabase Auth con login web real, sesión persistente, refresh, recuperación, onboarding automático e invitaciones; perfiles/roles en Django | Google OAuth |
 | Web | Landing React 18 + Vite y portal conectado: dashboards por rol, configuración, sucursales con QR imprimible, puntos, tarjetas, recompensas, alianzas, equipo, visitas, cupones, canjes, clientes y pantalla de suscripción con Checkout/Customer Portal Sandbox | Exportaciones y E2E en CI |
-| Móvil | Dashboard Benefy en Expo SDK 58, Auth Supabase, escáner QR real y resultado de visita | Perfil/foto/baja, cartera e historial reales, notificaciones push |
+| Móvil | Expo SDK 58 con Auth Supabase, perfil/foto/baja, cartera, historial, directorio, catálogo, cupones, canje, notificaciones y escáner QR reales | Notificaciones push y E2E en dispositivo |
 | Benef AI | FastAPI con chat, consultas autenticadas, health checks y Docker de producción | Despliegue en Railway y validación de red real |
 | Hardware | Carpeta de documentación | Firmware ESP32-S3 e integración física |
 
@@ -23,7 +23,8 @@ negocio. El CRUD genérico de esas entidades es solo lectura; las operaciones
 pasan por endpoints y servicios dedicados. La web ya consume la API con JWT de
 Supabase. Free/Premium aplica límites reales desde Django y el portal permite
 configurar el negocio, operar el programa, imprimir QR y gestionar alianzas.
-Faltan el perfil/foto/baja móvil, la cartera e historial reales, notificaciones push, Stripe en live/facturación fiscal y las funciones Premium avanzadas. Detalles en
+Faltan las notificaciones push, Stripe en live/facturación fiscal y las
+funciones Premium avanzadas. Detalles en
 [reglas de lealtad](./docs/reglas-lealtad.md),
 [planes Free/Premium](./docs/planes-free-premium.md), [API](./docs/api.md) y
 [autenticación](./docs/autenticacion.md).
@@ -38,7 +39,7 @@ no funcionalidades terminadas. El código actual difiere en:
 | Firebase Auth | Supabase Auth verificado remotamente por Django |
 | Google API | Solo correo confirmado; Google no está integrado en los clientes |
 | React con Tailwind | React 18 con CSS propio |
-| Dashboard y app de consumidores | Portal web por rol; móvil con datos de demostración |
+| Dashboard y app de consumidores | Portal web por rol; móvil conectado a la API real |
 | IA / ESP32-S3 | FastAPI solo con health check; hardware sin firmware |
 | Stripe, FCM, Cloudinary, Sentry | Stripe Payments/Billing y Customer Portal solo en Sandbox/Test Mode; FCM, Cloudinary y Sentry siguen como placeholders |
 
@@ -51,7 +52,7 @@ la sección de IA y los servicios externos.
 | --- | --- |
 | [backend/](./backend/README.md) | `manage.py`, `config/urls.py` y app `core/`: API y persistencia |
 | [frontend-web/](./frontend-web/README.md) | `src/main.tsx` → `src/App.tsx`: landing y portal de negocios |
-| [mobile-app/](./mobile-app/README.md) | `index.ts` → `App.tsx`: aplicación de consumidores |
+| [mobile-app/](./mobile-app/README.md) | `src/app/`: aplicación de consumidores con Expo Router |
 | [benef-ai/](./benef-ai/README.md) | `main.py`: servicio IA en preparación |
 | [hardware/](./hardware/README.md) | Futuro firmware ESP32-S3 |
 | [docs/](./docs/README.md) | Guías técnicas y SRS revisión 1.0 |
@@ -86,12 +87,15 @@ solo proporciona PostgreSQL aislado para pruebas; no es otro despliegue.
 Las pruebas de Django se ejecutan con `python dev.py test-backend --local`,
 nunca contra la base remota de demostración.
 
-La app móvil ya usa Supabase Auth y el escáner QR real; la cartera, el historial, el perfil y la baja siguen pendientes de integrar en sus pantallas. No forma
-parte del arranque Compose ni necesita credenciales para su estado actual.
+La app móvil usa Supabase Auth, la API real y el escáner QR. El perfil, la foto,
+la baja, la cartera, el historial, el directorio, los cupones y las
+notificaciones ya están integrados. No forma parte del arranque Compose; su
+configuración y verificación están en [docs/movil.md](./docs/movil.md).
 
 ## Documentación y convenciones
 
 - [API](./docs/api.md): rutas, permisos y errores implementados.
+- [Aplicación móvil](./docs/movil.md): pantallas, endpoints, caché y verificación Expo.
 - [Autenticación y permisos](./docs/autenticacion.md): Supabase Auth, sesión web, roles y onboarding.
 - [Eliminación de cuenta](./docs/eliminacion-cuenta.md): anonimización, propiedad y reintentos.
 - [Avatares en Supabase Storage](./docs/supabase-storage-avatares.md): bucket, RLS y contrato de foto.

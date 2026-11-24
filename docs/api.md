@@ -305,6 +305,13 @@ saldos, tarjetas, cupones, movimientos y visitas. Las visitas y canjes también
 incluyen `sucursal_nombre`. El catálogo agrega `slug`, `descripcion`, `direccion`,
 `telefono`, `banner_url` y `categoria` del negocio.
 
+`GET /api/v1/cupones-usuario/listar/` agrega `negocio_nombre`, `negocio_slug`,
+`negocio_logo_url`, `uuid`, `titulo_beneficio`, `descripcion_beneficio`,
+`tipo_beneficio`, `descuento_beneficio`, `condiciones_beneficio`,
+`costo_pagado`, `fecha_emision` y `fecha_expiracion`.
+`GET /api/v1/notificaciones/listar/` incluye `cuerpo`, `leida` y `fecha_envio`
+para que la bandeja móvil no dependa de datos locales.
+
 ### Resolver QR antes de registrar
 
 ```http

@@ -30,6 +30,11 @@ inserción ajena, cambio de carpeta y borrado ajeno fueron rechazados; el dueño
 pudo crear y borrar su propio objeto. Esa prueba no se ejecutó contra Supabase
 remoto.
 
+> Estado de esta entrega: el SQL todavía no se aplicó al proyecto remoto porque
+> las credenciales disponibles no son propietarias de `storage.objects`. Hasta
+> aplicarlo con el SQL Editor o un rol administrador, la subida de foto falla
+> con un mensaje accionable y el resto de la app funciona normalmente.
+
 ## Convención de ruta
 
 ```text
@@ -48,8 +53,10 @@ usuario ni URLs con query string.
 ## Flujo del cliente
 
 1. El usuario elige una imagen con el selector del dispositivo.
-2. La app sube el archivo a `avatars/{supabase_uid}/perfil-{uuid}.jpg` usando la
-   sesión de Supabase.
+2. La app sube el archivo a
+   `avatars/{supabase_uid}/perfil-{marca}.{jpg|png|webp}` usando la sesión de
+   Supabase. El cliente lee el archivo local con `expo-file-system`, valida tipo
+   y tamaño antes de subirlo y conserva la extensión correspondiente al MIME.
 3. Obtiene la URL pública.
 4. Envía `PATCH /api/v1/autenticacion/perfil/`:
 
