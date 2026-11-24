@@ -3,6 +3,7 @@ from django.urls import path
 from core import (
     views,
     views_alianzas,
+    views_benef_ai,
     views_facturacion,
     views_invitaciones,
     views_lealtad,
@@ -26,6 +27,7 @@ urlpatterns = [
     path("v1/mi/billetera/", views_lealtad.BilleteraAPIView.as_view(), name="mi-billetera"),
     path("v1/mi/historial/", views_lealtad.HistorialAPIView.as_view(), name="mi-historial"),
     path("v1/negocios/<int:pk>/catalogo/", views_lealtad.CatalogoAPIView.as_view(), name="negocio-catalogo"),
+    path("v1/negocios/<int:pk>/benef-ai/chat/", views_benef_ai.BenefAIChatAPIView.as_view(), name="negocio-benef-ai-chat"),
     path("v1/negocios/descubrir/", views_lealtad.DirectorioNegociosAPIView.as_view(), name="negocios-descubrir"),
     path("v1/cupones/adquirir/", views_lealtad.AdquirirCuponAPIView.as_view(), name="cupon-adquirir"),
     path("v1/cupones/<uuid:uuid>/canjear/", views_lealtad.CanjearCuponAPIView.as_view(), name="cupon-canjear"),

@@ -1,5 +1,6 @@
 """Throttles acotados para endpoints sensibles del móvil."""
 
+from rest_framework.exceptions import Throttled
 from rest_framework.throttling import UserRateThrottle
 
 
@@ -29,3 +30,15 @@ class CuponCanjearThrottle(UserRateThrottle):
 
 class EliminacionCuentaThrottle(UserRateThrottle):
     scope = 'cuenta_eliminar'
+
+
+class BenefAIChatThrottle(UserRateThrottle):
+    scope = 'benef_ai_chat'
+
+    def allow_request(self, request, view):
+        if super().allow_request(request, view):
+            return True
+        raise Throttled(
+            wait=self.wait(),
+            detail='Has alcanzado el límite de consultas a Benef AI. Intenta más tarde.',
+        )

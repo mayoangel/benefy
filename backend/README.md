@@ -6,7 +6,7 @@ de dominio. La entrada de URLs es `config/urls.py`.
 
 ## Funcionalidad disponible
 
-- 122 rutas API: CRUD administrativo, identidad/contexto/onboarding, baja de cuenta, directorio móvil, lealtad, planes, operaciones, invitaciones, alianzas y facturación Stripe Sandbox.
+- 123 rutas API: CRUD administrativo, identidad/contexto/onboarding, baja de cuenta, directorio móvil, lealtad, planes, operaciones, invitaciones, alianzas, facturación Stripe Sandbox y proxy de Benef AI.
 - Verificación de sesiones Supabase Auth y permisos según usuario, negocio y sucursal.
 - Perfil propio editable con foto validada contra Supabase Storage y baja idempotente con anonimización y borrado de identidad Supabase.
 - Directorio de negocios activos para consumidores con búsqueda, filtro por categoría y paginación.

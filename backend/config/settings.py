@@ -341,8 +341,61 @@ REST_FRAMEWORK = {
         'cupon_adquirir': os.getenv('THROTTLE_CUPON_ADQUIRIR', '30/min'),
         'cupon_canjear': os.getenv('THROTTLE_CUPON_CANJEAR', '30/min'),
         'cuenta_eliminar': os.getenv('THROTTLE_CUENTA_ELIMINAR', '5/hour'),
+        'benef_ai_chat': os.getenv('THROTTLE_BENEF_AI_CHAT', '20/hour'),
     },
 }
+
+# Benef AI: el backend es el único punto de entrada autenticado del portal.
+BENEF_AI_URL = os.getenv('BENEF_AI_URL', '').strip().rstrip('/')
+BENEF_AI_SERVICE_TOKEN = os.getenv('BENEF_AI_SERVICE_TOKEN', '').strip()
+BENEF_AI_TIMEOUT_SECONDS = min(
+    max(_env_int('BENEF_AI_TIMEOUT_SECONDS', 45), 5), 120,
+)
+BENEF_AI_MAX_MESSAGE_CHARS = min(
+    max(_env_int('BENEF_AI_MAX_MESSAGE_CHARS', 2000), 200), 4000,
+)
+BENEF_AI_MAX_HISTORY_TURNS = min(
+    max(_env_int('BENEF_AI_MAX_HISTORY_TURNS', 12), 0), 24,
+)
+BENEF_AI_MAX_HISTORY_CHARS = min(
+    max(_env_int('BENEF_AI_MAX_HISTORY_CHARS', 12000), 0), 24000,
+)
+
+
+def _validar_benef_ai_url(url):
+    """Acepta HTTPS público o HTTP privado/local para el servicio interno."""
+    parsed = urlsplit(url)
+    if (
+        not parsed.hostname
+        or parsed.username
+        or parsed.password
+        or parsed.query
+        or parsed.fragment
+        or parsed.path not in ('', '/')
+    ):
+        raise ImproperlyConfigured(
+            'BENEF_AI_URL debe ser el origen del servicio, sin ruta, credenciales ni parámetros.'
+        )
+    privada = (
+        parsed.hostname in ('localhost', '127.0.0.1', '::1')
+        or parsed.hostname.endswith('.railway.internal')
+    )
+    if not (
+        parsed.scheme == 'https'
+        or (parsed.scheme == 'http' and privada)
+        or (parsed.scheme == 'http' and not IS_PRODUCTION)
+    ):
+        raise ImproperlyConfigured(
+            'BENEF_AI_URL debe usar HTTPS en producción; HTTP solo se permite en local o red privada.'
+        )
+
+
+if BENEF_AI_URL:
+    _validar_benef_ai_url(BENEF_AI_URL)
+if BENEF_AI_SERVICE_TOKEN and len(BENEF_AI_SERVICE_TOKEN) < 32:
+    raise ImproperlyConfigured(
+        'BENEF_AI_SERVICE_TOKEN debe tener al menos 32 caracteres.'
+    )
 
 LOGGING = {
     'version': 1,
