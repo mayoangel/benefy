@@ -1,7 +1,7 @@
 # Backend
 
 API Django 5.2 + Django REST Framework. La configuración está en `config/`;
-`core/` contiene 30 modelos, serializers, vistas, permisos y 21 migraciones
+`core/` contiene 30 modelos, serializers, vistas, permisos y 22 migraciones
 de dominio. La entrada de URLs es `config/urls.py`.
 
 ## Funcionalidad disponible

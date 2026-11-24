@@ -77,6 +77,12 @@ class EliminacionCuentaTests(TestCase):
             nombre_completo='Nombre personal',
             usuario=self.user,
         )
+        self.storage_patcher = patch(
+            'core.services.cuentas.supabase_storage.eliminar_avatar',
+            return_value=True,
+        )
+        self.eliminar_avatar = self.storage_patcher.start()
+        self.addCleanup(self.storage_patcher.stop)
 
     def auth(self, user=None):
         self.client.force_authenticate(user=user or self.user)
@@ -140,7 +146,9 @@ class EliminacionCuentaTests(TestCase):
         self.assertEqual(solicitud.estado, 'completada')
         self.assertIsNone(solicitud.supabase_uid)
         self.assertIsNotNone(solicitud.anonimizada_en)
+        self.assertIsNotNone(solicitud.storage_limpiado_en)
         self.assertIsNotNone(solicitud.supabase_eliminado_en)
+        self.eliminar_avatar.assert_called_once()
 
     def test_confirmacion_incorrecta_no_modifica_nada(self):
         response = self.eliminar('borrar todo')
@@ -235,6 +243,7 @@ class EliminacionCuentaTests(TestCase):
         self.assertEqual(solicitud.estado, 'anonimizada')
         self.assertEqual(solicitud.intentos, 1)
         self.assertIsNotNone(solicitud.supabase_uid)
+        self.assertIsNotNone(solicitud.storage_limpiado_en)
         self.user.refresh_from_db()
         self.assertFalse(self.user.is_active)
 
@@ -249,6 +258,38 @@ class EliminacionCuentaTests(TestCase):
         eliminar.assert_called_once()
         solicitud.refresh_from_db()
         self.assertEqual(solicitud.estado, 'completada')
+        self.assertIsNone(solicitud.supabase_uid)
+
+    @patch('core.services.cuentas.supabase_admin.eliminar_usuario', return_value=True)
+    @patch(
+        'core.services.cuentas.supabase_storage.eliminar_avatar',
+        side_effect=cuentas.supabase_storage.ErrorSupabaseStorage('fallo de storage'),
+    )
+    def test_fallo_storage_deja_estado_pendiente_y_reintenta(self, _, __):
+        response = self.eliminar()
+        self.assertEqual(response.status_code, 202)
+        self.assertEqual(response.data['estado'], 'anonimizada')
+        self.assertTrue(response.data['supabase_eliminado'])
+
+        solicitud = models.EliminacionCuenta.objects.get(usuario=self.user)
+        self.assertEqual(solicitud.estado, 'anonimizada')
+        self.assertEqual(solicitud.storage_intentos, 1)
+        self.assertIsNone(solicitud.storage_limpiado_en)
+        self.assertIsNotNone(solicitud.supabase_eliminado_en)
+        self.assertIsNotNone(solicitud.supabase_uid)
+
+        with patch(
+            'core.services.cuentas.supabase_storage.eliminar_avatar',
+            return_value=True,
+        ) as limpiar:
+            call_command(
+                'reintentar_eliminaciones_cuenta',
+                stdout=StringIO(),
+            )
+        limpiar.assert_called_once()
+        solicitud.refresh_from_db()
+        self.assertEqual(solicitud.estado, 'completada')
+        self.assertIsNotNone(solicitud.storage_limpiado_en)
         self.assertIsNone(solicitud.supabase_uid)
 
     @patch('core.services.cuentas.supabase_admin.eliminar_usuario', return_value=True)

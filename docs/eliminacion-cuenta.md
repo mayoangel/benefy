@@ -1,8 +1,8 @@
 # Eliminación de cuenta
 
 La baja es una operación de ciclo de vida, no un `DELETE` físico del historial.
-El endpoint es idempotente y separa la anonimización en Django del borrado de la
-identidad en Supabase Auth.
+El endpoint es idempotente y separa la anonimización en Django de la limpieza de
+avatares en Supabase Storage y del borrado de la identidad en Supabase Auth.
 
 ## Endpoint
 
@@ -22,7 +22,7 @@ la frase exacta.
 | HTTP | Cuerpo | Significado |
 | --- | --- | --- |
 | `200` | `{"estado":"completada","supabase_eliminado":true,...}` | Baja completa |
-| `202` | `{"estado":"anonimizada","supabase_eliminado":false,...}` | Perfil ya anonimizado; identidad Supabase pendiente |
+| `202` | `{"estado":"anonimizada","supabase_eliminado":false,...}` | Perfil anonimizado; Storage o Supabase Auth pendientes |
 | `400` | `confirmacion_invalida` | Frase incorrecta |
 | `409` | `propietario_activo` | Conserva negocios activos de su propiedad |
 | `409` | `cuenta_admin` | Una cuenta `admin_sistema` no puede autoeliminarse |
@@ -73,37 +73,47 @@ Procedimientos admitidos:
 
 ## Fallos parciales y reintentos
 
-La anonimización ocurre en una transacción de PostgreSQL. Después se llama a la
-Admin API de Supabase Auth:
+La anonimización ocurre en una transacción de PostgreSQL. Después se ejecutan
+dos tareas externas idempotentes:
 
 ```text
+DELETE /storage/v1/object/{bucket}   (objetos bajo {supabase_uid}/)
 DELETE {SUPABASE_URL}/auth/v1/admin/users/{supabase_uid}
 ```
 
-Si Supabase falla, la cuenta ya está desactivada y anonimizada, pero la
-solicitud queda en estado `anonimizada`. El comando de reintento es:
+Si Storage o Supabase Auth fallan, la cuenta ya está desactivada y anonimizada,
+pero la solicitud queda en estado `anonimizada`. El comando de reintento es:
 
 ```bash
 python manage.py reintentar_eliminaciones_cuenta --limite 100
 ```
 
 El `404` de Supabase se trata como éxito idempotente. La service role key nunca
-se envía al cliente ni se registra en logs.
+se envía al cliente ni se registra en logs. La limpieza de Storage y el borrado
+de Auth se registran por separado, de modo que un fallo no bloquea el otro ni
+obliga a repetir la anonimización.
 
 ## Estados de la solicitud
 
 | Estado | Significado |
 | --- | --- |
 | `pendiente` | Solicitud creada; aún no se anonimiza |
-| `anonimizada` | Datos personales anonimizados; identidad Supabase pendiente |
-| `completada` | Anonimización y borrado de Supabase terminados |
+| `anonimizada` | Datos personales anonimizados; Storage y/o Supabase Auth pendientes |
+| `completada` | Anonimización, avatares y borrado de Supabase terminados |
 | `fallida` | Falló la transacción de anonimización; puede reintentarse desde la app mientras la cuenta siga activa |
+
+## Migraciones asociadas
+
+- `0021_eliminacion_cuenta`: crea el estado idempotente de baja.
+- `0022_eliminacion_cuenta_storage`: agrega marcas y errores de limpieza de
+  avatares.
 
 ## Configuración
 
 ```dotenv
 SUPABASE_URL=https://<proyecto>.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=<service-role>
+SUPABASE_STORAGE_BUCKET_AVATARS=avatars
 ```
 
 La service role key es un secreto exclusivo del servidor. No debe tener prefijo

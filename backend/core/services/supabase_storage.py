@@ -1,5 +1,6 @@
-"""Validación de avatares publicados en Supabase Storage."""
+"""Validación y limpieza de avatares en Supabase Storage."""
 
+import json
 from http.client import HTTPException
 from urllib.error import HTTPError, URLError
 from urllib.parse import unquote, urlsplit
@@ -14,6 +15,122 @@ class FotoPerfilInvalida(Exception):
     def __init__(self, detalle='La foto de perfil no es válida.'):
         super().__init__(detalle)
         self.detalle = detalle
+
+
+class ErrorSupabaseStorage(Exception):
+    def __init__(self, detalle, status_code=None):
+        super().__init__(detalle)
+        self.detalle = detalle
+        self.status_code = status_code
+
+
+class SupabaseStorageNoConfigurado(ErrorSupabaseStorage):
+    def __init__(self):
+        super().__init__(
+            'La limpieza de avatares en Supabase Storage no está configurada.',
+        )
+
+
+def _storage_configurado():
+    return bool(settings.SUPABASE_URL and settings.SUPABASE_SERVICE_ROLE_KEY)
+
+
+def _headers():
+    return {
+        'Authorization': f'Bearer {settings.SUPABASE_SERVICE_ROLE_KEY}',
+        'apikey': settings.SUPABASE_SERVICE_ROLE_KEY,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+    }
+
+
+def _solicitud(method, url, body=None, timeout=10, permitir_404=False):
+    if not _storage_configurado():
+        raise SupabaseStorageNoConfigurado()
+    data = json.dumps(body).encode('utf-8') if body is not None else None
+    request = Request(url, data=data, method=method, headers=_headers())
+    try:
+        with build_opener(NoRedirects()).open(request, timeout=timeout) as response:
+            raw = response.read()
+            if not raw:
+                return response.status, None
+            try:
+                return response.status, json.loads(raw.decode('utf-8'))
+            except (UnicodeDecodeError, ValueError) as exc:
+                raise ErrorSupabaseStorage(
+                    'Supabase Storage devolvió una respuesta inválida.',
+                ) from exc
+    except HTTPError as error:
+        if error.code == 404 and permitir_404:
+            return 404, None
+        raise ErrorSupabaseStorage(
+            f'Supabase Storage rechazó la operación (HTTP {error.code}).',
+            status_code=error.code,
+        ) from None
+    except (URLError, TimeoutError, OSError, ValueError, HTTPException):
+        raise ErrorSupabaseStorage(
+            'No se pudo contactar a Supabase Storage.',
+        ) from None
+
+
+def listar_avatares(supabase_uid, timeout=10):
+    """Lista los objetos de la carpeta del usuario (máximo 100 por página)."""
+    if not supabase_uid:
+        raise ErrorSupabaseStorage('La identidad del usuario no está disponible.')
+    bucket = settings.SUPABASE_STORAGE_BUCKET_AVATARS
+    url = f'{settings.SUPABASE_URL}/storage/v1/object/list/{bucket}'
+    status, payload = _solicitud(
+        'POST',
+        url,
+        {'prefix': str(supabase_uid), 'limit': 100, 'offset': 0},
+        timeout=timeout,
+        permitir_404=True,
+    )
+    if status == 404 or payload is None:
+        return []
+    if not isinstance(payload, list):
+        raise ErrorSupabaseStorage('Supabase Storage devolvió un listado inválido.')
+    return payload
+
+
+def eliminar_avatar(supabase_uid, timeout=10):
+    """Elimina todos los objetos bajo la carpeta del usuario, por páginas.
+
+    La operación es idempotente: un bucket inexistente o una carpeta vacía se
+    considera limpieza completada.
+    """
+    if not supabase_uid:
+        raise ErrorSupabaseStorage('La identidad del usuario no está disponible.')
+    uid = str(supabase_uid)
+    bucket = settings.SUPABASE_STORAGE_BUCKET_AVATARS
+    url = f'{settings.SUPABASE_URL}/storage/v1/object/{bucket}'
+
+    for _ in range(100):
+        objetos = listar_avatares(uid, timeout=timeout)
+        if not objetos:
+            return True
+        rutas = []
+        for objeto in objetos:
+            nombre = objeto.get('name') if isinstance(objeto, dict) else None
+            if not isinstance(nombre, str) or not nombre.strip():
+                continue
+            nombre = nombre.strip().lstrip('/')
+            ruta = nombre if nombre.startswith(f'{uid}/') else f'{uid}/{nombre}'
+            partes = ruta.split('/')
+            if ruta == uid or not ruta.startswith(f'{uid}/') or '..' in partes:
+                continue
+            rutas.append(ruta)
+        if not rutas:
+            raise ErrorSupabaseStorage(
+                'No se pudieron identificar los objetos de avatar del usuario.',
+            )
+        _solicitud(
+            'DELETE', url, {'prefixes': rutas},
+            timeout=timeout, permitir_404=True,
+        )
+    raise ErrorSupabaseStorage(
+        'La limpieza de avatares excedió el número de páginas permitido.',
+    )
 
 
 class NoRedirects(HTTPRedirectHandler):

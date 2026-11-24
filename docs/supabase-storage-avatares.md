@@ -15,48 +15,20 @@ Configuración recomendada:
 - límite de 5 MB;
 - tipos permitidos: `image/jpeg`, `image/png`, `image/webp`.
 
-SQL de referencia:
+SQL canónico e idempotente:
 
-```sql
-insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values (
-  'avatars', 'avatars', true, 5242880,
-  array['image/jpeg', 'image/png', 'image/webp']
-)
-on conflict (id) do update set
-  public = excluded.public,
-  file_size_limit = excluded.file_size_limit,
-  allowed_mime_types = excluded.allowed_mime_types;
+[`docs/sql/avatars_storage.sql`](./sql/avatars_storage.sql)
 
-create policy "avatars_lectura_publica"
-on storage.objects for select
-using (bucket_id = 'avatars');
+El archivo crea/actualiza el bucket, activa RLS y aplica políticas separadas para
+lectura, alta, actualización y borrado. Las políticas de escritura exigen que el
+primer segmento de la ruta sea `auth.uid()::text`; la actualización también
+valida el nuevo nombre con `with check`, por lo que un usuario no puede mover su
+objeto a la carpeta de otro.
 
-create policy "avatars_alta_propia"
-on storage.objects for insert to authenticated
-with check (
-  bucket_id = 'avatars'
-  and (storage.foldername(name))[1] = auth.uid()::text
-);
-
-create policy "avatars_actualizacion_propia"
-on storage.objects for update to authenticated
-using (
-  bucket_id = 'avatars'
-  and (storage.foldername(name))[1] = auth.uid()::text
-)
-with check (
-  bucket_id = 'avatars'
-  and (storage.foldername(name))[1] = auth.uid()::text
-);
-
-create policy "avatars_borrado_propio"
-on storage.objects for delete to authenticated
-using (
-  bucket_id = 'avatars'
-  and (storage.foldername(name))[1] = auth.uid()::text
-);
-```
+La lógica de políticas se validó en PostgreSQL aislado con dos identidades:
+inserción ajena, cambio de carpeta y borrado ajeno fueron rechazados; el dueño
+pudo crear y borrar su propio objeto. Esa prueba no se ejecutó contra Supabase
+remoto.
 
 ## Convención de ruta
 
@@ -89,6 +61,15 @@ usuario ni URLs con query string.
    guarda la URL en `Usuario.foto_perfil`.
 
 Para quitar la foto se envía `{"foto_perfil": ""}`.
+
+## Baja de cuenta
+
+En la eliminación de cuenta, Django usa la service role key para listar y
+borrar por páginas todos los objetos bajo `avatars/{supabase_uid}/`. La limpieza
+es idempotente: una carpeta vacía o un bucket inexistente se consideran
+completados. Si Storage falla, la solicitud `0021`/`0022` queda en estado
+`anonimizada` y el comando `reintentar_eliminaciones_cuenta` vuelve a intentar
+la limpieza y el borrado de Supabase Auth.
 
 ## Variables del backend
 

@@ -316,7 +316,8 @@ No se aplicaron migraciones ni se crearon suscripciones en Supabase remoto.
 - `0020_precios_premium_399`: precios definitivos.
 - Verificadas como aplicadas en Supabase remoto el 2026-11-24 con
   `showmigrations core`; no se ejecutaron migraciones remotas durante esta fase.
-- `0021_eliminacion_cuenta` permanece pendiente en Supabase remoto.
+- `0021_eliminacion_cuenta` y `0022_eliminacion_cuenta_storage` permanecen
+  pendientes en Supabase remoto.
 - Antes de una migración remota: revisar el plan, crear respaldo recuperable,
   validar dependencias/restricciones y ejecutar la suite sobre PostgreSQL
   aislado con autorización explícita.

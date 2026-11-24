@@ -1,5 +1,6 @@
 """Pruebas unitarias de los clientes Supabase del backend."""
 
+import json
 from http.client import HTTPMessage
 from unittest.mock import MagicMock, patch
 from urllib.error import HTTPError, URLError
@@ -126,3 +127,61 @@ class SupabaseStorageTests(SimpleTestCase):
         with patch.object(supabase_storage, 'build_opener', return_value=opener):
             with self.assertRaises(supabase_storage.FotoPerfilInvalida):
                 supabase_storage.validar_foto_perfil(self.url, self.uid)
+
+
+@override_settings(**SUPABASE_TEST)
+class SupabaseStorageLimpiezaTests(SimpleTestCase):
+    uid = '3f1c2a9e-8f4b-4f2a-9c1d-2b7e6a5d4c3b'
+
+    def response(self, payload, status=200):
+        response = MagicMock()
+        response.status = status
+        response.read.return_value = (
+            json.dumps(payload).encode('utf-8') if payload is not None else b''
+        )
+        context = MagicMock()
+        context.__enter__.return_value = response
+        return context
+
+    def test_limpia_solo_la_carpeta_del_usuario(self):
+        opener = MagicMock()
+        opener.open.side_effect = [
+            self.response([{'name': 'foto.jpg'}, {'name': 'otra.png'}]),
+            self.response([]),
+            self.response([]),
+        ]
+        with patch.object(supabase_storage, 'build_opener', return_value=opener):
+            self.assertTrue(supabase_storage.eliminar_avatar(self.uid))
+
+        listado = opener.open.call_args_list[0].args[0]
+        self.assertTrue(listado.full_url.endswith('/storage/v1/object/list/avatars'))
+        self.assertEqual(
+            json.loads(listado.data.decode('utf-8'))['prefix'], self.uid,
+        )
+
+        borrado = opener.open.call_args_list[1].args[0]
+        self.assertTrue(borrado.full_url.endswith('/storage/v1/object/avatars'))
+        self.assertEqual(
+            json.loads(borrado.data.decode('utf-8'))['prefixes'],
+            [f'{self.uid}/foto.jpg', f'{self.uid}/otra.png'],
+        )
+
+    def test_listado_ajeno_se_prefija_con_el_uid_autenticado(self):
+        opener = MagicMock()
+        opener.open.side_effect = [
+            self.response([{'name': 'otro-uid/foto.jpg'}]),
+            self.response([]),
+            self.response([]),
+        ]
+        with patch.object(supabase_storage, 'build_opener', return_value=opener):
+            supabase_storage.eliminar_avatar(self.uid)
+        borrado = opener.open.call_args_list[1].args[0]
+        self.assertEqual(
+            json.loads(borrado.data.decode('utf-8'))['prefixes'],
+            [f'{self.uid}/otro-uid/foto.jpg'],
+        )
+
+    @override_settings(SUPABASE_SERVICE_ROLE_KEY='')
+    def test_sin_service_role_falla_cerrado(self):
+        with self.assertRaises(supabase_storage.SupabaseStorageNoConfigurado):
+            supabase_storage.eliminar_avatar(self.uid)

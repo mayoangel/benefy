@@ -62,10 +62,11 @@ Comprueba:
 
 ## Migraciones pendientes de este repositorio
 
-`0021_eliminacion_cuenta` agrega el estado idempotente de baja de cuenta. No se
-aplicó en Supabase remoto durante esta implementación. Las migraciones `0019` y
-`0020` se verificaron como aplicadas en el destino el 2026-11-24; la migración
-`0021` sigue pendiente de autorización y respaldo.
+`0021_eliminacion_cuenta` agrega el estado idempotente de baja de cuenta y
+`0022_eliminacion_cuenta_storage` agrega las marcas de limpieza de avatares. No
+se aplicaron en Supabase remoto durante esta implementación. Las migraciones
+`0019` y `0020` se verificaron como aplicadas en el destino el 2026-11-24; las
+migraciones `0021` y `0022` siguen pendientes de autorización y respaldo.
 
 ## Respaldo local de referencia
 

@@ -8,7 +8,7 @@ from django.db.models import F, Q
 from django.utils import timezone
 
 from core import models
-from core.services import membresias, supabase_admin
+from core.services import membresias, supabase_admin, supabase_storage
 
 CONFIRMACION_ELIMINACION = 'eliminar mi cuenta'
 
@@ -154,19 +154,23 @@ def _limpiar_datos_personales(usuario):
     ])
 
 
-def _completar_supabase(solicitud):
+def _completar_externos(solicitud):
     if solicitud.estado == 'completada':
         return ResultadoEliminacion(
             estado='completada',
             supabase_eliminado=True,
             detalle='La cuenta ya estaba eliminada.',
         )
-    if not solicitud.supabase_uid:
+
+    uid = solicitud.supabase_uid
+    if not uid:
         ahora = timezone.now()
         models.EliminacionCuenta.objects.filter(pk=solicitud.pk).update(
             estado='completada',
             supabase_uid=None,
+            storage_limpiado_en=ahora,
             supabase_eliminado_en=ahora,
+            storage_ultimo_error='',
             ultimo_error='',
         )
         return ResultadoEliminacion(
@@ -175,34 +179,59 @@ def _completar_supabase(solicitud):
             detalle='Cuenta eliminada.',
         )
 
-    try:
-        supabase_admin.eliminar_usuario(solicitud.supabase_uid)
-    except supabase_admin.ErrorSupabaseAdmin as exc:
+    storage_ok = solicitud.storage_limpiado_en is not None
+    auth_ok = solicitud.supabase_eliminado_en is not None
+
+    if not storage_ok:
+        try:
+            supabase_storage.eliminar_avatar(uid)
+        except supabase_storage.ErrorSupabaseStorage as exc:
+            models.EliminacionCuenta.objects.filter(pk=solicitud.pk).update(
+                storage_intentos=F('storage_intentos') + 1,
+                storage_ultimo_error=str(exc.detalle)[:500],
+            )
+        else:
+            storage_ok = True
+            models.EliminacionCuenta.objects.filter(pk=solicitud.pk).update(
+                storage_limpiado_en=timezone.now(),
+                storage_ultimo_error='',
+            )
+
+    if not auth_ok:
+        try:
+            supabase_admin.eliminar_usuario(uid)
+        except supabase_admin.ErrorSupabaseAdmin as exc:
+            models.EliminacionCuenta.objects.filter(pk=solicitud.pk).update(
+                intentos=F('intentos') + 1,
+                ultimo_error=str(exc.detalle)[:500],
+            )
+        else:
+            auth_ok = True
+            models.EliminacionCuenta.objects.filter(pk=solicitud.pk).update(
+                supabase_eliminado_en=timezone.now(),
+                ultimo_error='',
+            )
+
+    if storage_ok and auth_ok:
         models.EliminacionCuenta.objects.filter(pk=solicitud.pk).update(
-            estado='anonimizada',
-            intentos=F('intentos') + 1,
-            ultimo_error=str(exc.detalle)[:500],
+            estado='completada',
+            supabase_uid=None,
+            storage_ultimo_error='',
+            ultimo_error='',
         )
         return ResultadoEliminacion(
-            estado='anonimizada',
-            supabase_eliminado=False,
-            detalle=(
-                'La cuenta fue desactivada y anonimizada. La identidad de '
-                'Supabase se eliminará al reintentar el proceso.'
-            ),
+            estado='completada',
+            supabase_eliminado=True,
+            detalle='Cuenta eliminada.',
         )
 
-    ahora = timezone.now()
-    models.EliminacionCuenta.objects.filter(pk=solicitud.pk).update(
-        estado='completada',
-        supabase_uid=None,
-        supabase_eliminado_en=ahora,
-        ultimo_error='',
-    )
     return ResultadoEliminacion(
-        estado='completada',
-        supabase_eliminado=True,
-        detalle='Cuenta eliminada.',
+        estado='anonimizada',
+        supabase_eliminado=auth_ok,
+        detalle=(
+            'La cuenta fue desactivada y anonimizada. La limpieza de avatares '
+            'o la identidad de Supabase se reintentará automáticamente.'
+        ),
     )
 
 
@@ -218,7 +247,7 @@ def solicitar_eliminacion(usuario, confirmacion, ahora=None):
 
     existente = models.EliminacionCuenta.objects.filter(usuario=usuario).first()
     if existente is not None and existente.estado == 'completada':
-        return _completar_supabase(existente)
+        return _completar_externos(existente)
 
     if not usuario.is_active:
         raise ErrorEliminacionCuenta(
@@ -255,7 +284,7 @@ def solicitar_eliminacion(usuario, confirmacion, ahora=None):
             supabase_uid=usuario.supabase_uid,
         )
     elif existente.estado == 'anonimizada':
-        return _completar_supabase(existente)
+        return _completar_externos(existente)
 
     try:
         with transaction.atomic():
@@ -298,7 +327,7 @@ def solicitar_eliminacion(usuario, confirmacion, ahora=None):
         raise
 
     existente.refresh_from_db()
-    return _completar_supabase(existente)
+    return _completar_externos(existente)
 
 
 def reintentar_pendientes(limite=100):
@@ -309,7 +338,7 @@ def reintentar_pendientes(limite=100):
     completadas = 0
     fallidas = 0
     for solicitud in pendientes:
-        resultado = _completar_supabase(solicitud)
+        resultado = _completar_externos(solicitud)
         if resultado.estado == 'completada':
             completadas += 1
         else:

@@ -103,9 +103,10 @@ Content-Type: application/json
 
 Desactiva la cuenta, anonimiza los datos personales, expira puntos/cupones
 utilizables, desactiva membresías y conserva el historial transaccional
-justificado. Después elimina la identidad de Supabase Auth con la service role
-key del servidor. Es idempotente y responde `202` si la identidad de Supabase
-queda pendiente de reintento.
+justificado. Después limpia los avatares del usuario en Supabase Storage y
+elimina la identidad de Supabase Auth con la service role key del servidor. Es
+idempotente y responde `202` si Storage o la identidad de Supabase quedan
+pendientes de reintento.
 
 Rechaza con `409`:
 
