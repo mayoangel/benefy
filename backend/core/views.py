@@ -360,6 +360,9 @@ class CuponUsuarioListAPIView(ResourceAccessMixin, generics.ListAPIView):
     queryset = models.CuponUsuario.objects.all()
     serializer_class = serializers.CuponUsuarioSerializerList
 
+    def get_queryset(self):
+        return super().get_queryset().select_related('negocio', 'recompensa', 'usuario')
+
 
 class CuponUsuarioDetailAPIView(ResourceAccessMixin, generics.RetrieveAPIView):
     queryset = models.CuponUsuario.objects.all()

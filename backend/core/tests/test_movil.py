@@ -158,3 +158,25 @@ class RespuestasMovilesTests(TestCase):
         self.assertEqual(negocio['descripcion'], self.business.descripcion)
         self.assertEqual(negocio['categoria']['id'], self.business.categoria_id)
         self.assertTrue(response.data['recompensas'])
+        self.assertEqual(response.data['sucursales'][0]['id'], self.branch.pk)
+        reward = response.data['recompensas'][0]
+        self.assertEqual(reward['negocio_nombre'], self.business.nombre)
+        self.assertFalse(reward['es_alianza'])
+
+    def test_cupones_y_notificaciones_tienen_campos_moviles(self):
+        models.Notificacion.objects.create(
+            usuario=self.user,
+            titulo='Aviso',
+            cuerpo='Cuerpo real',
+        )
+        cupones = self.client.get('/api/v1/cupones-usuario/listar/')
+        self.assertEqual(cupones.status_code, 200)
+        cupon = cupones.data[0]
+        self.assertEqual(cupon['uuid'], str(self.coupon.uuid))
+        self.assertEqual(cupon['negocio_nombre'], self.business.nombre)
+        self.assertEqual(cupon['titulo_beneficio'], self.reward.titulo)
+        self.assertIn('descripcion_beneficio', cupon)
+
+        notificaciones = self.client.get('/api/v1/notificaciones/listar/')
+        self.assertEqual(notificaciones.status_code, 200)
+        self.assertEqual(notificaciones.data[0]['cuerpo'], 'Cuerpo real')

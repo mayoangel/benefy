@@ -24,6 +24,7 @@ from core.serializers_lealtad import (
     RegistrarVisitaSerializer,
     ResolverVisitaSerializer,
     SaldoPuntosSerializer,
+    SucursalDirectorioSerializer,
     SucursalQrSerializer,
     VisitaResumenSerializer,
 )
@@ -239,7 +240,9 @@ class CatalogoAPIView(APIView):
             status=True,
         )
         ahora = timezone.now()
-        recompensas = models.Recompensa.objects.filter(
+        recompensas = models.Recompensa.objects.select_related(
+            'negocio', 'alianza',
+        ).filter(
             negocio=negocio,
             status=True,
             es_meta=False,
@@ -274,6 +277,10 @@ class CatalogoAPIView(APIView):
                 },
                 'zona_horaria': negocio.zona_horaria,
             },
+            'sucursales': SucursalDirectorioSerializer(
+                negocio.sucursal_set.filter(status=True).order_by('nombre'),
+                many=True,
+            ).data,
             'recompensas': CatalogoRecompensaSerializer(recompensas, many=True).data,
         })
 

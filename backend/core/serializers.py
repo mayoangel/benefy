@@ -1481,6 +1481,9 @@ class CuponUsuarioSerializerCreate(serializers.ModelSerializer):
 #List
 class CuponUsuarioSerializerList(serializers.ModelSerializer):
     usuario_correo = serializers.EmailField(source="usuario.correo", read_only=True)
+    negocio_nombre = serializers.SerializerMethodField()
+    negocio_slug = serializers.SerializerMethodField()
+    negocio_logo_url = serializers.SerializerMethodField()
 
     class Meta:
         model = models.CuponUsuario
@@ -1491,12 +1494,29 @@ class CuponUsuarioSerializerList(serializers.ModelSerializer):
             "usuario_correo",
             "recompensa",
             "negocio",
+            "negocio_nombre",
+            "negocio_slug",
+            "negocio_logo_url",
             "origen",
             "status",
             "titulo_beneficio",
+            "descripcion_beneficio",
+            "tipo_beneficio",
+            "descuento_beneficio",
+            "condiciones_beneficio",
             "costo_pagado",
+            "fecha_emision",
             "fecha_expiracion",
         ]
+
+    def get_negocio_nombre(self, obj):
+        return obj.negocio.nombre if obj.negocio_id else None
+
+    def get_negocio_slug(self, obj):
+        return obj.negocio.slug if obj.negocio_id else None
+
+    def get_negocio_logo_url(self, obj):
+        return obj.negocio.logo_url if obj.negocio_id else None
 
 
 #Retrieve
@@ -2112,6 +2132,7 @@ class NotificacionSerializerList(serializers.ModelSerializer):
         fields = [
             "id",
             "titulo",
+            "cuerpo",
             "tipo",
             "leida",
             "fecha_envio",

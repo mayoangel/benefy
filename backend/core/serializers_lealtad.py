@@ -176,10 +176,24 @@ class NegocioDirectorioSerializer(serializers.ModelSerializer):
 
 
 class CatalogoRecompensaSerializer(serializers.ModelSerializer):
+    negocio_nombre = serializers.SerializerMethodField()
+    negocio_logo_url = serializers.SerializerMethodField()
+    es_alianza = serializers.SerializerMethodField()
+
     class Meta:
         model = models.Recompensa
         fields = [
             'id', 'titulo', 'descripcion', 'tipo', 'descuento',
             'costo_desbloqueo', 'terminos_condiciones', 'fecha_expiracion',
-            'vigencia_dias', 'cantidad_disponible',
+            'vigencia_dias', 'cantidad_disponible', 'negocio', 'alianza',
+            'negocio_nombre', 'negocio_logo_url', 'es_alianza',
         ]
+
+    def get_negocio_nombre(self, obj):
+        return obj.negocio.nombre if obj.negocio_id else None
+
+    def get_negocio_logo_url(self, obj):
+        return obj.negocio.logo_url if obj.negocio_id else None
+
+    def get_es_alianza(self, obj):
+        return obj.alianza_id is not None
