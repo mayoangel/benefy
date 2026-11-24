@@ -9,11 +9,11 @@ con `python dev.py up`, sin instalar Node ni Django en el host.
 
 | Componente | Implementado | Pendiente |
 | --- | --- | --- |
-| Backend | Django 5.2 + DRF, 30 modelos, 21 migraciones de `core`, 122 rutas API, motor de visitas/puntos/tarjetas/cupones, alianzas bilaterales auditadas con cupos Free/Premium, membresías auditadas, onboarding idempotente, invitaciones, aislamiento por sucursal, planes Free/Premium, Stripe Billing Sandbox y Django Admin | Analítica avanzada, Stripe live y facturación fiscal |
+| Backend | Django 5.2 + DRF, 30 modelos, 22 migraciones de `core`, 122 rutas API, motor de visitas/puntos/tarjetas/cupones, alianzas bilaterales auditadas con cupos Free/Premium, membresías auditadas, onboarding idempotente, invitaciones, aislamiento por sucursal, planes Free/Premium, Stripe Billing Sandbox y Django Admin | Analítica avanzada, Stripe live y facturación fiscal |
 | Identidad | Supabase Auth con login web real, sesión persistente, refresh, recuperación, onboarding automático e invitaciones; perfiles/roles en Django | Perfil, foto y baja desde la app móvil |
 | Web | Landing React 18 + Vite y portal conectado: dashboards por rol, configuración, sucursales con QR imprimible, puntos, tarjetas, recompensas, alianzas, equipo, visitas, cupones, canjes, clientes y pantalla de suscripción con Checkout/Customer Portal Sandbox | Exportaciones y E2E en CI |
 | Móvil | Dashboard Benefy en Expo SDK 58, Auth Supabase, escáner QR real y resultado de visita | Perfil/foto/baja, cartera e historial reales, notificaciones push |
-| Benef AI | FastAPI y endpoint de estado | Agente, proveedor LLM, herramientas y comunicación autenticada con Django |
+| Benef AI | FastAPI con chat, consultas autenticadas, health checks y Docker de producción | Despliegue en Railway y validación de red real |
 | Hardware | Carpeta de documentación | Firmware ESP32-S3 e integración física |
 
 El backend implementa el flujo transaccional del MVP: visitas por QR con
@@ -99,6 +99,7 @@ parte del arranque Compose ni necesita credenciales para su estado actual.
 - [Planes Free y Premium](./docs/planes-free-premium.md): límites y cambios de plan.
 - [Facturación Stripe Sandbox](./docs/facturacion-stripe-sandbox.md): Checkout, webhooks, portal y pruebas sin dinero real.
 - [Despliegue en Railway](./docs/despliegue-railway.md): imagen de producción, variables, dominio y verificación.
+- [Despliegue de Benef AI](./docs/despliegue-benef-ai.md): servicio FastAPI, red privada y timeouts.
 - [Migraciones de producción](./docs/migraciones-produccion.md): respaldo, aplicación y recuperación.
 - [SRS original](./docs/Benefy%20SRS.pdf): requisitos de producto; no certifica implementación.
 

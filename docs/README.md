@@ -14,6 +14,7 @@ propia guía.
 | [Planes Free y Premium](./planes-free-premium.md) | Límites, suscripciones y cambios de plan |
 | [Desarrollo y demo](./desarrollo-demo.md) | Compose, recarga automática, configuración y pruebas |
 | [Despliegue en Railway](./despliegue-railway.md) | Imagen de producción, variables, dominio y verificación |
+| [Despliegue de Benef AI](./despliegue-benef-ai.md) | Servicio FastAPI, red privada, timeouts y health checks |
 | [Migraciones de producción](./migraciones-produccion.md) | Respaldo, aplicación, verificación y recuperación |
 | [Dataset de presentación](./demo-dataset.md) | Cuentas, negocios, respaldo e inicialización/reinicio |
 | [Benefy SRS.pdf](./Benefy%20SRS.pdf) | Especificación de requisitos de software, revisión 1.0 |

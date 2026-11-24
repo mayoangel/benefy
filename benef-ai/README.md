@@ -10,6 +10,8 @@ autenticadas de solo lectura para usuarios de negocio.
 | Método y ruta | Respuesta |
 | --- | --- |
 | `GET /` | JSON con `service`, `status`, `environment` y `version` |
+| `GET /health/live` | Liveness; no consulta Django ni Gemini |
+| `GET /health/ready` | Readiness de configuración del backend |
 | `POST /chat` | Conversa con Gemini y ejecuta tools de consulta permitidas |
 | `POST /consultas/metricas` | Consulta métricas del backend con la sesión del usuario |
 | `POST /consultas/visitas` | Lista visitas, filtradas por periodo, sucursal y estado |
@@ -86,7 +88,8 @@ El health check no comprueba Django, PostgreSQL, Supabase Auth ni Gemini.
 
 Agrega `GEMINI_API_KEY` al `.env` de la raíz. Opcionalmente define `GEMINI_MODEL`
 (por defecto `gemini-3.1-flash-lite`); la clave es opcional al arrancar y `/chat`
-devuelve `503` si no está configurada. Compose permite definir
+devuelve `503` si no está configurada. `BACKEND_TIMEOUT_SECONDS` (10 s) y
+`GEMINI_TIMEOUT_MS` (30 s) acotan las llamadas externas. Compose permite definir
 `BENEF_AI_ALLOWED_ORIGINS` para los orígenes web autorizados.
 
 ## Desarrollo
@@ -95,13 +98,27 @@ Desde la raíz: `python dev.py up`. El servicio se publica en
 http://localhost:5001, monta el código en solo lectura y usa Uvicorn con recarga
 automática y polling para Docker Desktop.
 
+## Producción
+
+La imagen de producción es `Dockerfile.prod` (Uvicorn sin `--reload`, usuario no
+root, health check `/health/live`). Railway detecta `railway.json` con Root
+Directory `benef-ai`. La conexión con Django usa la red privada:
+
+```text
+BACKEND_API_URL=http://<backend-service>.railway.internal:8000/api/v1
+```
+
+Variables, timeouts, CORS, health checks y pruebas están documentados en
+[despliegue de Benef AI](../docs/despliegue-benef-ai.md).
+
 ## Pruebas
 
 Con las dependencias de `benef-ai/requirements.txt` instaladas, ejecuta desde la
 raíz:
 
 ```powershell
-python -m unittest discover -s benef-ai/tests -v
+cd benef-ai
+python -m unittest discover -s tests -v
 ```
 
 ```powershell
