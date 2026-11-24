@@ -64,7 +64,8 @@ Comprueba:
 
 `0021_eliminacion_cuenta` agrega el estado idempotente de baja de cuenta. No se
 aplicó en Supabase remoto durante esta implementación. Las migraciones `0019` y
-`0020` deben verificarse en el destino antes de desplegar Stripe Sandbox.
+`0020` se verificaron como aplicadas en el destino el 2026-11-24; la migración
+`0021` sigue pendiente de autorización y respaldo.
 
 ## Respaldo local de referencia
 

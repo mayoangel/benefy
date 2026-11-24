@@ -314,10 +314,12 @@ No se aplicaron migraciones ni se crearon suscripciones en Supabase remoto.
 
 - `0019_stripe_sandbox_esquema`: modelos/campos Stripe.
 - `0020_precios_premium_399`: precios definitivos.
-- Se aplicaron y probaron solo en PostgreSQL local aislado.
-- **No** se aplicaron en Supabase remoto. Antes de hacerlo: revisar el plan de
-  migración, crear respaldo recuperable, validar dependencias/restricciones y
-  ejecutar la suite sobre PostgreSQL aislado con autorización explícita.
+- Verificadas como aplicadas en Supabase remoto el 2026-11-24 con
+  `showmigrations core`; no se ejecutaron migraciones remotas durante esta fase.
+- `0021_eliminacion_cuenta` permanece pendiente en Supabase remoto.
+- Antes de una migración remota: revisar el plan, crear respaldo recuperable,
+  validar dependencias/restricciones y ejecutar la suite sobre PostgreSQL
+  aislado con autorización explícita.
 - La migración no modifica suscripciones históricas ni pagos existentes; solo
   agrega columnas/tablas y fija precios del catálogo.
 
