@@ -3,13 +3,14 @@
 from datetime import date, timedelta
 
 from django.conf import settings
-from django.db.models import Q
+from django.db.models import Prefetch, Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from core import models, permissions
+from core import models, permissions, throttling
+from core.pagination import PaginacionBenefy
 from core.serializers_lealtad import (
     AdquirirCuponSerializer,
     AjustePuntosSerializer,
@@ -18,6 +19,7 @@ from core.serializers_lealtad import (
     CuponLealtadSerializer,
     MotivoSerializer,
     MovimientoPuntosSerializer,
+    NegocioDirectorioSerializer,
     NegocioQrSerializer,
     RegistrarVisitaSerializer,
     ResolverVisitaSerializer,
@@ -47,10 +49,55 @@ def _negocio_filtro(request):
         return None
 
 
+class DirectorioNegociosAPIView(APIView):
+    """Directorio público de negocios activos para consumidores."""
+
+    permission_classes = [permissions.EsUsuarioBenefy]
+    throttle_classes = [throttling.DirectorioThrottle]
+
+    def get(self, request):
+        negocios = models.Negocio.objects.filter(status=True).select_related(
+            'categoria',
+        ).prefetch_related(
+            Prefetch(
+                'sucursal_set',
+                queryset=models.Sucursal.objects.filter(status=True).order_by('nombre'),
+                to_attr='sucursales_activas',
+            ),
+        ).order_by('nombre', 'pk')
+
+        buscar = (request.query_params.get('q') or '').strip()
+        if buscar:
+            negocios = negocios.filter(
+                Q(nombre__icontains=buscar)
+                | Q(descripcion__icontains=buscar)
+                | Q(direccion__icontains=buscar)
+                | Q(sucursal__status=True, sucursal__nombre__icontains=buscar)
+                | Q(sucursal__status=True, sucursal__ciudad__icontains=buscar),
+            ).distinct()
+
+        categoria = request.query_params.get('categoria')
+        if categoria:
+            try:
+                categoria_id = int(categoria)
+            except (TypeError, ValueError):
+                return Response(
+                    {'codigo': 'categoria_invalida', 'detalle': 'La categoría no es válida.'},
+                    status=400,
+                )
+            negocios = negocios.filter(categoria_id=categoria_id)
+
+        paginador = PaginacionBenefy()
+        pagina = paginador.paginate_queryset(negocios, request)
+        datos = NegocioDirectorioSerializer(pagina, many=True).data
+        return paginador.get_paginated_response(datos)
+
+
 class ResolverVisitaAPIView(APIView):
     """Resuelve un QR sin registrar la visita, para confirmar el comercio."""
 
     permission_classes = [permissions.PuedeConsumir]
+    throttle_classes = [throttling.VisitaResolverThrottle]
 
     def post(self, request):
         serializer = ResolverVisitaSerializer(data=request.data)
@@ -79,6 +126,7 @@ class ResolverVisitaAPIView(APIView):
 
 class RegistrarVisitaAPIView(APIView):
     permission_classes = [permissions.PuedeConsumir]
+    throttle_classes = [throttling.VisitaRegistrarThrottle]
 
     def post(self, request):
         serializer = RegistrarVisitaSerializer(data=request.data)
@@ -109,15 +157,17 @@ class BilleteraAPIView(APIView):
         negocio_id = _negocio_filtro(request)
         puntos.expirar_puntos(usuario=request.user)
 
-        saldos = models.SaldoPuntos.objects.filter(usuario=request.user)
+        saldos = models.SaldoPuntos.objects.filter(
+            usuario=request.user,
+        ).select_related('negocio')
         tarjetas = models.CicloTarjeta.objects.filter(
             usuario=request.user, estado='en_curso',
-        )
+        ).select_related('negocio')
         cupones = models.CuponUsuario.objects.filter(
             usuario=request.user,
             status='disponible',
             fecha_expiracion__gt=timezone.now(),
-        )
+        ).select_related('negocio')
         if negocio_id is not None:
             saldos = saldos.filter(negocio_id=negocio_id)
             tarjetas = tarjetas.filter(negocio_id=negocio_id)
@@ -135,9 +185,15 @@ class HistorialAPIView(APIView):
 
     def get(self, request):
         negocio_id = _negocio_filtro(request)
-        visitas_qs = models.RegistroActividad.objects.filter(usuario=request.user)
-        movimientos_qs = models.MovimientoPuntos.objects.filter(usuario=request.user)
-        canjes_qs = models.Canje.objects.filter(cupon__usuario=request.user)
+        visitas_qs = models.RegistroActividad.objects.filter(
+            usuario=request.user,
+        ).select_related('negocio', 'sucursal')
+        movimientos_qs = models.MovimientoPuntos.objects.filter(
+            usuario=request.user,
+        ).select_related('negocio')
+        canjes_qs = models.Canje.objects.filter(
+            cupon__usuario=request.user,
+        ).select_related('cupon', 'negocio', 'sucursal')
         if negocio_id is not None:
             visitas_qs = visitas_qs.filter(negocio_id=negocio_id)
             movimientos_qs = movimientos_qs.filter(negocio_id=negocio_id)
@@ -151,11 +207,24 @@ class HistorialAPIView(APIView):
                     'id': canje.pk,
                     'cupon': str(canje.cupon.uuid),
                     'negocio': canje.negocio_id,
+                    'negocio_nombre': (
+                        canje.negocio.nombre if canje.negocio_id else None
+                    ),
+                    'negocio_slug': (
+                        canje.negocio.slug if canje.negocio_id else None
+                    ),
+                    'negocio_logo_url': (
+                        canje.negocio.logo_url if canje.negocio_id else None
+                    ),
+                    'sucursal': canje.sucursal_id,
+                    'sucursal_nombre': (
+                        canje.sucursal.nombre if canje.sucursal_id else None
+                    ),
                     'fecha': canje.fecha,
                     'origen': canje.origen,
                     'anulado': canje.anulado,
                 }
-                for canje in canjes_qs.select_related('cupon')[:100]
+                for canje in canjes_qs[:100]
             ],
         })
 
@@ -164,7 +233,11 @@ class CatalogoAPIView(APIView):
     permission_classes = [permissions.EsUsuarioBenefy]
 
     def get(self, request, pk):
-        negocio = get_object_or_404(models.Negocio, pk=pk, status=True)
+        negocio = get_object_or_404(
+            models.Negocio.objects.select_related('categoria'),
+            pk=pk,
+            status=True,
+        )
         ahora = timezone.now()
         recompensas = models.Recompensa.objects.filter(
             negocio=negocio,
@@ -189,7 +262,16 @@ class CatalogoAPIView(APIView):
             'negocio': {
                 'id': negocio.pk,
                 'nombre': negocio.nombre,
+                'slug': negocio.slug,
+                'descripcion': negocio.descripcion,
+                'direccion': negocio.direccion,
+                'telefono': negocio.telefono,
                 'logo_url': negocio.logo_url,
+                'banner_url': negocio.banner_url,
+                'categoria': {
+                    'id': negocio.categoria_id,
+                    'nombre': negocio.categoria.nombre,
+                },
                 'zona_horaria': negocio.zona_horaria,
             },
             'recompensas': CatalogoRecompensaSerializer(recompensas, many=True).data,
@@ -198,6 +280,7 @@ class CatalogoAPIView(APIView):
 
 class AdquirirCuponAPIView(APIView):
     permission_classes = [permissions.PuedeConsumir]
+    throttle_classes = [throttling.CuponAdquirirThrottle]
 
     def post(self, request):
         serializer = AdquirirCuponSerializer(data=request.data)
@@ -225,6 +308,7 @@ class AdquirirCuponAPIView(APIView):
 
 class CanjearCuponAPIView(APIView):
     permission_classes = [permissions.PuedeConsumir]
+    throttle_classes = [throttling.CuponCanjearThrottle]
 
     def post(self, request, uuid):
         try:

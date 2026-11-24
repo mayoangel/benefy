@@ -63,12 +63,56 @@ modifican con los endpoints transaccionales correspondientes.
 | Método | Ruta | Uso |
 | --- | --- | --- |
 | GET | `/api/v1/autenticacion/perfil/` | Perfil local del usuario autenticado |
+| PATCH | `/api/v1/autenticacion/perfil/` | Edita nombre, apellido, teléfono y foto del perfil propio |
+| POST | `/api/v1/mi/cuenta/eliminar/` | Baja idempotente: anonimiza y revoca la identidad Supabase |
 | GET | `/api/v1/mi/contexto/` | Perfil, membresías, negocios, sucursales y `puede_portal` |
 | PATCH | `/api/v1/usuario/rol/{id}/` | Cambiar `rol` o `is_active`; solo `admin_sistema` |
 
-Hay 120 rutas de API en total. El login, registro de identidad, refresh y logout
+Hay 122 rutas de API en total. El login, registro de identidad, refresh y logout
 ocurren en Supabase Auth, no bajo `/api/v1`. `usuario/crear/` crea el perfil
 Benefy después del login.
+
+### Perfil propio
+
+```http
+PATCH /api/v1/autenticacion/perfil/
+Authorization: Bearer <access_token>
+Content-Type: application/json
+
+{"nombre":"Ana","apellido":"Pérez","telefono":"6640000000","foto_perfil":"https://..."}
+```
+
+Solo admite `nombre`, `apellido`, `telefono` y `foto_perfil`. El correo es la
+identidad de Supabase y es de solo lectura en el MVP. Enviar `correo`, `rol`,
+`supabase_uid`, `qr_token` o `is_active` responde `400`.
+
+La foto debe ser una URL pública del bucket de avatares de Supabase Storage,
+dentro de la carpeta del `supabase_uid` autenticado. Django valida host, bucket,
+carpeta, tipo MIME y tamaño mediante una petición `HEAD`. El contrato y las
+políticas RLS están en [avatares en Supabase Storage](./supabase-storage-avatares.md).
+
+### Baja de cuenta
+
+```http
+POST /api/v1/mi/cuenta/eliminar/
+Authorization: Bearer <access_token>
+Content-Type: application/json
+
+{"confirmacion":"Eliminar mi cuenta"}
+```
+
+Desactiva la cuenta, anonimiza los datos personales, expira puntos/cupones
+utilizables, desactiva membresías y conserva el historial transaccional
+justificado. Después elimina la identidad de Supabase Auth con la service role
+key del servidor. Es idempotente y responde `202` si la identidad de Supabase
+queda pendiente de reintento.
+
+Rechaza con `409`:
+
+- `propietario_activo`: el usuario es el único propietario activo de uno o más negocios activos;
+- `cuenta_admin`: una cuenta `admin_sistema` no puede autoeliminarse.
+
+Procedimiento completo en [eliminación de cuenta](./eliminacion-cuenta.md).
 
 `GET /api/v1/mi/contexto/` es la fuente de verdad del portal: devuelve `usuario`,
 `es_admin_sistema`, `puede_portal`, `membresias`, `negocios` y `sucursales`, con
@@ -225,13 +269,40 @@ está en [autenticación](./autenticacion.md#matriz-de-permisos).
 | POST | `/api/v1/visitas/registrar/` | Consumidor; visita con QR de negocio o sucursal |
 | GET | `/api/v1/mi/billetera/` | Consumidor; saldos, tarjetas en curso y cupones |
 | GET | `/api/v1/mi/historial/` | Consumidor; visitas, movimientos y canjes propios |
-| GET | `/api/v1/negocios/{id}/catalogo/` | Autenticado; recompensas adquiribles |
+| GET | `/api/v1/negocios/descubrir/` | Consumidor; directorio paginado de negocios activos |
+| GET | `/api/v1/negocios/{id}/catalogo/` | Autenticado; datos públicos del negocio y recompensas adquiribles |
 | POST | `/api/v1/cupones/adquirir/` | Consumidor; adquiere un cupón con puntos |
 | POST | `/api/v1/cupones/{uuid}/canjear/` | Dueño del cupón; canje irreversible |
 | POST | `/api/v1/admin/puntos/ajustar/` | `admin_sistema`; ajuste auditado |
 | POST | `/api/v1/admin/visitas/{id}/anular/` | `admin_sistema`; anula visita con motivo |
 | POST | `/api/v1/admin/cupones/{uuid}/anular/` | `admin_sistema`; anula cupón con motivo |
 | GET | `/api/v1/negocios/{id}/metricas/` | Dueño, supervisor, empleado o admin; métricas por rango |
+
+### Directorio de negocios para consumidores
+
+```http
+GET /api/v1/negocios/descubrir/?q=cafe&categoria=3&page=1&page_size=20
+Authorization: Bearer <access_token>
+```
+
+Devuelve solo negocios `status=true`, con sucursales activas. Campos públicos:
+`id`, `nombre`, `slug`, `descripcion`, `direccion`, `telefono`, `logo_url`,
+`banner_url`, `categoria` y `sucursales` (`id`, `nombre`, `direccion`, `ciudad`).
+No expone `qr_uuid`, `correo`, `stripe_id` ni datos internos.
+
+- `q` busca en nombre, descripción, dirección y sucursales activas.
+- `categoria` filtra por ID; un valor no numérico responde
+  `400 categoria_invalida`.
+- `page` y `page_size` usan paginación DRF (`count`, `next`, `previous`,
+  `results`); `page_size` máximo es 50.
+
+### Campos enriquecidos del móvil
+
+`GET /api/v1/mi/billetera/` y `GET /api/v1/mi/historial/` mantienen sus campos
+anteriores y agregan `negocio_nombre`, `negocio_slug` y `negocio_logo_url` en
+saldos, tarjetas, cupones, movimientos y visitas. Las visitas y canjes también
+incluyen `sucursal_nombre`. El catálogo agrega `slug`, `descripcion`, `direccion`,
+`telefono`, `banner_url` y `categoria` del negocio.
 
 ### Resolver QR antes de registrar
 
@@ -334,9 +405,10 @@ negocio con datos de una sucursal.
 ## Lecturas y errores
 
 Los listados devuelven arreglos JSON sin paginación, filtros por periodo,
-ordenamiento ni búsqueda (salvo las operaciones del portal). Parámetros como
-`?negocio=` o `?page=` no modifican el resultado genérico. Los serializers de
-crear, listar, detalle, actualización y borrado pueden exponer campos distintos.
+ordenamiento ni búsqueda (salvo las operaciones del portal y el directorio
+móvil). Parámetros como `?negocio=` o `?page=` no modifican el resultado genérico.
+Los serializers de crear, listar, detalle, actualización y borrado pueden exponer
+campos distintos.
 
 | Código | Significado habitual |
 | --- | --- |
@@ -351,6 +423,17 @@ crear, listar, detalle, actualización y borrado pueden exponer campos distintos
 | 409 | Perfil ya existente, correo por vincular o conflicto de lealtad |
 | 503 | Supabase Auth no configurado o no disponible |
 
+Errores estables de baja de cuenta:
+
+| Código | HTTP | Caso |
+| --- | --- | --- |
+| `confirmacion_invalida` | 400 | No se escribió la frase exacta de confirmación |
+| `propietario_activo` | 409 | El usuario es el único propietario activo de un negocio activo |
+| `cuenta_admin` | 409 | Una cuenta `admin_sistema` intenta autoeliminarse |
+| `cuenta_inactiva` | 409 | La cuenta ya no está activa |
+| `supabase_no_configurado` | 503 | Falta la service role key o la URL de Supabase |
+| `categoria_invalida` | 400 | El filtro de categoría del directorio no es numérico |
+
 Los errores DRF pueden aparecer como `{"detail":"..."}`, listas de mensajes o
 errores por campo. Los endpoints de lealtad añaden un `codigo` estable. Nunca
 distingas permisos por el texto de un mensaje.
@@ -359,8 +442,11 @@ distingas permisos por el texto de un mensaje.
 
 | Método y ruta | Descripción |
 | --- | --- |
-| `GET /` en Django | Estado público `{"service":"backend","status":"ok"}`; no consulta la base |
-| `/admin/` en Django | Admin con sesión staff propia |
+| `GET /` en Django | Alias de liveness `{"service":"backend","status":"ok"}`; no consulta la base |
+| `GET /health/live/` | Liveness; no consulta PostgreSQL |
+| `GET /health/db/` | Readiness; consulta PostgreSQL y responde `503` si falla |
+| `GET /health/ready/` | Alias de readiness |
+| `/admin/` en Django | Admin con sesión staff propia; `ADMIN_ENABLED=False` lo desactiva |
 | `GET /` en Benef AI | Estado del microservicio en el puerto 5001 local |
 
 Benef AI documenta su API en `/docs`; el backend Django no genera OpenAPI.

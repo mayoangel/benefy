@@ -26,6 +26,7 @@ urlpatterns = [
     path("v1/mi/billetera/", views_lealtad.BilleteraAPIView.as_view(), name="mi-billetera"),
     path("v1/mi/historial/", views_lealtad.HistorialAPIView.as_view(), name="mi-historial"),
     path("v1/negocios/<int:pk>/catalogo/", views_lealtad.CatalogoAPIView.as_view(), name="negocio-catalogo"),
+    path("v1/negocios/descubrir/", views_lealtad.DirectorioNegociosAPIView.as_view(), name="negocios-descubrir"),
     path("v1/cupones/adquirir/", views_lealtad.AdquirirCuponAPIView.as_view(), name="cupon-adquirir"),
     path("v1/cupones/<uuid:uuid>/canjear/", views_lealtad.CanjearCuponAPIView.as_view(), name="cupon-canjear"),
     path("v1/admin/puntos/ajustar/", views_lealtad.AjustarPuntosAPIView.as_view(), name="admin-puntos-ajustar"),
