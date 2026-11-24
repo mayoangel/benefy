@@ -21,7 +21,7 @@ import { supabase } from '../../lib/supabase';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
-  const { recovering, finishRecovery } = useAuth();
+  const { recovering, beginRecovery, finishRecovery } = useAuth();
   const [step, setStep] = useState<'request' | 'verify'>('request');
   const [email, setEmail] = useState('');
   const [otpCode, setOtpCode] = useState('');
@@ -75,12 +75,14 @@ export default function ForgotPasswordScreen() {
     try {
       // 1. Verificar el código OTP de recuperación (inicia sesión temporal)
       if (!recovering) {
+        beginRecovery();
         const { error: verifyError } = await supabase.auth.verifyOtp({
           email: cleanEmail,
           token: otpCode.trim(),
           type: 'recovery',
         });
         if (verifyError) {
+          finishRecovery();
           setErrorMsg('El código es inválido o ya expiró.');
           return;
         }

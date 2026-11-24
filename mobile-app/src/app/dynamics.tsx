@@ -1,5 +1,1 @@
-import Dashboard from '../../App';
-
-export default function DynamicsRoute() {
-  return <Dashboard activeTab="Dinámicas" />;
-}
+export { DynamicsScreen as default } from '../features/wallet';

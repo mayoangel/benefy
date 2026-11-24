@@ -1,5 +1,1 @@
-import Dashboard from '../../App';
-
-export default function CouponsRoute() {
-  return <Dashboard activeTab="Cupones" />;
-}
+export { CouponsScreen as default } from '../features/wallet';

@@ -14,6 +14,7 @@ import {
   type VisitaResultado,
 } from '../lib/api';
 import { useScanSession } from './scanSession';
+import { useRefrescarTrasVisita } from './queries';
 import { Button, Card, Copy, Heading, Notice, Screen, Skeleton } from './ui';
 
 const UUID_QR = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -147,6 +148,7 @@ export function ScanConfirmScreen() {
   const { session } = useAuth();
   const token = session?.access_token;
   const { setResolution, setResult } = useScanSession();
+  const refrescar = useRefrescarTrasVisita();
   const [resolution, setLocalResolution] = useState<ResolverQrResultado | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -199,6 +201,7 @@ export function ScanConfirmScreen() {
     try {
       const resultado: VisitaResultado = await registrarVisita(qr, session.access_token);
       setResult(resultado);
+      refrescar();
       router.replace('/scan/success');
     } catch (err) {
       if (err instanceof ApiError && ['qr_invalido', 'negocio_inactivo', 'cuenta_inactiva'].includes(err.codigo ?? '')) {

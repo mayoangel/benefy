@@ -1,23 +1,84 @@
 import { createThemedStyles, useBenefyTheme } from '../theme';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Alert, Image, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
-import HomeDashboard from '../components/HomeDashboard';
-import { DetailTicket } from '../components/DetailTicket';
+import * as Crypto from 'expo-crypto';
+import { useDeferredValue, useState } from 'react';
+import { Alert, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
+
+import { BusinessMark } from '../components/BusinessMark';
+import HomeDashboard, { type HomeBusiness } from '../components/HomeDashboard';
+import { useAuth } from '../auth/AuthContext';
 import {
-  businessById, loadBusinesses, loadRewards, notifications, profile,
-  rewardReason, usePreview, useResource, type Business,
-} from './preview';
+  useAdquirirCuponMutation,
+  useBilleteraQuery,
+  useCatalogoQuery,
+  useDirectorioQuery,
+  useNotificacionesQuery,
+  usePerfilQuery,
+} from './queries';
+import type { NegocioDirectorio } from '../lib/api';
+import { ApiError } from '../lib/api';
+import { estadoRecompensa } from '../lib/loyalty';
 import { Button, Card, Copy, Heading, Notice, Screen, Skeleton, useUiStyles } from './ui';
 
 export function HomeScreen() {
   const { colors } = useBenefyTheme();
   const homeStyles = useHomeStyles();
   const styles = useUiStyles();
-  const resource = useResource(loadBusinesses);
-  const session = usePreview();
-  const cards = resource.data;
-  const unread = notifications.filter(item => !session.read.includes(item.id)).length;
+  const { user } = useAuth();
+  const perfil = usePerfilQuery();
+  const billetera = useBilleteraQuery();
+  const notificaciones = useNotificacionesQuery();
+  const unread = notificaciones.data?.filter(item => !item.leida).length ?? 0;
+
+  const businesses: HomeBusiness[] = [];
+  const porNegocio = new Map<number, HomeBusiness>();
+  for (const saldo of billetera.data?.saldos ?? []) {
+    porNegocio.set(saldo.negocio, {
+      id: saldo.negocio,
+      nombre: saldo.negocio_nombre || `Negocio #${saldo.negocio}`,
+      categoria: 'Programa de lealtad',
+      logo_url: saldo.negocio_logo_url,
+      puntos: saldo.saldo_actual,
+      meta: null,
+      sellos: 0,
+      listo: false,
+    });
+  }
+  for (const tarjeta of billetera.data?.tarjetas ?? []) {
+    const actual = porNegocio.get(tarjeta.negocio);
+    if (actual) {
+      actual.meta = tarjeta.meta;
+      actual.sellos = tarjeta.sellos_actuales;
+      actual.listo = tarjeta.sellos_actuales >= tarjeta.meta;
+    } else {
+      porNegocio.set(tarjeta.negocio, {
+        id: tarjeta.negocio,
+        nombre: tarjeta.negocio_nombre || `Negocio #${tarjeta.negocio}`,
+        categoria: 'Programa de lealtad',
+        logo_url: tarjeta.negocio_logo_url,
+        puntos: 0,
+        meta: tarjeta.meta,
+        sellos: tarjeta.sellos_actuales,
+        listo: tarjeta.sellos_actuales >= tarjeta.meta,
+      });
+    }
+  }
+  businesses.push(...porNegocio.values());
+  const totalPuntos = businesses.reduce((total, item) => total + item.puntos, 0);
+  const readyRewards = businesses.filter(item => item.listo).length;
+
+  if (perfil.isLoading || billetera.isLoading) {
+    return <Screen title="Benefy" tabs><Skeleton /></Screen>;
+  }
+
+  if (perfil.isError || billetera.isError) {
+    return <Screen title="Benefy" tabs>
+      <Notice title="No se pudo cargar tu cuenta" message="Revisa tu conexión e intenta de nuevo."
+        retry={() => { void perfil.refetch(); void billetera.refetch(); }} />
+    </Screen>;
+  }
+
   return <Screen title="Benefy" tabs headerActions={<>
     <Pressable accessibilityRole="button" accessibilityLabel={`Notificaciones, ${unread} sin leer`}
       onPress={() => router.navigate('/notifications')} style={({ pressed }) => [homeStyles.headerButton, pressed && styles.dim]}>
@@ -29,20 +90,21 @@ export function HomeScreen() {
       <MaterialIcons name="history" size={22} color={colors.navy} />
     </Pressable>
   </>} scroll={{
-    refreshControl: <RefreshControl refreshing={resource.loading && !!resource.data} onRefresh={resource.refresh}
+    refreshControl: <RefreshControl refreshing={billetera.isFetching || perfil.isFetching}
+      onRefresh={() => { void perfil.refetch(); void billetera.refetch(); void notificaciones.refetch(); }}
       tintColor={colors.green} colors={[colors.green]} progressBackgroundColor={colors.panel} />,
   }}>
-    {resource.error && <Notice title="Error al sincronizar datos" message="Tus últimos datos siguen disponibles." retry={resource.refresh} />}
-    {resource.loading && !resource.data && <Skeleton />}
-    {resource.data?.length === 0 && <Card>
-      <Heading>Todavía no estás registrado en ningún negocio</Heading>
-      <Button label="Escanear QR de un negocio" icon="qr-code-scanner" onPress={() => router.navigate('/register')} />
-    </Card>}
-    {cards && cards.length > 0 && <HomeDashboard name={profile.firstName} cards={cards}
-      onDynamics={() => router.push('/dynamics')} onCoupons={() => router.push('/wallet')}
+    <HomeDashboard
+      name={perfil.data?.nombre || user?.email?.split('@')[0] || 'Benefy'}
+      points={totalPuntos}
+      businesses={businesses}
+      readyRewards={readyRewards}
+      onBusiness={id => router.push({ pathname: '/business/[id]', params: { id: String(id) } })}
+      onDynamics={() => router.push('/dynamics')}
+      onCoupons={() => router.push('/coupons')}
       onScan={() => router.navigate('/register')}
-      onBusiness={index => router.push({ pathname: '/business/[id]', params: { id: cards[index].id } })}
-    />}
+      onExplore={() => router.push('/explore')}
+    />
   </Screen>;
 }
 
@@ -51,130 +113,123 @@ const useHomeStyles = createThemedStyles(colors => StyleSheet.create({
   unreadDot: { position: 'absolute', top: 10, right: 10, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.mint },
 }));
 
-export function BusinessMark({ business, size = 48 }: { business: Business; size?: number }) {
-  return <View style={{ width: size, height: size, borderRadius: 12, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}>
-    <Text style={{ fontSize: size / 2 }}>{business.icon}</Text>
-    <Image source={{ uri: business.logo }} style={{ position: 'absolute', width: size, height: size }} />
-  </View>;
+export function ExploreScreen() {
+  const { colors } = useBenefyTheme();
+  const styles = useUiStyles();
+  const [query, setQuery] = useState('');
+  const deferredQuery = useDeferredValue(query);
+  const [category, setCategory] = useState<number>();
+  const directorio = useDirectorioQuery(deferredQuery.trim(), category);
+  const categories = Array.from(new Map(
+    directorio.negocios.map(item => [item.categoria.id, item.categoria]),
+  ).values());
+
+  return <Screen title="Explorar negocios" subtitle="Descubre comercios activos de Benefy" scroll={{
+    refreshControl: <RefreshControl refreshing={directorio.isRefetching}
+      onRefresh={() => void directorio.refetch()} tintColor={colors.green} colors={[colors.green]}
+      progressBackgroundColor={colors.panel} />,
+  }}>
+    <TextInput accessibilityLabel="Buscar negocios" placeholder="Buscar por nombre, dirección o sucursal"
+      placeholderTextColor={colors.muted} value={query} onChangeText={setQuery}
+      style={styles.field} autoCapitalize="none" />
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+      <Pressable accessibilityRole="button" accessibilityState={{ selected: category === undefined }}
+        onPress={() => setCategory(undefined)}
+        style={{ minHeight: 44, justifyContent: 'center', paddingHorizontal: 12, borderRadius: 22,
+          backgroundColor: category === undefined ? colors.mint : colors.subtle }}>
+        <Text style={{ color: category === undefined ? colors.onMint : colors.navy, fontWeight: '700' }}>Todas</Text>
+      </Pressable>
+      {categories.map(item => <Pressable key={item.id} accessibilityRole="button"
+        accessibilityState={{ selected: category === item.id }} onPress={() => setCategory(item.id)}
+        style={{ minHeight: 44, justifyContent: 'center', paddingHorizontal: 12, borderRadius: 22,
+          backgroundColor: category === item.id ? colors.mint : colors.subtle }}>
+        <Text style={{ color: category === item.id ? colors.onMint : colors.navy, fontWeight: '700' }}>{item.nombre}</Text>
+      </Pressable>)}
+    </View>
+
+    {directorio.isLoading && <Skeleton />}
+    {directorio.isError && <Notice title="No se pudo cargar el directorio"
+      retry={() => void directorio.refetch()} />}
+    {!directorio.isLoading && !directorio.isError && directorio.negocios.length === 0 &&
+      <Notice title="No encontramos negocios" message="Prueba con otro término o categoría." />}
+
+    {directorio.negocios.map(negocio => <BusinessCard key={negocio.id} negocio={negocio} />)}
+
+    {directorio.cargarMas && <Button label={directorio.isFetchingNextPage ? 'Cargando…' : 'Cargar más negocios'}
+      disabled={directorio.isFetchingNextPage} onPress={() => void directorio.cargarMas?.()} />}
+    {!directorio.cargarMas && directorio.negocios.length > 0 &&
+      <Copy>{directorio.total} negocio{directorio.total === 1 ? '' : 's'} encontrado{directorio.total === 1 ? '' : 's'}</Copy>}
+  </Screen>;
+}
+
+function BusinessCard({ negocio }: { negocio: NegocioDirectorio }) {
+  const styles = useUiStyles();
+  return <Pressable accessibilityRole="button" accessibilityHint="Abre el detalle del negocio"
+    accessibilityLabel={`${negocio.nombre}, ${negocio.categoria.nombre}`}
+    onPress={() => router.push({ pathname: '/business/[id]', params: { id: String(negocio.id) } })}
+    style={({ pressed }) => [styles.card, pressed && styles.dim]}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+      <BusinessMark nombre={negocio.nombre} logoUrl={negocio.logo_url} size={52} />
+      <View style={styles.flex}>
+        <Heading>{negocio.nombre}</Heading>
+        <Copy>{negocio.categoria.nombre}</Copy>
+        <Copy>{negocio.direccion}</Copy>
+        <Copy>{negocio.sucursales.length} sucursal{negocio.sucursales.length === 1 ? '' : 'es'} activa{negocio.sucursales.length === 1 ? '' : 's'}</Copy>
+      </View>
+      <MaterialIcons name="chevron-right" size={22} color="#626A71" />
+    </View>
+    {negocio.descripcion ? <Copy>{negocio.descripcion}</Copy> : null}
+  </Pressable>;
 }
 
 export function BusinessScreen() {
   const { colors } = useBenefyTheme();
-  const homeStyles = useHomeStyles();
-  const detailStyles = useDetailStyles();
   const styles = useUiStyles();
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const resource = useResource(loadBusinesses);
-  const catalog = useResource(loadRewards);
-  const business = resource.data?.find(item => item.id === id);
-  const rewards = catalog.data?.filter(item => item.issuer === id) ?? [];
-  const redeemable = business ? rewards.filter(item => !rewardReason(item, business.points)).length : 0;
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const negocioId = Number(id);
+  const catalogo = useCatalogoQuery(Number.isFinite(negocioId) ? negocioId : undefined);
+  const { data } = catalogo;
 
-  return <Screen title="Detalle del negocio" subtitle="Benefy Club"
-    headerActions={<Pressable accessibilityRole="button" accessibilityLabel="Notificaciones"
-      onPress={() => router.push('/notifications')} style={({ pressed }) => [homeStyles.headerButton, pressed && styles.dim]}>
-      <MaterialIcons name="notifications-none" size={22} color={colors.navy} />
-    </Pressable>}
-    footer={business && business.rate > 0 && <View style={detailStyles.footer}>
-      <Button icon="storefront" label={catalog.data ? `Ver tienda de cupones · ${redeemable} canjeables` : 'Ver tienda de cupones'}
-        onPress={() => router.push({ pathname: '/shop/[id]', params: { id: business.id } })} />
-    </View>}>
-    {resource.loading && <Skeleton />}
-    {resource.error && <Notice title="No se pudo cargar el negocio" retry={resource.refresh} />}
-    {!resource.loading && !resource.error && !business && <Notice title="Este negocio ya no está disponible" />}
-    {business && <>
-      <View style={detailStyles.hero}>
-        <View style={detailStyles.line}>
-          <BusinessMark business={business} size={64} />
-          <View style={styles.flex}>
-            <Text style={detailStyles.label}>Negocio asociado</Text>
-            <Text accessibilityRole="header" style={detailStyles.name}>{business.name}</Text>
-            <Copy>{business.category}</Copy>
-          </View>
-          <Text accessibilityLabel={`${business.points} puntos disponibles`} style={detailStyles.points}>{business.points} pts</Text>
-        </View>
-        <View style={detailStyles.inset}>
-          <MaterialIcons name="storefront" size={20} color={colors.green} />
-          <Copy>{business.address}</Copy>
+  if (catalogo.isLoading) return <Screen title="Detalle del negocio"><Skeleton /></Screen>;
+  if (catalogo.isError || !data) {
+    return <Screen title="Detalle del negocio">
+      <Notice title="No se pudo cargar el negocio" retry={() => void catalogo.refetch()} />
+    </Screen>;
+  }
+  const negocio = data.negocio;
+  return <Screen title="Detalle del negocio" subtitle={negocio.nombre}>
+    <View style={{ backgroundColor: colors.brand, borderRadius: 20, padding: 18, gap: 10 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <BusinessMark nombre={negocio.nombre} logoUrl={negocio.logo_url} size={64} />
+        <View style={styles.flex}>
+          <Text accessibilityRole="header" style={{ color: colors.onBrand, fontSize: 24, fontWeight: '800' }}>{negocio.nombre}</Text>
+          <Text style={{ color: colors.mint }}>{negocio.categoria.nombre}</Text>
         </View>
       </View>
-
-      {business.goalCount > 0 && <VisitProgram business={business} />}
-
-      <View style={detailStyles.links}>
-        <Button label="Beneficios con aliados" icon="handshake" kind="quiet"
-          onPress={() => router.push({ pathname: '/business-allies/[id]', params: { id: business.id } })} />
-        <Button label="Tus cupones de este negocio" icon="confirmation-number" kind="quiet"
-          onPress={() => router.push({ pathname: '/business-coupons/[id]', params: { id: business.id } })} />
-      </View>
-
-    </>}
+      <Text style={{ color: colors.onBrand }}>{negocio.descripcion}</Text>
+      <Text style={{ color: colors.mint }}>{negocio.direccion}</Text>
+      {negocio.telefono && <Text style={{ color: colors.mint }}>{negocio.telefono}</Text>}
+    </View>
+    <Card>
+      <Heading>Sucursales activas</Heading>
+      {data.sucursales.length === 0 && <Copy>No hay sucursales publicadas.</Copy>}
+      {data.sucursales.map(sucursal => <Copy key={sucursal.id}>{sucursal.nombre} · {sucursal.direccion}, {sucursal.ciudad}</Copy>)}
+    </Card>
+    <Card>
+      <Heading>Recompensas disponibles</Heading>
+      {data.recompensas.length === 0 && <Copy>Este negocio no tiene recompensas disponibles por ahora.</Copy>}
+      {data.recompensas.slice(0, 4).map(recompensa => <Copy key={recompensa.id}>
+        {recompensa.titulo} · {recompensa.costo_desbloqueo} pts
+      </Copy>)}
+      <Button label="Ver tienda de cupones" icon="redeem"
+        onPress={() => router.push({ pathname: '/shop/[id]', params: { id: String(negocio.id) } })} />
+      <Button label="Beneficios con aliados" kind="quiet" icon="handshake"
+        onPress={() => router.push({ pathname: '/business-allies/[id]', params: { id: String(negocio.id) } })} />
+      <Button label="Mis cupones de este negocio" kind="quiet" icon="confirmation-number"
+        onPress={() => router.push({ pathname: '/business-coupons/[id]', params: { id: String(negocio.id) } })} />
+    </Card>
   </Screen>;
 }
-
-function VisitProgram({ business }: { business: Business }) {
-  const { colors } = useBenefyTheme();
-  const detailStyles = useDetailStyles();
-  const styles = useUiStyles();
-  const { visits, goalCount } = business;
-  return <Card>
-    <View style={detailStyles.line}>
-      <MaterialIcons name="fact-check" size={22} color={colors.green} />
-      <View style={styles.flex}>
-        <Heading>Programa de visitas</Heading>
-        <Copy>{visits} de {goalCount} visitas registradas</Copy>
-      </View>
-    </View>
-    <View style={detailStyles.visitGrid}>
-      {Array.from({ length: goalCount }, (_, index) => {
-        const number = index + 1;
-        const registered = number <= visits;
-        const final = number === goalCount;
-        const status = registered ? 'registrada' : 'pendiente';
-        return <View key={number} accessible accessibilityLabel={`Visita ${number}, ${status}${final ? ', meta de recompensa' : ''}`}
-          style={detailStyles.visitCell}>
-          <View style={[detailStyles.visitCircle, registered && detailStyles.registered, final && detailStyles.finalVisit]}>
-            <MaterialIcons name={final ? 'redeem' : registered ? 'check' : 'hourglass-empty'}
-              size={20} color={registered ? colors.onMint : final ? colors.green : colors.muted} />
-          </View>
-          <Text style={detailStyles.visitNumber}>#{number}</Text>
-        </View>;
-      })}
-    </View>
-    <View style={detailStyles.inset}>
-      <MaterialIcons name="workspace-premium" size={21} color={colors.green} />
-      <View style={styles.flex}>
-        <Heading>{visits >= goalCount ? 'Meta completada' : 'Recompensa al completar'}</Heading>
-        <Copy>{business.id === 'blend' ? 'Café de cortesía' : 'Pase libre por un día'}</Copy>
-      </View>
-    </View>
-    <Copy>Escanea el código QR de una sucursal participante para registrar una visita.</Copy>
-  </Card>;
-}
-
-const useDetailStyles = createThemedStyles(colors => StyleSheet.create({
-  hero: { backgroundColor: colors.subtle, borderRadius: 18, padding: 14, gap: 12 },
-  line: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  name: { color: colors.navy, fontSize: 24, fontWeight: '800' },
-  label: { color: colors.green, fontSize: 12, fontWeight: '700' },
-  inset: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.subtle, borderRadius: 12, padding: 10 },
-  visitGrid: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 12, paddingVertical: 12 },
-  visitCell: { width: '20%', alignItems: 'center', gap: 4 },
-  visitCircle: { width: 42, height: 42, borderRadius: 21, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.muted,
-    backgroundColor: colors.subtle, alignItems: 'center', justifyContent: 'center' },
-  registered: { backgroundColor: colors.mint, borderColor: colors.mint, borderStyle: 'solid' },
-  finalVisit: { borderColor: colors.green },
-  visitNumber: { color: colors.muted, fontSize: 12, fontWeight: '700' },
-  balance: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 14, padding: 14, backgroundColor: colors.brand },
-  balanceLabel: { color: colors.mint, fontSize: 12, fontWeight: '700' },
-  balanceValue: { color: colors.onBrand, fontSize: 28, fontWeight: '800' },
-  points: { color: colors.green, fontSize: 13, fontWeight: '800', backgroundColor: colors.panel,
-    borderRadius: 10, paddingHorizontal: 8, paddingVertical: 5 },
-  links: { gap: 8 },
-  footer: { paddingHorizontal: 16, paddingVertical: 10, backgroundColor: colors.panel,
-    borderTopWidth: 1, borderTopColor: colors.line },
-}));
-
 
 export function ShopScreen() {
   return <RewardCatalog />;
@@ -186,115 +241,118 @@ export function BusinessAlliesScreen() {
 
 function RewardCatalog({ alliesOnly = false }: { alliesOnly?: boolean }) {
   const { colors } = useBenefyTheme();
-  const detailStyles = useDetailStyles();
-  const shopStyles = useShopStyles();
   const styles = useUiStyles();
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const business = businessById(id);
-  const resource = useResource(loadRewards);
-  const items = resource.data?.filter(item => item.issuer === id && (!alliesOnly || item.redeemAt !== id));
-  return <Screen title={alliesOnly ? 'Beneficios con aliados' : 'Tienda de cupones'} subtitle={business?.name}>
-    {!business && <Notice title="Este negocio ya no está disponible" />}
-    {business && <View style={shopStyles.balance}>
+  const params = useLocalSearchParams<{ id?: string }>();
+  const negocioId = Number(params.id);
+  const catalogo = useCatalogoQuery(Number.isFinite(negocioId) ? negocioId : undefined);
+  const billetera = useBilleteraQuery();
+  const puntos = billetera.data?.saldos.find(item => item.negocio === negocioId)?.saldo_actual ?? 0;
+  const items = (catalogo.data?.recompensas ?? []).filter(item => !alliesOnly || item.es_alianza);
+
+  if (catalogo.isLoading || billetera.isLoading) return <Screen title="Tienda de cupones"><Skeleton /></Screen>;
+  if (catalogo.isError) return <Screen title="Tienda de cupones">
+    <Notice title="No se pudo cargar la tienda" retry={() => void catalogo.refetch()} />
+  </Screen>;
+  const negocio = catalogo.data?.negocio;
+  return <Screen title={alliesOnly ? 'Beneficios con aliados' : 'Tienda de cupones'} subtitle={negocio?.nombre}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.brand,
+      padding: 16, borderRadius: 18 }}>
+      <MaterialIcons name="account-balance-wallet" size={24} color={colors.mint} />
       <View style={styles.flex}>
-        <Text style={detailStyles.balanceLabel}>Saldo disponible</Text>
-        <Text style={detailStyles.balanceValue}>{business.points} pts</Text>
+        <Copy>Saldo disponible</Copy>
+        <Text style={{ color: colors.onBrand, fontSize: 26, fontWeight: '800' }}>{puntos} pts</Text>
       </View>
-      <View style={shopStyles.balanceIcon}>
-        <MaterialIcons name="account-balance-wallet" size={24} color={colors.onMint} />
-      </View>
-    </View>}
-    {business && resource.loading && <Skeleton />}
-    {business && resource.error && <Notice title="No se pudo cargar la tienda" retry={resource.refresh} />}
-    {business && !resource.loading && !resource.error && items?.length === 0 &&
-      <Notice title={alliesOnly ? 'Este negocio aún no tiene beneficios con aliados' : 'Este negocio no tiene recompensas disponibles por ahora'} />}
-    {business && !!items?.length && <Heading>Recompensas</Heading>}
-    {business && items?.map(item => {
-      const redeemAt = businessById(item.redeemAt);
-      const reason = redeemAt ? rewardReason(item, business.points) : 'No disponible';
-      const status = reason ?? 'Disponible';
+    </View>
+    {items.length === 0 && <Notice title={alliesOnly ? 'No hay beneficios de alianza activos' : 'No hay recompensas disponibles'} />}
+    {items.map(item => {
+      const status = estadoRecompensa(item, puntos);
+      const disponible = status === 'Disponible';
       return <Pressable key={item.id} accessibilityRole="button"
-        accessibilityLabel={`${item.title}, ${item.cost} puntos, ${status}`}
-        accessibilityHint="Abre el detalle de la recompensa"
-        onPress={() => router.push({ pathname: '/reward/[id]', params: { id: item.id } })}
-        style={({ pressed }) => [styles.card, shopStyles.reward, pressed && styles.dim]}>
-        <View style={detailStyles.line}>
-          {redeemAt && <BusinessMark business={redeemAt} size={44} />}
+        accessibilityLabel={`${item.titulo}, ${item.costo_desbloqueo} puntos, ${status}`}
+        onPress={() => router.push({ pathname: '/reward/[id]', params: { id: String(item.id), negocio: String(negocioId) } })}
+        style={({ pressed }) => [styles.card, pressed && styles.dim]}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <BusinessMark nombre={item.negocio_nombre || negocio?.nombre || 'Benefy'} logoUrl={item.negocio_logo_url} size={44} />
           <View style={styles.flex}>
-            <Heading>{item.title}</Heading>
-            {redeemAt && <Copy>{redeemAt.name}{item.issuer !== item.redeemAt ? ' · Alianza' : ''}</Copy>}
+            <Heading>{item.titulo}</Heading>
+            <Copy>{item.descripcion}</Copy>
+            {item.es_alianza && <Copy>Beneficio de alianza</Copy>}
           </View>
           <MaterialIcons name="chevron-right" size={22} color={colors.muted} />
         </View>
-        <View style={shopStyles.rewardFooter}>
-          <Text style={shopStyles.cost}>{item.cost} pts</Text>
-          <Text style={[shopStyles.status, !reason && shopStyles.available]}>{status}</Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Text style={{ color: colors.navy, fontWeight: '800', fontSize: 17 }}>{item.costo_desbloqueo} pts</Text>
+          <Text style={{ color: disponible ? colors.green : colors.muted, backgroundColor: disponible ? colors.positiveSurface : colors.subtle,
+            borderRadius: 12, paddingHorizontal: 8, paddingVertical: 4, fontWeight: '700', fontSize: 12 }}>{status}</Text>
         </View>
       </Pressable>;
     })}
   </Screen>;
 }
 
-const useShopStyles = createThemedStyles(colors => StyleSheet.create({
-  balance: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.brand, padding: 18, borderRadius: 18 },
-  balanceIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: colors.mint,
-    alignItems: 'center', justifyContent: 'center' },
-  reward: { gap: 12 },
-  rewardFooter: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line, paddingTop: 10,
-    flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  cost: { color: colors.navy, fontSize: 17, fontWeight: '800' },
-  status: { backgroundColor: colors.subtle, color: colors.muted, paddingHorizontal: 9, paddingVertical: 4,
-    borderRadius: 12, fontSize: 12, fontWeight: '700' },
-  available: { color: colors.onMint, backgroundColor: colors.mint },
-}));
-
 export function RewardScreen() {
   const { colors } = useBenefyTheme();
-  const detailStyles = useDetailStyles();
-  const styles = useUiStyles();
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const resource = useResource(loadRewards);
-  const reward = resource.data?.find(item => item.id === id);
-  const issuer = businessById(reward?.issuer);
-  const redeemAt = businessById(reward?.redeemAt);
-  const reason = reward && issuer && redeemAt ? rewardReason(reward, issuer.points) : 'No disponible';
-  const available = reason === null;
-  const confirm = () => {
-    if (!reward || !issuer || reason) return;
-    Alert.alert('Obtener cupón', `Gastarás ${reward.cost} pts. Tu saldo quedará en ${issuer.points - reward.cost}.`, [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Confirmar', onPress: () => Alert.alert('Compra no disponible', 'Inicia una sesión conectada al servidor para adquirir cupones. Tu saldo sigue intacto.') },
-    ]);
+  const params = useLocalSearchParams<{ id?: string; negocio?: string }>();
+  const negocioId = Number(params.negocio);
+  const rewardId = Number(params.id);
+  const catalogo = useCatalogoQuery(Number.isFinite(negocioId) ? negocioId : undefined);
+  const billetera = useBilleteraQuery();
+  const adquirir = useAdquirirCuponMutation();
+  const [error, setError] = useState('');
+  const puntos = billetera.data?.saldos.find(item => item.negocio === negocioId)?.saldo_actual ?? 0;
+  const reward = catalogo.data?.recompensas.find(item => item.id === rewardId);
+
+  if (catalogo.isLoading) return <Screen title="Detalle de recompensa"><Skeleton /></Screen>;
+  if (catalogo.isError || !reward) {
+    return <Screen title="Detalle de recompensa">
+      <Notice title="Recompensa no disponible" retry={() => void catalogo.refetch()} />
+    </Screen>;
+  }
+  const status = estadoRecompensa(reward, puntos);
+  const disponible = status === 'Disponible';
+
+  const confirmar = () => {
+    if (!disponible || adquirir.isPending) return;
+    Alert.alert(
+      'Obtener cupón',
+      `Gastarás ${reward.costo_desbloqueo} puntos. Tu saldo quedará en ${Math.max(0, puntos - reward.costo_desbloqueo)}.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Confirmar', onPress: () => {
+          setError('');
+          adquirir.mutate(
+            { recompensa: reward.id, clave: Crypto.randomUUID() },
+            {
+              onSuccess: resultado => {
+                router.replace({ pathname: '/coupon/[id]', params: { id: resultado.cupon.uuid } });
+              },
+              onError: err => {
+                if (err instanceof ApiError) setError(err.message);
+                else setError('No se pudo adquirir el cupón. Intenta de nuevo.');
+              },
+            },
+          );
+        } },
+      ],
+    );
   };
-  return <Screen title="Detalle de recompensa" footer={reward && available && <View style={detailStyles.footer}>
-    <Button icon="redeem" label={`Obtener cupón por ${reward.cost} pts`} onPress={confirm} />
+
+  return <Screen title="Detalle de recompensa" footer={disponible && <View style={{ paddingHorizontal: 16,
+    paddingVertical: 10, backgroundColor: colors.panel, borderTopWidth: 1, borderTopColor: colors.line }}>
+    <Button label={adquirir.isPending ? 'Adquiriendo…' : `Obtener cupón por ${reward.costo_desbloqueo} pts`}
+      icon="redeem" disabled={adquirir.isPending} onPress={confirmar} />
   </View>}>
-    {resource.loading && <Skeleton />}
-    {resource.error && <Notice title="No se pudo cargar la recompensa" retry={resource.refresh} />}
-    {!resource.loading && !resource.error && !reward && <Notice title="Recompensa no disponible" />}
-    {reward && <>
-      <DetailTicket title={reward.title} subtitle={`Costo: ${reward.cost} pts`} status={reason ?? 'Disponible'} available={available}>
-        {redeemAt && <View style={detailStyles.line}>
-          <BusinessMark business={redeemAt} size={44} />
-          <View style={styles.flex}>
-            <Copy>Canjeable en</Copy>
-            <Heading>{redeemAt.name}</Heading>
-            <Copy>{redeemAt.address}</Copy>
-          </View>
-        </View>}
-        <View style={detailStyles.line}>
-          <MaterialIcons name="event" size={20} color={colors.green} />
-          <View style={styles.flex}><Copy>{reason === 'Vencida' ? 'Venció el' : 'Vigente hasta'} {reward.expiry}</Copy></View>
-        </View>
-        {issuer && issuer.id !== reward.redeemAt && <View style={detailStyles.line}>
-          <MaterialIcons name="handshake" size={20} color={colors.green} />
-          <View style={styles.flex}><Copy>Recompensa de alianza emitida por {issuer.name}</Copy></View>
-        </View>}
-      </DetailTicket>
-      <Card>
-        <Heading>Condiciones de uso</Heading>
-        <Copy>Válido una vez en la sucursal indicada y hasta la fecha de vigencia.</Copy>
-      </Card>
-    </>}
+    <Card>
+      <Heading>{reward.titulo}</Heading>
+      <Copy>{reward.descripcion}</Copy>
+      <Copy>{reward.costo_desbloqueo} puntos · {status}</Copy>
+      <Copy>{reward.terminos_condiciones}</Copy>
+      {reward.fecha_expiracion && <Copy>Vigente hasta {new Date(reward.fecha_expiracion).toLocaleDateString('es-MX')}</Copy>}
+      {reward.negocio_nombre && <Copy>Negocio: {reward.negocio_nombre}</Copy>}
+      {reward.es_alianza && <Copy>Beneficio de alianza</Copy>}
+      {!disponible && <Copy>Este cupón no está disponible para adquirir en este momento.</Copy>}
+      {error !== '' && <Text accessibilityRole="alert" style={{ color: colors.dangerText }}>{error}</Text>}
+    </Card>
+    <Button label="Volver a la tienda" kind="quiet" onPress={() => router.back()} />
   </Screen>;
 }

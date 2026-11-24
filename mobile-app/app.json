@@ -9,17 +9,24 @@
     "userInterfaceStyle": "automatic",
     "plugins": [
       "expo-router",
-      ["expo-camera", {
-        "cameraPermission": "Benefy usa la cámara para escanear el código QR del comercio.",
-        "recordAudioAndroid": false
-      }],
-      ["expo-image-picker", {
-        "photosPermission": "Benefy accede a tus fotos para que puedas elegir tu imagen de perfil.",
-        "cameraPermission": false,
-        "microphonePermission": false
-      }],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Benefy usa la cámara para escanear el código QR del comercio.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Benefy accede a tus fotos para que puedas elegir tu imagen de perfil.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ],
       "expo-notifications",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-font"
     ],
     "ios": {
       "supportsTablet": true
