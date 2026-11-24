@@ -113,6 +113,48 @@ test('an invitation failure does not hide the independently loaded team',async({
  await expect(page.getByText(/No hay membres/)).toBeVisible();
 });
 
+test('Benef AI responde en el negocio actual y limpia el contexto al cambiarlo',async({page})=>{
+ let payload:any=null;
+ await page.route('**/negocios/*/benef-ai/chat/',async route=>{
+  payload=JSON.parse(route.request().postData()||'{}');
+  await route.fulfill({json:{answer:'Tuvimos 100 visitas válidas en el periodo.',tools_used:['metricas']}});
+ });
+ await page.goto('/portal/negocio/1');
+ const trigger=page.getByRole('button',{name:'Benef AI'});
+ await trigger.click();
+ const dialog=page.getByRole('dialog',{name:'Benef AI'});
+ await expect(dialog).toBeVisible();
+ await expect(dialog.getByText('Pregunta por tu negocio')).toBeVisible();
+ const input=dialog.getByLabel('Mensaje para Benef AI');
+ await input.fill('¿Cuántas visitas tuvimos?');
+ await input.press('Enter');
+ await expect(dialog.getByText('Tuvimos 100 visitas válidas en el periodo.')).toBeVisible();
+ await expect(dialog.getByText('Consultó: métricas.')).toBeVisible();
+ expect(payload?.message).toBe('¿Cuántas visitas tuvimos?');
+ expect(payload?.history).toEqual([]);
+
+ await page.locator('#portal-portallayout-1').selectOption('2');
+ await expect(page.locator('h1')).toHaveText('Negocio 2');
+ await expect(page.getByRole('dialog',{name:'Benef AI'}).getByText('Pregunta por tu negocio')).toBeVisible();
+ await expect(page.getByText('Tuvimos 100 visitas válidas en el periodo.')).toHaveCount(0);
+ await page.keyboard.press('Escape');
+ await expect(trigger).toHaveAttribute('aria-expanded','false');
+ await expect(trigger).toBeFocused();
+});
+
+test('Benef AI es usable en móvil',async({page})=>{
+ await page.setViewportSize({width:360,height:640});
+ await page.goto('/portal/negocio/1');
+ await page.getByRole('button',{name:'Benef AI'}).click();
+ const dialog=page.getByRole('dialog',{name:'Benef AI'});
+ await expect(dialog).toBeVisible();
+ const box=await dialog.boundingBox();
+ expect(box?.width).toBeLessThanOrEqual(360);
+ expect(await page.evaluate(()=>document.body.style.overflow)).toBe('hidden');
+ await page.getByRole('button',{name:'Cerrar Benef AI'}).click();
+ expect(await page.evaluate(()=>document.body.style.overflow)).not.toBe('hidden');
+});
+
 
 for(const next of ['//attacker.example.invalid','/\\attacker.example.invalid']){
  test('login rejects unsafe return path '+JSON.stringify(next),async({page})=>{

@@ -209,3 +209,26 @@ test('selector de negocio visible con varias membresías y filtro de sucursal pr
   fireEvent.click(screen.getByRole('button', { name: 'Actividad' }));
   expect(screen.getByRole('link', { name: 'Visitas' }).getAttribute('href')).toBe('/portal/negocio/1/visitas?sucursal=11');
 });
+
+test('Benef AI se abre desde el dashboard del negocio y se puede cerrar', async () => {
+  const user = userEvent.setup();
+  renderLayout('/portal/negocio/1');
+  const trigger = screen.getByRole('button', { name: 'Benef AI' });
+  expect(trigger.getAttribute('aria-expanded')).toBe('false');
+
+  await user.click(trigger);
+  expect(trigger.getAttribute('aria-expanded')).toBe('true');
+  const dialog = screen.getByRole('dialog', { name: 'Benef AI' });
+  expect(within(dialog).getByText('Pregunta por tu negocio')).toBeTruthy();
+  expect(within(dialog).getByLabelText('Mensaje para Benef AI')).toBeTruthy();
+
+  await user.click(within(dialog).getByRole('button', { name: 'Cerrar Benef AI' }));
+  expect(trigger.getAttribute('aria-expanded')).toBe('false');
+  expect(document.activeElement).toBe(trigger);
+});
+
+test('admin global no ve el asistente de negocio', () => {
+  authState.admin = true;
+  renderLayout('/portal/admin');
+  expect(screen.queryByRole('button', { name: 'Benef AI' })).toBeNull();
+});
