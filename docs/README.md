@@ -7,10 +7,14 @@ propia guía.
 | Documento | Contenido |
 | --- | --- |
 | [Autenticación y permisos](./autenticacion.md) | Supabase Auth, sesión web, onboarding, roles y matriz de acceso |
+| [Eliminación de cuenta](./eliminacion-cuenta.md) | Baja, anonimización, bloqueo de propietarios y reintentos |
+| [Avatares en Supabase Storage](./supabase-storage-avatares.md) | Bucket, RLS, contrato de URL y validación |
 | [API](./api.md) | Rutas, permisos, payloads, errores y límites implementados |
 | [Reglas de lealtad](./reglas-lealtad.md) | Visitas, puntos, tarjetas, cupones y canje |
 | [Planes Free y Premium](./planes-free-premium.md) | Límites, suscripciones y cambios de plan |
 | [Desarrollo y demo](./desarrollo-demo.md) | Compose, recarga automática, configuración y pruebas |
+| [Despliegue en Railway](./despliegue-railway.md) | Imagen de producción, variables, dominio y verificación |
+| [Migraciones de producción](./migraciones-produccion.md) | Respaldo, aplicación, verificación y recuperación |
 | [Dataset de presentación](./demo-dataset.md) | Cuentas, negocios, respaldo e inicialización/reinicio |
 | [Benefy SRS.pdf](./Benefy%20SRS.pdf) | Especificación de requisitos de software, revisión 1.0 |
 

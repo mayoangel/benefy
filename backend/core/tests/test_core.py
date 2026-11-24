@@ -20,11 +20,27 @@ class HealthCheckTests(SimpleTestCase):
             {"service": "backend", "status": "ok"},
         )
 
+    def test_liveness_no_consulta_base(self):
+        response = self.client.get("/health/live/")
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(
+            response.content,
+            {"service": "backend", "status": "ok"},
+        )
+
 
 class HealthCheckDatabaseTests(TestCase):
     def test_health_check_db_consulta_postgresql(self):
         response = self.client.get("/health/db/")
 
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(
+            response.content,
+            {"service": "backend", "status": "ok", "database": "ok"},
+        )
+
+    def test_readiness_consulta_base(self):
+        response = self.client.get("/health/ready/")
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(
             response.content,
