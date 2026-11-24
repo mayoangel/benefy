@@ -2,15 +2,58 @@ import { createThemedStyles, useBenefyTheme } from '../theme';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useRef, useState } from 'react';
-import { AppState, Linking, StyleSheet, Text, View } from 'react-native';
-import { businessById, movements } from './preview';
-import { BusinessMark } from './business';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState, Image, Linking, StyleSheet, Text, View } from 'react-native';
+import { useAuth } from '../auth/AuthContext';
+import {
+  ApiError,
+  registrarVisita,
+  resolverQr,
+  type NegocioQr,
+  type ResolverQrResultado,
+  type VisitaResultado,
+} from '../lib/api';
+import { useScanSession } from './scanSession';
 import { Button, Card, Copy, Heading, Notice, Screen, Skeleton } from './ui';
+
+const UUID_QR = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const scanErrors: Record<string, string> = {
+  qr_invalido: 'El código no corresponde a un negocio o sucursal de Benefy.',
+  negocio_inactivo: 'El negocio o la sucursal están inactivos. Pide un código vigente.',
+  cuenta_inactiva: 'Tu cuenta está inactiva. Contacta al equipo de Benefy.',
+  api_no_configurada: 'La conexión con Benefy no está configurada en esta instalación.',
+  red: 'No se pudo conectar con Benefy. Revisa tu conexión e intenta de nuevo.',
+  sin_sesion: 'Tu sesión no está disponible. Vuelve a iniciar sesión.',
+};
+
+function mensajeError(error: unknown) {
+  return error instanceof Error ? error.message : 'No se pudo completar la operación.';
+}
+
+function QrBusinessMark({ negocio, size = 64 }: { negocio: NegocioQr; size?: number }) {
+  if (negocio.logo_url) {
+    return <Image source={{ uri: negocio.logo_url }} style={{ width: size, height: size, borderRadius: 16 }} />;
+  }
+  return <View style={{
+    width: size,
+    height: size,
+    borderRadius: 16,
+    backgroundColor: '#E8F4EE',
+    alignItems: 'center',
+    justifyContent: 'center',
+  }}>
+    <Text style={{ color: '#006c4b', fontSize: size * 0.38, fontWeight: '800' }}>
+      {negocio.nombre.trim().slice(0, 1).toUpperCase() || 'B'}
+    </Text>
+  </View>;
+}
 
 export function RegisterScreen() {
   const { colors } = useBenefyTheme();
   const cameraStyles = useCameraStyles();
+  const { session } = useAuth();
+  const { clear } = useScanSession();
   const [permission, requestPermission, refreshPermission] = useCameraPermissions();
   const [active, setActive] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -19,6 +62,7 @@ export function RegisterScreen() {
   useFocusEffect(useCallback(() => {
     scanned.current = false;
     setFocused(true);
+    clear();
     const refresh = () => void refreshPermission().catch(() => setError('No se pudo consultar el permiso de cámara.'));
     refresh();
     const listener = AppState.addEventListener('change', state => {
@@ -28,21 +72,28 @@ export function RegisterScreen() {
       listener.remove();
       setFocused(false);
     };
-  }, [refreshPermission]));
+  }, [clear, refreshPermission]));
 
   const scan = (raw: string) => {
     if (scanned.current) return;
     scanned.current = true;
     setFocused(false);
-    const text = raw.trim().toLowerCase();
-    const parts = /^benefy-demo:(blend|fuerza|nutrimax)(?::(nuevo|vencido))?$/.exec(text);
-    if (!parts || parts[2]?.toLowerCase() === 'vencido') {
+    const text = raw.trim();
+    if (!session?.access_token) {
       router.push({ pathname: '/scan/error', params: {
-        reason: parts ? 'vencido' : text.startsWith('benefy-demo:') ? 'invalido' : 'ajeno',
+        codigo: 'sin_sesion',
+        detalle: scanErrors.sin_sesion,
       } });
       return;
     }
-    router.push({ pathname: '/scan/confirm', params: { id: parts[1], join: parts[2] === 'nuevo' ? '1' : '0' } });
+    if (!UUID_QR.test(text)) {
+      router.push({ pathname: '/scan/error', params: {
+        codigo: 'qr_invalido',
+        detalle: scanErrors.qr_invalido,
+      } });
+      return;
+    }
+    router.push({ pathname: '/scan/confirm', params: { qr: text.toLowerCase() } });
   };
 
   const allowCamera = async () => {
@@ -92,44 +143,141 @@ export function RegisterScreen() {
 }
 
 export function ScanConfirmScreen() {
-  const { id, join } = useLocalSearchParams<{ id: string; join?: string }>();
-  const business = businessById(id);
-  const [checkedAt] = useState(() => Date.now());
-  const [error, setError] = useState(false);
-  const recentlyRegistered = join !== '1' && movements.some(item =>
-    item.business === id && item.kind === 'Visita registrada' && checkedAt - item.date < 5 * 60_000);
+  const { qr } = useLocalSearchParams<{ qr?: string }>();
+  const { session } = useAuth();
+  const token = session?.access_token;
+  const { setResolution, setResult } = useScanSession();
+  const [resolution, setLocalResolution] = useState<ResolverQrResultado | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [intento, setIntento] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    if (!qr || !token) {
+      void Promise.resolve().then(() => {
+        if (!active) return;
+        setLoading(false);
+        setError(qr ? scanErrors.sin_sesion : 'No se recibió un código QR válido.');
+      });
+      return () => { active = false; };
+    }
+    resolverQr(qr, token).then(
+      respuesta => {
+        if (!active) return;
+        setLocalResolution(respuesta);
+        setResolution(respuesta);
+      },
+      err => {
+        if (!active) return;
+        if (err instanceof ApiError && ['qr_invalido', 'negocio_inactivo', 'cuenta_inactiva'].includes(err.codigo ?? '')) {
+          router.replace({ pathname: '/scan/error', params: {
+            codigo: err.codigo ?? 'qr_invalido',
+            detalle: err.message,
+          } });
+          return;
+        }
+        setError(mensajeError(err));
+      },
+    ).finally(() => {
+      if (active) setLoading(false);
+    });
+    return () => { active = false; };
+  }, [qr, token, setResolution, intento]);
+
+  function reintentar() {
+    setLoading(true);
+    setError(null);
+    setIntento(valor => valor + 1);
+  }
+
+  const confirmar = async () => {
+    if (!qr || !session?.access_token || !resolution) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const resultado: VisitaResultado = await registrarVisita(qr, session.access_token);
+      setResult(resultado);
+      router.replace('/scan/success');
+    } catch (err) {
+      if (err instanceof ApiError && ['qr_invalido', 'negocio_inactivo', 'cuenta_inactiva'].includes(err.codigo ?? '')) {
+        router.replace({ pathname: '/scan/error', params: {
+          codigo: err.codigo ?? 'qr_invalido',
+          detalle: err.message,
+        } });
+        return;
+      }
+      setError(mensajeError(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return <Screen title="Confirmar registro">
-    {business ? <Card>
-      <BusinessMark business={business} size={72} />
-      <Heading>{join === '1' ? `Unirte a ${business.name} y registrar tu primera visita` : `Registrar visita en ${business.name}`}</Heading>
-      <Copy>{business.address} · Registro de una visita</Copy>
-      {recentlyRegistered && <Copy>Ya registraste una visita en este negocio hace unos minutos.</Copy>}
-      <Copy>La lectura del código por sí sola no acredita visitas ni puntos.</Copy>
-      {error && <Copy>Conecta una sesión al servidor para confirmar el registro. Tu progreso sigue intacto.</Copy>}
-      <Button label="Confirmar" disabled={recentlyRegistered} onPress={() => setError(true)} />
-      <Button label="Cancelar" kind="quiet" onPress={() => router.navigate('/register')} />
-    </Card> : <Notice title="No se reconoce el negocio de este código" />}
+    {loading && <Skeleton />}
+    {!loading && error && <Notice title="No se pudo validar el código" message={error} retry={reintentar} />}
+    {!loading && resolution && <Card>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <QrBusinessMark negocio={resolution.negocio} />
+        <View style={{ flex: 1 }}>
+          <Heading>{resolution.negocio.nombre}</Heading>
+          <Copy>{resolution.sucursal?.nombre ?? 'Negocio completo'}</Copy>
+        </View>
+      </View>
+      <Copy>Registraremos una visita válida para hoy. El servidor verificará el límite diario y otorgará los puntos o sellos que correspondan.</Copy>
+      <Button label={busy ? 'Registrando…' : 'Confirmar visita'} disabled={busy} onPress={() => void confirmar()} />
+      <Button label="Cancelar" kind="quiet" onPress={() => router.back()} />
+    </Card>}
   </Screen>;
 }
 
 export function ScanResultScreen() {
-  return <Screen title="Resultado del registro">
-    <Notice title="Visita sin confirmar" message="Aquí aparecerán el progreso y los premios cuando el servidor confirme tu visita." />
-    <Button label="Registrar otro" onPress={() => router.navigate('/register')} />
+  const { resolution, result, clear } = useScanSession();
+  if (!result) {
+    return <Screen title="Resultado del registro">
+      <Notice title="No hay una visita reciente" message="Escanea el QR del negocio para registrar tu visita." />
+      <Button label="Volver al escáner" onPress={() => router.replace('/register')} />
+    </Screen>;
+  }
+  const negocio = resolution?.negocio;
+  return <Screen title={result.already_registered ? 'Visita ya registrada' : 'Visita registrada'}>
+    <Card>
+      <Heading>{result.already_registered ? 'Tu visita de hoy ya estaba registrada' : `¡Bienvenido a ${negocio?.nombre ?? 'tu negocio'}!`}</Heading>
+      <Copy>{resolution?.sucursal?.nombre ?? negocio?.nombre ?? 'Benefy'}</Copy>
+      {result.puntos_otorgados > 0
+        ? <Heading>+{result.puntos_otorgados} puntos</Heading>
+        : <Copy>No se otorgaron puntos adicionales en esta visita.</Copy>}
+    </Card>
+    {result.tarjetas.length > 0 && <Card>
+      <Heading>Tarjetas de sellos</Heading>
+      {result.tarjetas.map(tarjeta => <Copy key={`${tarjeta.ciclo}-${tarjeta.dinamica}`}>
+        {tarjeta.completado
+          ? `¡Completaste una tarjeta! ${tarjeta.sellos_actuales} de ${tarjeta.meta} sellos.`
+          : `Avance: ${tarjeta.sellos_actuales} de ${tarjeta.meta} sellos.`}
+      </Copy>)}
+    </Card>}
+    {result.cupones_emitidos.length > 0 && <Card>
+      <Heading>Cupones desbloqueados</Heading>
+      <Copy>Se emitieron {result.cupones_emitidos.length} cupón{result.cupones_emitidos.length === 1 ? '' : 'es'}.</Copy>
+    </Card>}
+    <Button label="Escanear otro negocio" icon="qr-code-scanner" onPress={() => {
+      clear();
+      router.replace('/register');
+    }} />
+    <Button label="Volver al inicio" kind="quiet" onPress={() => {
+      clear();
+      router.replace('/');
+    }} />
   </Screen>;
 }
 
-const errors: Record<string, string> = {
-  vencido: 'Este código venció. Solicita un código vigente en el negocio.',
-  invalido: 'El código está incompleto o contiene datos inválidos.',
-  ajeno: 'El código no pertenece a un negocio de Benefy.',
-};
-
 export function ScanErrorScreen() {
-  const { reason } = useLocalSearchParams<{ reason: string }>();
+  const { codigo, detalle } = useLocalSearchParams<{ codigo?: string; detalle?: string }>();
+  const message = detalle || scanErrors[codigo ?? ''] || 'No se pudo registrar la visita.';
   return <Screen title="No se pudo leer el código">
-    <Notice title="⚠ Código rechazado" message={errors[reason] ?? errors.invalido} />
-    <Button label="Volver a escanear" onPress={() => router.navigate('/register')} />
+    <Notice title="Código rechazado" message={message} />
+    <Button label="Volver a escanear" onPress={() => router.replace('/register')} />
   </Screen>;
 }
 

@@ -66,7 +66,7 @@ modifican con los endpoints transaccionales correspondientes.
 | GET | `/api/v1/mi/contexto/` | Perfil, membresías, negocios, sucursales y `puede_portal` |
 | PATCH | `/api/v1/usuario/rol/{id}/` | Cambiar `rol` o `is_active`; solo `admin_sistema` |
 
-Hay 119 rutas de API en total. El login, registro de identidad, refresh y logout
+Hay 120 rutas de API en total. El login, registro de identidad, refresh y logout
 ocurren en Supabase Auth, no bajo `/api/v1`. `usuario/crear/` crea el perfil
 Benefy después del login.
 
@@ -221,6 +221,7 @@ está en [autenticación](./autenticacion.md#matriz-de-permisos).
 
 | Método | Ruta | Acceso y uso |
 | --- | --- | --- |
+| POST | `/api/v1/visitas/resolver/` | Consumidor; resuelve el comercio de un QR sin registrar la visita |
 | POST | `/api/v1/visitas/registrar/` | Consumidor; visita con QR de negocio o sucursal |
 | GET | `/api/v1/mi/billetera/` | Consumidor; saldos, tarjetas en curso y cupones |
 | GET | `/api/v1/mi/historial/` | Consumidor; visitas, movimientos y canjes propios |
@@ -231,6 +232,21 @@ está en [autenticación](./autenticacion.md#matriz-de-permisos).
 | POST | `/api/v1/admin/visitas/{id}/anular/` | `admin_sistema`; anula visita con motivo |
 | POST | `/api/v1/admin/cupones/{uuid}/anular/` | `admin_sistema`; anula cupón con motivo |
 | GET | `/api/v1/negocios/{id}/metricas/` | Dueño, supervisor, empleado o admin; métricas por rango |
+
+### Resolver QR antes de registrar
+
+```http
+POST /api/v1/visitas/resolver/
+Authorization: Bearer <access_token>
+Content-Type: application/json
+
+{"qr_uuid":"3f1c2a9e-8f4b-4f2a-9c1d-2b7e6a5d4c3b"}
+```
+
+Devuelve el negocio, la sucursal —o `null` si es el QR del negocio completo— y
+`puede_registrar`. No crea visitas ni consume el límite diario. Un QR inexistente
+responde `404 qr_invalido`; un negocio o sucursal inactivos responden
+`403 negocio_inactivo`.
 
 ### Registrar visita
 

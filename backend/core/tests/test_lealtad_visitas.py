@@ -34,6 +34,52 @@ class VisitasAPITests(TestCase):
             'qr_uuid': str(qr or self.business.qr_uuid),
         }, format='json')
 
+    def resolver(self, qr=None, client=None):
+        return (client or self.client).post('/api/v1/visitas/resolver/', {
+            'qr_uuid': str(qr or self.business.qr_uuid),
+        }, format='json')
+
+    def test_resolver_qr_de_negocio_no_registra_visita(self):
+        response = self.resolver()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['negocio']['id'], self.business.pk)
+        self.assertEqual(response.data['negocio']['nombre'], self.business.nombre)
+        self.assertIsNone(response.data['sucursal'])
+        self.assertTrue(response.data['puede_registrar'])
+        self.assertEqual(models.RegistroActividad.objects.count(), 0)
+        self.assertEqual(models.SaldoPuntos.objects.count(), 0)
+
+    def test_resolver_qr_de_sucursal_devuelve_la_sucursal(self):
+        response = self.resolver(self.branch.qr_uuid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['sucursal']['id'], self.branch.pk)
+        self.assertEqual(response.data['sucursal']['nombre'], self.branch.nombre)
+
+    def test_resolver_qr_invalido_no_crea_datos(self):
+        response = self.resolver(uuid4())
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.data['codigo'], 'qr_invalido')
+        self.assertEqual(models.RegistroActividad.objects.count(), 0)
+
+    def test_resolver_negocio_o_sucursal_inactivos(self):
+        self.business.status = False
+        self.business.save(update_fields=['status'])
+        response = self.resolver()
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.data['codigo'], 'negocio_inactivo')
+
+        self.business.status = True
+        self.business.save(update_fields=['status'])
+        self.branch.status = False
+        self.branch.save(update_fields=['status'])
+        response = self.resolver(self.branch.qr_uuid)
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.data['codigo'], 'negocio_inactivo')
+
+    def test_resolver_requiere_autenticacion(self):
+        response = self.resolver(client=APIClient())
+        self.assertEqual(response.status_code, 401)
+
     def test_primera_visita_otorga_puntos_y_avanza_tarjeta(self):
         response = self.registrar()
         self.assertEqual(response.status_code, 201)

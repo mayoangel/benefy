@@ -6,6 +6,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '../auth/AuthContext';
 import { PreviewProvider } from '../features/preview';
+import { ScanSessionProvider } from '../features/scanSession';
 import { BenefyThemeProvider, useBenefyTheme } from '../theme';
 
 const accountRoutes = [
@@ -31,14 +32,16 @@ function Routes() {
     {loading ? <View style={{ flex: 1, justifyContent: 'center', backgroundColor: colors.background }}>
       <ActivityIndicator accessibilityLabel="Cargando sesión" color={colors.green} />
     </View> : <PreviewProvider accountId={session?.user.id}>
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
-        <Stack.Protected guard={signedIn}>
-          {accountRoutes.map(name => <Stack.Screen key={name} name={name} />)}
-        </Stack.Protected>
-        <Stack.Protected guard={!signedIn}>
-          <Stack.Screen name="auth" />
-        </Stack.Protected>
-      </Stack>
+      <ScanSessionProvider accountId={session?.user.id}>
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
+          <Stack.Protected guard={signedIn}>
+            {accountRoutes.map(name => <Stack.Screen key={name} name={name} />)}
+          </Stack.Protected>
+          <Stack.Protected guard={!signedIn}>
+            <Stack.Screen name="auth" />
+          </Stack.Protected>
+        </Stack>
+      </ScanSessionProvider>
     </PreviewProvider>}
   </ThemeProvider>;
 }

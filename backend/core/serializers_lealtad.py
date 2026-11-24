@@ -12,6 +12,22 @@ class RegistrarVisitaSerializer(serializers.Serializer):
     )
 
 
+class ResolverVisitaSerializer(serializers.Serializer):
+    qr_uuid = serializers.UUIDField()
+
+
+class NegocioQrSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Negocio
+        fields = ['id', 'nombre', 'logo_url']
+
+
+class SucursalQrSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Sucursal
+        fields = ['id', 'nombre']
+
+
 class AdquirirCuponSerializer(serializers.Serializer):
     recompensa = serializers.IntegerField(min_value=1)
     clave_idempotencia = serializers.UUIDField()

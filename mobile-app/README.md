@@ -10,13 +10,19 @@ comercios, la tienda de cupones, el historial, los avisos y la configuración.
 Expo Router usa `expo-router/entry` como entrada y las rutas viven en
 `src/app/`. La configuración de Expo está en `app.json`.
 
-- Los comercios, movimientos, avisos, recompensas y el perfil son datos de
-  demostración. Las operaciones sobre una cuenta real requieren una sesión
-  autenticada y una conexión a la API móvil. La demostración no acredita
-  visitas, descuenta puntos, confirma canjes ni modifica cuentas.
-- La pestaña Registrar usa la cámara para leer QR. Para probar el recorrido
-  local se puede codificar `benefy-demo:blend`, `benefy-demo:blend:nuevo` o
-  `benefy-demo:blend:vencido` en un QR. No se toman ni se guardan imágenes.
+- Los comercios, movimientos, avisos, recompensas y el perfil siguen siendo
+  datos de demostración. El registro de visitas desde el escáner sí está
+  conectado a la API y requiere una sesión autenticada. La demostración no
+  descuenta puntos, confirma canjes ni modifica cuentas fuera del registro de
+  visitas.
+- La pestaña Registrar usa la cámara para leer el `qr_uuid` real del negocio o
+  sucursal. El QR se resuelve contra Django, se confirma el comercio y se
+  registra la visita con la sesión de Supabase. No se toman ni se guardan
+  imágenes.
+- La visita real actualiza puntos, tarjetas y cupones en el servidor. La
+  cartera, el historial y el catálogo móvil siguen siendo datos de
+  demostración en esta entrega; el resultado inmediato sí muestra la respuesta
+  real del registro.
 - La app usa el selector de fotos del dispositivo y consulta los permisos del
   sistema para avisos. La bandeja y las preferencias de demostración viven en
   memoria. La entrega de notificaciones push requiere integración de servidor.
@@ -60,15 +66,16 @@ sesión con Supabase. Configura la plantilla de recuperación de Supabase para
 enviar el código OTP que solicita la pantalla de recuperación.
 
 Para un dispositivo físico, `EXPO_PUBLIC_API_URL` deberá usar la IP LAN del
-equipo que ejecuta Django, por ejemplo `http://192.168.1.50:8000/api`.
+equipo que ejecuta Django, por ejemplo `http://192.168.1.50:8001/api` con
+Docker Compose o `http://192.168.1.50:8000/api` con `runserver` local.
 `localhost` en el teléfono apunta al propio teléfono. Comprueba red y firewall.
 El backend del montaje de demostración está ligado al loopback del servidor;
 requiere publicación HTTPS para el acceso móvil externo.
 
 La autenticación usa Supabase Auth y el cliente consulta el perfil en Django
-cuando hay una URL de API configurada. Las pantallas de recompensas y registro
-de visitas usan datos de demostración. Consulta [autenticación](../docs/autenticacion.md)
-y [API](../docs/api.md).
+cuando hay una URL de API configurada. El escáner registra visitas reales; las
+demás pantallas de recompensas y cartera siguen usando datos de demostración.
+Consulta [autenticación](../docs/autenticacion.md) y [API](../docs/api.md).
 
 Nunca uses variables `EXPO_PUBLIC_*` para passwords, claves secretas o
 credenciales de PostgreSQL. La app se ejecuta fuera de Docker.

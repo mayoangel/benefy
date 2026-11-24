@@ -19,6 +19,7 @@ urlpatterns = [
     path("v1/onboarding/comercial/", views_onboarding.CompletarRegistroComercialAPIView.as_view(), name="onboarding-comercial"),
 
     # Motor de lealtad
+    path("v1/visitas/resolver/", views_lealtad.ResolverVisitaAPIView.as_view(), name="visita-resolver"),
     path("v1/visitas/registrar/", views_lealtad.RegistrarVisitaAPIView.as_view(), name="visita-registrar"),
     path("v1/mi/contexto/", views_portal.MiContextoAPIView.as_view(), name="mi-contexto"),
     path("v1/mi/billetera/", views_lealtad.BilleteraAPIView.as_view(), name="mi-billetera"),

@@ -18,12 +18,15 @@ from core.serializers_lealtad import (
     CuponLealtadSerializer,
     MotivoSerializer,
     MovimientoPuntosSerializer,
+    NegocioQrSerializer,
     RegistrarVisitaSerializer,
+    ResolverVisitaSerializer,
     SaldoPuntosSerializer,
+    SucursalQrSerializer,
     VisitaResumenSerializer,
 )
 from core.services.lealtad import cupones, metricas, puntos, visitas
-from core.services.lealtad.errores import ErrorLealtad
+from core.services.lealtad.errores import CuentaInactiva, ErrorLealtad, NegocioInactivo
 from core.utils.tiempo import fecha_negocio
 
 
@@ -42,6 +45,36 @@ def _negocio_filtro(request):
         return int(negocio_id)
     except (TypeError, ValueError):
         return None
+
+
+class ResolverVisitaAPIView(APIView):
+    """Resuelve un QR sin registrar la visita, para confirmar el comercio."""
+
+    permission_classes = [permissions.PuedeConsumir]
+
+    def post(self, request):
+        serializer = ResolverVisitaSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        if not request.user.is_active:
+            return _error(CuentaInactiva())
+        try:
+            negocio, sucursal = visitas.resolver_qr(
+                serializer.validated_data['qr_uuid'],
+            )
+        except ErrorLealtad as exc:
+            return _error(exc)
+        if not negocio.status:
+            return _error(NegocioInactivo('El negocio está inactivo.'))
+        if sucursal is not None and not sucursal.status:
+            return _error(NegocioInactivo('La sucursal está inactiva.'))
+        return Response({
+            'negocio': NegocioQrSerializer(negocio, context={'request': request}).data,
+            'sucursal': (
+                SucursalQrSerializer(sucursal).data
+                if sucursal is not None else None
+            ),
+            'puede_registrar': True,
+        })
 
 
 class RegistrarVisitaAPIView(APIView):
