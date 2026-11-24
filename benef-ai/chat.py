@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, PositiveInt, ValidationError, field_validator
 
 from google import genai
+from google.genai import types
 
 from queries import ( #Consultas para hacer
     CanjesConsulta,
@@ -40,6 +41,17 @@ router = APIRouter(tags=["Chat"])
 MAX_TOOL_ROUNDS = 4
 MAX_TOOL_CALLS = 4
 MAX_HISTORY_TURNS = 12
+
+
+def _gemini_timeout_ms():
+    try:
+        valor = int(os.getenv("GEMINI_TIMEOUT_MS", "30000"))
+    except (TypeError, ValueError):
+        return 30000
+    return valor if 1000 <= valor <= 120000 else 30000
+
+
+GEMINI_TIMEOUT_MS = _gemini_timeout_ms()
 
 #Identidad de Benef-AI
 SYSTEM_INSTRUCTION = """ 
@@ -186,65 +198,71 @@ def chat(
         raise HTTPException(status_code=503, detail="El proveedor Gemini no está configurado.")
 
     model_name = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite")
-    client = genai.Client(api_key=api_key)
-    interaction_history = _interaction_history(request)
-    tools_used: list[str] = []
-
-    for tool_round in range(MAX_TOOL_ROUNDS + 1):
-        try:
-            interaction = client.interactions.create(
-                model=model_name,
-                input=interaction_history,
-                tools=[TOOL_DECLARATION],
-                system_instruction=SYSTEM_INSTRUCTION,
-                store=False,
-            )
-        except Exception as exc:
-            raise HTTPException(
-                status_code=502,
-                detail="No fue posible obtener una respuesta de Gemini.",
-            ) from exc
-
-        steps = interaction.steps or []
-        function_calls = [step for step in steps if step.type == "function_call"]
-        if not function_calls:
-            answer = (interaction.output_text or "").strip()
-            if not answer:
-                raise HTTPException(status_code=502, detail="Gemini devolvió una respuesta vacía.")
-            return ChatResponse(answer=answer, tools_used=tools_used)
-        if (
-            tool_round == MAX_TOOL_ROUNDS
-            or len(tools_used) + len(function_calls) > MAX_TOOL_CALLS
-        ):
-            raise HTTPException(
-                status_code=502,
-                detail="Se alcanzó el límite de consultas en una sola respuesta.",
-            )
-
-        interaction_history.extend(
-            step.model_dump(exclude_none=True) for step in steps
-        )
-        for call in function_calls:
-            if call.name != "consultar_datos_negocio":
-                raise HTTPException(status_code=502, detail="Gemini solicitó una tool no permitida.")
-            arguments = call.arguments if isinstance(call.arguments, dict) else {}
-            result = _run_tool(
-                call.name, arguments, request.negocio_id, access_token,
-            )
-            consulta = arguments.get("consulta")
-            if consulta in TOOL_HANDLERS:
-                tools_used.append(consulta)
-            interaction_history.append({
-                "type": "function_result",
-                "name": call.name,
-                "call_id": call.id,
-                "result": [{
-                    "type": "text",
-                    "text": json.dumps(result, ensure_ascii=False, default=str),
-                }],
-            })
-
-    raise HTTPException(
-        status_code=502,
-        detail="Se alcanzó el límite de consultas en una sola respuesta.",
+    client = genai.Client(
+        api_key=api_key,
+        http_options=types.HttpOptions(timeout=GEMINI_TIMEOUT_MS),
     )
+    try:
+        interaction_history = _interaction_history(request)
+        tools_used: list[str] = []
+
+        for tool_round in range(MAX_TOOL_ROUNDS + 1):
+            try:
+                interaction = client.interactions.create(
+                    model=model_name,
+                    input=interaction_history,
+                    tools=[TOOL_DECLARATION],
+                    system_instruction=SYSTEM_INSTRUCTION,
+                    store=False,
+                )
+            except Exception as exc:
+                raise HTTPException(
+                    status_code=502,
+                    detail="No fue posible obtener una respuesta de Gemini.",
+                ) from exc
+
+            steps = interaction.steps or []
+            function_calls = [step for step in steps if step.type == "function_call"]
+            if not function_calls:
+                answer = (interaction.output_text or "").strip()
+                if not answer:
+                    raise HTTPException(status_code=502, detail="Gemini devolvió una respuesta vacía.")
+                return ChatResponse(answer=answer, tools_used=tools_used)
+            if (
+                tool_round == MAX_TOOL_ROUNDS
+                or len(tools_used) + len(function_calls) > MAX_TOOL_CALLS
+            ):
+                raise HTTPException(
+                    status_code=502,
+                    detail="Se alcanzó el límite de consultas en una sola respuesta.",
+                )
+
+            interaction_history.extend(
+                step.model_dump(exclude_none=True) for step in steps
+            )
+            for call in function_calls:
+                if call.name != "consultar_datos_negocio":
+                    raise HTTPException(status_code=502, detail="Gemini solicitó una tool no permitida.")
+                arguments = call.arguments if isinstance(call.arguments, dict) else {}
+                result = _run_tool(
+                    call.name, arguments, request.negocio_id, access_token,
+                )
+                consulta = arguments.get("consulta")
+                if consulta in TOOL_HANDLERS:
+                    tools_used.append(consulta)
+                interaction_history.append({
+                    "type": "function_result",
+                    "name": call.name,
+                    "call_id": call.id,
+                    "result": [{
+                        "type": "text",
+                        "text": json.dumps(result, ensure_ascii=False, default=str),
+                    }],
+                })
+
+        raise HTTPException(
+            status_code=502,
+            detail="Se alcanzó el límite de consultas en una sola respuesta.",
+        )
+    finally:
+        client.close()

@@ -214,7 +214,9 @@ def actualizar_membresia(*, membresia, cambios, actor=None, motivo=''):
         return membresia
 
 
-def desactivar_membresia(*, membresia, actor=None, motivo=''):
+def desactivar_membresia(
+    *, membresia, actor=None, motivo='', validar_propietario=True,
+):
     """Baja lógica de la membresía; conserva el registro y su auditoría."""
     with transaction.atomic():
         membresia = models.UsuarioNegocio.objects.select_for_update(
@@ -224,7 +226,8 @@ def desactivar_membresia(*, membresia, actor=None, motivo=''):
         ).get(pk=membresia.pk)
         if not membresia.status:
             return membresia
-        _validar_propietario_restante(membresia)
+        if validar_propietario:
+            _validar_propietario_restante(membresia)
         anteriores = _snapshot(membresia)
         membresia.status = False
         membresia.fecha_baja = timezone.now()

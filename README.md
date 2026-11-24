@@ -9,11 +9,11 @@ con `python dev.py up`, sin instalar Node ni Django en el host.
 
 | Componente | Implementado | Pendiente |
 | --- | --- | --- |
-| Backend | Django 5.2 + DRF, 29 modelos, 20 migraciones de `core`, 120 rutas API, motor de visitas/puntos/tarjetas/cupones, alianzas bilaterales auditadas con cupos Free/Premium, membresías auditadas, onboarding idempotente, invitaciones, aislamiento por sucursal, planes Free/Premium, Stripe Billing Sandbox y Django Admin | Analítica avanzada, Stripe live y facturación fiscal |
-| Identidad | Supabase Auth con login web real, sesión persistente, refresh, recuperación, onboarding automático e invitaciones; perfiles/roles en Django | Integración de Auth en la app móvil |
+| Backend | Django 5.2 + DRF, 30 modelos, 22 migraciones de `core`, 122 rutas API, motor de visitas/puntos/tarjetas/cupones, alianzas bilaterales auditadas con cupos Free/Premium, membresías auditadas, onboarding idempotente, invitaciones, aislamiento por sucursal, planes Free/Premium, Stripe Billing Sandbox y Django Admin | Analítica avanzada, Stripe live y facturación fiscal |
+| Identidad | Supabase Auth con login web real, sesión persistente, refresh, recuperación, onboarding automático e invitaciones; perfiles/roles en Django | Perfil, foto y baja desde la app móvil |
 | Web | Landing React 18 + Vite y portal conectado: dashboards por rol, configuración, sucursales con QR imprimible, puntos, tarjetas, recompensas, alianzas, equipo, visitas, cupones, canjes, clientes y pantalla de suscripción con Checkout/Customer Portal Sandbox | Exportaciones y E2E en CI |
-| Móvil | Dashboard Benefy en Expo SDK 58 con resumen de puntos, retos, cupones y pestañas de demostración | Datos reales, Auth, cámara QR/NFC y cliente API |
-| Benef AI | FastAPI y endpoint de estado | Agente, proveedor LLM, herramientas y comunicación autenticada con Django |
+| Móvil | Dashboard Benefy en Expo SDK 58, Auth Supabase, escáner QR real y resultado de visita | Perfil/foto/baja, cartera e historial reales, notificaciones push |
+| Benef AI | FastAPI con chat, consultas autenticadas, health checks y Docker de producción | Despliegue en Railway y validación de red real |
 | Hardware | Carpeta de documentación | Firmware ESP32-S3 e integración física |
 
 El backend implementa el flujo transaccional del MVP: visitas por QR con
@@ -23,7 +23,7 @@ negocio. El CRUD genérico de esas entidades es solo lectura; las operaciones
 pasan por endpoints y servicios dedicados. La web ya consume la API con JWT de
 Supabase. Free/Premium aplica límites reales desde Django y el portal permite
 configurar el negocio, operar el programa, imprimir QR y gestionar alianzas.
-Faltan el escáner móvil, Stripe en live/facturación fiscal y las funciones Premium avanzadas. Detalles en
+Faltan el perfil/foto/baja móvil, la cartera e historial reales, notificaciones push, Stripe en live/facturación fiscal y las funciones Premium avanzadas. Detalles en
 [reglas de lealtad](./docs/reglas-lealtad.md),
 [planes Free/Premium](./docs/planes-free-premium.md), [API](./docs/api.md) y
 [autenticación](./docs/autenticacion.md).
@@ -86,16 +86,21 @@ solo proporciona PostgreSQL aislado para pruebas; no es otro despliegue.
 Las pruebas de Django se ejecutan con `python dev.py test-backend --local`,
 nunca contra la base remota de demostración.
 
-La app móvil sigue siendo un subproyecto Expo con datos simulados. No forma
+La app móvil ya usa Supabase Auth y el escáner QR real; la cartera, el historial, el perfil y la baja siguen pendientes de integrar en sus pantallas. No forma
 parte del arranque Compose ni necesita credenciales para su estado actual.
 
 ## Documentación y convenciones
 
 - [API](./docs/api.md): rutas, permisos y errores implementados.
 - [Autenticación y permisos](./docs/autenticacion.md): Supabase Auth, sesión web, roles y onboarding.
+- [Eliminación de cuenta](./docs/eliminacion-cuenta.md): anonimización, propiedad y reintentos.
+- [Avatares en Supabase Storage](./docs/supabase-storage-avatares.md): bucket, RLS y contrato de foto.
 - [Reglas de lealtad](./docs/reglas-lealtad.md): visitas, puntos, tarjetas y cupones.
 - [Planes Free y Premium](./docs/planes-free-premium.md): límites y cambios de plan.
 - [Facturación Stripe Sandbox](./docs/facturacion-stripe-sandbox.md): Checkout, webhooks, portal y pruebas sin dinero real.
+- [Despliegue en Railway](./docs/despliegue-railway.md): imagen de producción, variables, dominio y verificación.
+- [Despliegue de Benef AI](./docs/despliegue-benef-ai.md): servicio FastAPI, red privada y timeouts.
+- [Migraciones de producción](./docs/migraciones-produccion.md): respaldo, aplicación y recuperación.
 - [SRS original](./docs/Benefy%20SRS.pdf): requisitos de producto; no certifica implementación.
 
 Las guías y comentarios nuevos se escriben en español; los identificadores

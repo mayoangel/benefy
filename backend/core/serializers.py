@@ -5,7 +5,7 @@ from rest_framework import serializers
 from django.utils import timezone
 
 from core import models
-from core.services import planes
+from core.services import planes, supabase_storage
 
 
 def validar_zona_horaria(value):
@@ -46,6 +46,22 @@ class UsuarioSerializerCreate(serializers.ModelSerializer):
         if not value.strip():
             raise serializers.ValidationError("El apellido no puede estar vacío.")
         return value
+
+    def validate_foto_perfil(self, value):
+        if not value:
+            return value
+        if self.instance is not None and value == self.instance.foto_perfil:
+            return value
+        request = self.context.get('request')
+        usuario = getattr(request, 'user', None)
+        uid = (
+            getattr(usuario, 'supabase_uid', None)
+            or getattr(usuario, 'uid', None)
+        )
+        try:
+            return supabase_storage.validar_foto_perfil(value, uid)
+        except supabase_storage.FotoPerfilInvalida as exc:
+            raise serializers.ValidationError(exc.detalle) from None
 
 #List
 class UsuarioSerializerList(serializers.ModelSerializer):

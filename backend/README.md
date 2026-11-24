@@ -1,13 +1,16 @@
 # Backend
 
 API Django 5.2 + Django REST Framework. La configuración está en `config/`;
-`core/` contiene 29 modelos, serializers, vistas, permisos y 20 migraciones
+`core/` contiene 30 modelos, serializers, vistas, permisos y 22 migraciones
 de dominio. La entrada de URLs es `config/urls.py`.
 
 ## Funcionalidad disponible
 
-- 120 rutas API: CRUD administrativo, identidad/contexto/onboarding, lealtad, planes, operaciones, invitaciones, alianzas y facturación Stripe Sandbox.
+- 122 rutas API: CRUD administrativo, identidad/contexto/onboarding, baja de cuenta, directorio móvil, lealtad, planes, operaciones, invitaciones, alianzas y facturación Stripe Sandbox.
 - Verificación de sesiones Supabase Auth y permisos según usuario, negocio y sucursal.
+- Perfil propio editable con foto validada contra Supabase Storage y baja idempotente con anonimización y borrado de identidad Supabase.
+- Directorio de negocios activos para consumidores con búsqueda, filtro por categoría y paginación.
+- Respuestas móviles enriquecidas con nombre, slug y logo del negocio.
 - Onboarding comercial idempotente: perfil, negocio, membresía de dueño y plan Free desde una sola captura.
 - Aislamiento por sucursal en visitas, registros de actividad, canjes y métricas; los cupones globales solo los ve el dueño.
 - Planes Free/Premium con límites configurables, Free automático, cambio manual auditado y bloqueo transaccional de altas por encima del cupo.
@@ -21,11 +24,25 @@ de dominio. La entrada de URLs es `config/urls.py`.
 - Django Admin con los modelos registrados y cuentas staff separadas de los perfiles Benefy.
 - PostgreSQL Supabase con SSL para desarrollo/demo y PostgreSQL aislado para pruebas.
 - Stripe Checkout/Billing, webhooks idempotentes, Customer Portal, precios 399/3,990 MXN y reconciliación, exclusivamente en Sandbox/Test Mode.
-- Comandos `db_info`, `expirar_puntos`, `verificar_puntos`, `configurar_stripe_sandbox` y `reconciliar_stripe`.
+- Comandos `db_info`, `expirar_puntos`, `verificar_puntos`, `configurar_stripe_sandbox`, `reconciliar_stripe` y `reintentar_eliminaciones_cuenta`.
 - Pruebas de salud, configuración, autenticación, permisos, membresías, onboarding, invitaciones, portal, planes, límites, concurrencia, operaciones, aislamiento, migración, lealtad, facturación Sandbox y PostgreSQL.
 
+## Producción
+
+La imagen de producción es `Dockerfile.prod`, con Gunicorn, WhiteNoise y un
+entrypoint que ejecuta `collectstatic`. Railway detecta `railway.json`; el
+procedimiento completo, variables, dominio y migraciones está en
+[despliegue en Railway](../docs/despliegue-railway.md) y
+[migraciones de producción](../docs/migraciones-produccion.md).
+
+Las migraciones se ejecutan en un release controlado, no en cada réplica. La
+service role de Supabase solo se usa en el servidor para eliminar identidades.
+
 Consulta [API](../docs/api.md) para las rutas,
-[autenticación](../docs/autenticacion.md) para la matriz de acceso y
+[autenticación](../docs/autenticacion.md) para la matriz de acceso,
+[eliminación de cuenta](../docs/eliminacion-cuenta.md),
+[avatares](../docs/supabase-storage-avatares.md),
+[despliegue en Railway](../docs/despliegue-railway.md) y
 [facturación Stripe Sandbox](../docs/facturacion-stripe-sandbox.md) para el
 checkout, webhooks y portal. Las notificaciones push siguen sin integración.
 Stripe live, impuestos/CFDI, analítica avanzada y el cliente móvil siguen

@@ -10,7 +10,16 @@ from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field, PositiveInt
 
-BACKEND_TIMEOUT_SECONDS = 10 #Tiempo de espera
+
+def _timeout_backend():
+    try:
+        valor = float(os.getenv("BACKEND_TIMEOUT_SECONDS", "10"))
+    except (TypeError, ValueError):
+        return 10.0
+    return valor if 0 < valor <= 60 else 10.0
+
+
+BACKEND_TIMEOUT_SECONDS = _timeout_backend()
 bearer_scheme = HTTPBearer(auto_error=False) #Para autenticación
 router = APIRouter(prefix="/consultas", tags=["Consultas de negocio"])
 _chat_business_context: ContextVar[int | None] = ContextVar(

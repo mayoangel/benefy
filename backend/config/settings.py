@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 import os
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from dotenv import load_dotenv
 from django.core.exceptions import ImproperlyConfigured
@@ -66,8 +67,11 @@ SECRET_KEY = os.getenv(
 DEBUG = os.getenv('DEBUG', 'True').lower() in ('1', 'true', 'yes')
 
 if IS_PRODUCTION:
-    required_variables = ('SECRET_KEY', 'ALLOWED_HOSTS', 'DB_HOST', 'DB_PORT',
-                          'DB_NAME', 'DB_USER', 'DB_PASSWORD')
+    required_variables = (
+        'SECRET_KEY', 'ALLOWED_HOSTS', 'DB_HOST', 'DB_PORT',
+        'DB_NAME', 'DB_USER', 'DB_PASSWORD',
+        'SUPABASE_URL', 'SUPABASE_PUBLISHABLE_KEY', 'SUPABASE_SERVICE_ROLE_KEY',
+    )
     missing = [name for name in required_variables if not os.getenv(name, '').strip()]
     if missing:
         raise ImproperlyConfigured('Faltan variables de producción: ' + ', '.join(missing))
@@ -225,6 +229,24 @@ CORS_ALLOW_ALL_ORIGINS = DEBUG
 CORS_ALLOWED_ORIGINS = [value.strip() for value in os.getenv('CORS_ALLOWED_ORIGINS', '').split(',') if value.strip()]
 CSRF_TRUSTED_ORIGINS = [value.strip() for value in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if value.strip()]
 
+# Seguridad de producción. Railway termina TLS y anuncia X-Forwarded-Proto;
+# los health checks quedan exentos para poder responder por HTTP interno.
+SECURE_SSL_REDIRECT = _env_bool('SECURE_SSL_REDIRECT', IS_PRODUCTION)
+SECURE_REDIRECT_EXEMPT = [r'^health/live/$', r'^health/db/$', r'^health/ready/$']
+SECURE_HSTS_SECONDS = _env_nonnegative_int(
+    'SECURE_HSTS_SECONDS', 31536000 if IS_PRODUCTION else 0,
+)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = _env_bool(
+    'SECURE_HSTS_INCLUDE_SUBDOMAINS', False,
+)
+SECURE_HSTS_PRELOAD = _env_bool('SECURE_HSTS_PRELOAD', False)
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+SECURE_REFERRER_POLICY = 'same-origin'
+
+# El Admin puede deshabilitarse o quedar detrás de Cloudflare Access.
+ADMIN_ENABLED = _env_bool('ADMIN_ENABLED', True)
+
 # El backend nunca se publica: solo Caddy (y Cloudflare Tunnel delante de él)
 # puede alcanzarlo, y es quien anuncia el esquema real de la petición.
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -238,6 +260,39 @@ CSRF_COOKIE_SECURE = _env_bool('CSRF_COOKIE_SECURE', IS_PRODUCTION)
 # Auth verifica tokens en Supabase; los permisos se resuelven con los datos de Django.
 SUPABASE_URL = os.getenv('SUPABASE_URL', '').rstrip('/')
 SUPABASE_PUBLISHABLE_KEY = os.getenv('SUPABASE_PUBLISHABLE_KEY', '')
+# Secreto de servidor para la Admin API (borrado de identidades). Nunca se expone al cliente.
+SUPABASE_SERVICE_ROLE_KEY = os.getenv('SUPABASE_SERVICE_ROLE_KEY', '').strip()
+
+# Avatares: el móvil sube a Supabase Storage y Django valida la URL y el objeto.
+SUPABASE_STORAGE_BUCKET_AVATARS = os.getenv(
+    'SUPABASE_STORAGE_BUCKET_AVATARS', 'avatars',
+).strip() or 'avatars'
+SUPABASE_STORAGE_MAX_BYTES = _env_int(
+    'SUPABASE_STORAGE_MAX_BYTES', 5 * 1024 * 1024,
+)
+SUPABASE_STORAGE_ALLOWED_TYPES = tuple(
+    value.strip().lower()
+    for value in os.getenv(
+        'SUPABASE_STORAGE_ALLOWED_TYPES',
+        'image/jpeg,image/png,image/webp',
+    ).split(',')
+    if value.strip()
+)
+
+if IS_PRODUCTION:
+    auth_url = urlsplit(SUPABASE_URL)
+    if (
+        auth_url.scheme != 'https'
+        or not auth_url.hostname
+        or auth_url.username
+        or auth_url.password
+        or auth_url.path not in ('', '/')
+        or auth_url.query
+        or auth_url.fragment
+    ):
+        raise ImproperlyConfigured(
+            'SUPABASE_URL debe ser el origen HTTPS del proyecto, sin credenciales ni parámetros.'
+        )
 
 # ---------------------------------------------------------------------------
 # Stripe Sandbox / Test Mode
@@ -278,6 +333,47 @@ if STRIPE_ENABLED:
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': ['core.authentication.SupabaseAuthentication'],
     'DEFAULT_PERMISSION_CLASSES': ['core.permissions.EsUsuarioBenefy'],
+    'DEFAULT_THROTTLE_RATES': {
+        'perfil': os.getenv('THROTTLE_PERFIL', '60/min'),
+        'visita_resolver': os.getenv('THROTTLE_VISITA_RESOLVER', '60/min'),
+        'visita_registrar': os.getenv('THROTTLE_VISITA_REGISTRAR', '30/min'),
+        'directorio': os.getenv('THROTTLE_DIRECTORIO', '120/min'),
+        'cupon_adquirir': os.getenv('THROTTLE_CUPON_ADQUIRIR', '30/min'),
+        'cupon_canjear': os.getenv('THROTTLE_CUPON_CANJEAR', '30/min'),
+        'cuenta_eliminar': os.getenv('THROTTLE_CUENTA_ELIMINAR', '5/hour'),
+    },
+}
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'standard': {
+            'format': '%(asctime)s %(levelname)s %(name)s %(message)s',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'standard',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': os.getenv('LOG_LEVEL', 'INFO').upper(),
+    },
+    'loggers': {
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        'benefy': {
+            'handlers': ['console'],
+            'level': os.getenv('LOG_LEVEL', 'INFO').upper(),
+            'propagate': False,
+        },
+    },
 }
 
 # Tiempo que el cliente puede mostrar la pantalla de validación de un canje.

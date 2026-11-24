@@ -20,11 +20,27 @@ class HealthCheckTests(SimpleTestCase):
             {"service": "backend", "status": "ok"},
         )
 
+    def test_liveness_no_consulta_base(self):
+        response = self.client.get("/health/live/")
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(
+            response.content,
+            {"service": "backend", "status": "ok"},
+        )
+
 
 class HealthCheckDatabaseTests(TestCase):
     def test_health_check_db_consulta_postgresql(self):
         response = self.client.get("/health/db/")
 
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(
+            response.content,
+            {"service": "backend", "status": "ok", "database": "ok"},
+        )
+
+    def test_readiness_consulta_base(self):
+        response = self.client.get("/health/ready/")
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(
             response.content,
@@ -71,7 +87,7 @@ class UrlLanguageTests(SimpleTestCase):
     acciones_espanol = ("crear", "listar", "detalle", "actualizar", "eliminar")
 
     def test_rutas_y_nombres_de_url_estan_en_espanol(self):
-        self.assertEqual(len(urls.urlpatterns), 120)
+        self.assertEqual(len(urls.urlpatterns), 122)
 
         rutas = [str(pattern.pattern) for pattern in urls.urlpatterns]
         nombres = [pattern.name for pattern in urls.urlpatterns]
@@ -85,9 +101,10 @@ class UrlLanguageTests(SimpleTestCase):
 
         for accion in self.acciones_espanol:
             with self.subTest(accion=accion):
+                esperado = 17 if accion == 'eliminar' else 16
                 self.assertEqual(
                     sum(f"/{accion}/" in f"/{ruta}" for ruta in rutas),
-                    16,
+                    esperado,
                 )
 
 

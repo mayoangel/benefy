@@ -1,14 +1,15 @@
 """Vistas CRUD explícitas con identidad Supabase y permisos de Django."""
 
 from django.db import IntegrityError, transaction
-from rest_framework import generics
+from rest_framework import generics, status
 from rest_framework.exceptions import APIException
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from core import models, permissions, serializers
+from core import models, permissions, serializers, throttling
 from core.access import ResourceAccessMixin
+from core.services import cuentas
 
 
 class ProfileConflict(APIException):
@@ -41,8 +42,51 @@ class UsuarioCreateAPIView(generics.CreateAPIView):
 
 
 class PerfilAPIView(APIView):
+    throttle_classes = [throttling.PerfilThrottle]
+
     def get(self, request):
         return Response(serializers.UsuarioSerializerDetail(request.user).data)
+
+    def patch(self, request):
+        serializer = serializers.UsuarioSerializerUpdate(
+            request.user,
+            data=request.data,
+            partial=True,
+            context={'request': request},
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializers.UsuarioSerializerDetail(request.user).data)
+
+
+class EliminarCuentaAPIView(APIView):
+    permission_classes = [permissions.PuedeConsumir]
+    throttle_classes = [throttling.EliminacionCuentaThrottle]
+
+    def post(self, request):
+        try:
+            resultado = cuentas.solicitar_eliminacion(
+                request.user,
+                request.data.get('confirmacion', ''),
+            )
+        except cuentas.ErrorEliminacionCuenta as exc:
+            return Response(
+                {'codigo': exc.codigo, 'detalle': exc.detalle, **exc.datos},
+                status=exc.status_code,
+            )
+        estado_http = (
+            status.HTTP_200_OK
+            if resultado.estado == 'completada'
+            else status.HTTP_202_ACCEPTED
+        )
+        return Response(
+            {
+                'estado': resultado.estado,
+                'supabase_eliminado': resultado.supabase_eliminado,
+                'detalle': resultado.detalle,
+            },
+            status=estado_http,
+        )
 
 
 class UsuarioRolAPIView(generics.UpdateAPIView):

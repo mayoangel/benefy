@@ -19,6 +19,9 @@ class DatabaseSettingsTests(SimpleTestCase):
             'DB_HOST': 'example.pooler.supabase.com', 'DB_PORT': '5432',
             'DB_NAME': 'postgres', 'DB_USER': 'test-user',
             'DB_PASSWORD': 'test-password', 'DB_SSLROOTCERT': '',
+            'SUPABASE_URL': 'https://project.supabase.co',
+            'SUPABASE_PUBLISHABLE_KEY': 'public-test-key',
+            'SUPABASE_SERVICE_ROLE_KEY': 'service-role-test-key',
         })
         environment.pop('DB_SSLMODE', None)
         environment.update(overrides)
@@ -51,7 +54,11 @@ class DatabaseSettingsTests(SimpleTestCase):
     def test_production_rejects_insecure_or_missing_configuration(self):
         for overrides in ({'DEBUG': 'True'}, {'DB_SSLMODE': 'disable'},
                           {'DB_SSLMODE': 'prefer'}, {'DB_PASSWORD': ''},
-                          {'SECRET_KEY': 'short'}):
+                          {'SECRET_KEY': 'short'},
+                          {'SUPABASE_URL': ''},
+                          {'SUPABASE_PUBLISHABLE_KEY': ''},
+                          {'SUPABASE_SERVICE_ROLE_KEY': ''},
+                          {'SUPABASE_URL': 'http://project.supabase.co'}):
             with self.subTest(overrides=overrides):
                 result = self.load_settings(**overrides)
                 self.assertNotEqual(result.returncode, 0)

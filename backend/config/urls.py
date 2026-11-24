@@ -1,5 +1,6 @@
 """Rutas principales del backend de Benefy."""
 
+from django.conf import settings
 from django.contrib import admin
 from django.db import DatabaseError, connection
 from django.http import JsonResponse
@@ -7,12 +8,12 @@ from django.urls import include, path
 
 
 def health_check(request):
-    """Endpoint de verificación de estado del backend."""
+    """Liveness: Django responde sin consultar PostgreSQL."""
     return JsonResponse({"service": "backend", "status": "ok"})
 
 
 def health_check_db(request):
-    """Verifica que Django responde y que PostgreSQL acepta una consulta."""
+    """Readiness: verifica que Django responde y PostgreSQL acepta una consulta."""
     try:
         with connection.cursor() as cursor:
             cursor.execute("SELECT 1")
@@ -29,7 +30,10 @@ def health_check_db(request):
 
 urlpatterns = [
     path("", health_check, name="health-check"),
+    path("health/live/", health_check, name="health-live"),
     path("health/db/", health_check_db, name="health-check-db"),
-    path("admin/", admin.site.urls),
+    path("health/ready/", health_check_db, name="health-ready"),
     path("api/", include("core.urls")),
 ]
+if settings.ADMIN_ENABLED:
+    urlpatterns.append(path("admin/", admin.site.urls))
