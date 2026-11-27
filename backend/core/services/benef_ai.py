@@ -12,7 +12,7 @@ from django.conf import settings
 HERRAMIENTAS_PERMITIDAS = frozenset({
     'metricas', 'visitas', 'canjes', 'cupones', 'programas', 'recompensas',
     'plan', 'negocio', 'equipo', 'clientes', 'sucursales', 'invitaciones',
-    'alianzas',
+    'alianzas', 'resumen', 'puntos', 'tarjetas', 'conocimiento',
 })
 MAX_RESPUESTA_BYTES = 1_048_576
 
@@ -79,7 +79,7 @@ def _validar_respuesta(payload):
     }
 
 
-def consultar(negocio_id, mensaje, historial, access_token, timeout=None):
+def consultar(negocio_id, mensaje, historial, access_token, timeout=None, sucursal_id=None):
     """Llama a POST /chat de Benef AI con autenticación de servicio."""
     if not configurado():
         raise ErrorBenefAI(
@@ -99,6 +99,8 @@ def consultar(negocio_id, mensaje, historial, access_token, timeout=None):
         'message': mensaje,
         'history': historial,
     }
+    if sucursal_id is not None:
+        payload['sucursal_id'] = sucursal_id
     body = json.dumps(
         payload, ensure_ascii=False, separators=(',', ':'),
     ).encode('utf-8')

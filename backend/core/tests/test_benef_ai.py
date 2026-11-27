@@ -83,10 +83,68 @@ class BenefAIChatViewTests(TestCase):
         self.assertEqual(consultar.call_args.kwargs['negocio_id'], self.business.pk)
         self.assertEqual(consultar.call_args.kwargs['mensaje'], '¿Cuántas visitas tuvimos?')
         self.assertEqual(consultar.call_args.kwargs['access_token'], 'token-de-prueba')
+        self.assertIsNone(consultar.call_args.kwargs['sucursal_id'])
         self.assertEqual(consultar.call_args.kwargs['historial'], [
             {'role': 'user', 'content': 'Hola'},
             {'role': 'assistant', 'content': '¿Qué necesitas?'},
         ])
+
+    @patch('core.views_benef_ai.benef_ai.consultar', return_value={
+        'answer': 'ok', 'tools_used': ['visitas'],
+    })
+    def test_dueno_envia_sucursal_autorizada(self, consultar):
+        response = self.post(self.owner, {
+            'message': 'Visitas de Centro',
+            'sucursal_id': self.branch.pk,
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(consultar.call_args.kwargs['sucursal_id'], self.branch.pk)
+
+    @patch('core.views_benef_ai.benef_ai.consultar', return_value={
+        'answer': 'ok', 'tools_used': [],
+    })
+    def test_supervisor_no_puede_consultar_sucursal_ajena(self, consultar):
+        otra = crear_sucursal(self.business, 'Otra')
+        response = self.post(self.owner, {
+            'message': 'Visitas de Otra',
+            'sucursal_id': otra.pk,
+        })
+        # El dueño sí puede; el supervisor solo su sucursal.
+        self.assertEqual(response.status_code, 200)
+        consultar.reset_mock()
+        self.client.force_authenticate(self.supervisor)
+        response = self.client.post(
+            f'/api/v1/negocios/{self.business.pk}/benef-ai/chat/',
+            {'message': 'Visitas', 'sucursal_id': otra.pk},
+            format='json',
+            HTTP_AUTHORIZATION='Bearer token-de-prueba',
+        )
+        self.assertEqual(response.status_code, 403)
+        consultar.assert_not_called()
+
+    @patch('core.views_benef_ai.benef_ai.consultar', return_value={
+        'answer': 'ok', 'tools_used': [],
+    })
+    def test_sucursal_inactiva_o_inexistente_es_404(self, consultar):
+        self.branch.status = False
+        self.branch.save(update_fields=['status'])
+        response = self.post(self.owner, {
+            'message': 'Visitas',
+            'sucursal_id': self.branch.pk,
+        })
+        self.assertEqual(response.status_code, 404)
+        consultar.assert_not_called()
+
+    @patch('core.views_benef_ai.benef_ai.consultar', return_value={
+        'answer': 'ok', 'tools_used': [],
+    })
+    def test_sucursal_cero_es_400(self, consultar):
+        response = self.post(self.owner, {
+            'message': 'Visitas',
+            'sucursal_id': 0,
+        })
+        self.assertEqual(response.status_code, 400)
+        consultar.assert_not_called()
 
     @patch('core.views_benef_ai.benef_ai.consultar', return_value={
         'answer': 'ok', 'tools_used': [],
@@ -218,6 +276,7 @@ class BenefAIServiceTests(TestCase):
                 mensaje='Hola',
                 historial=[{'role': 'user', 'content': 'Antes'}],
                 access_token='token-usuario',
+                sucursal_id=11,
             )
 
         self.assertEqual(resultado['answer'], 'Respuesta real')
@@ -237,6 +296,7 @@ class BenefAIServiceTests(TestCase):
         self.assertEqual(body['negocio_id'], 7)
         self.assertEqual(body['message'], 'Hola')
         self.assertEqual(body['history'], [{'role': 'user', 'content': 'Antes'}])
+        self.assertEqual(body['sucursal_id'], 11)
 
     @override_settings(BENEF_AI_URL='', BENEF_AI_SERVICE_TOKEN='')
     def test_sin_configuracion_es_503(self):

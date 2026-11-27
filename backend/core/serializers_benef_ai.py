@@ -27,6 +27,11 @@ class BenefAIChatSerializer(serializers.Serializer):
         trim_whitespace=True,
     )
     history = BenefAIChatTurnSerializer(many=True, required=False, default=list)
+    sucursal_id = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        min_value=1,
+    )
 
     def validate_message(self, value):
         if len(value) > settings.BENEF_AI_MAX_MESSAGE_CHARS:
