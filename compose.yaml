@@ -14,6 +14,7 @@ services:
       DJANGO_SETTINGS_MODULE: config.devdemo
       ENVIRONMENT: development
       BENEFY_LOAD_DOTENV: "0"
+      BENEFY_MOBILE_LAN_IP: ${BENEFY_MOBILE_LAN_IP:-}
       SECRET_KEY: ${SECRET_KEY:?Configura SECRET_KEY}
       DB_HOST: ${DB_HOST:?Configura DB_HOST}
       DB_PORT: ${DB_PORT:-5432}
@@ -42,7 +43,7 @@ services:
       STRIPE_CHECKOUT_TTL_MINUTES: ${STRIPE_CHECKOUT_TTL_MINUTES:-60}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
     ports:
-      - "127.0.0.1:8001:8000"
+      - "${BENEFY_MOBILE_LAN_IP:-127.0.0.1}:8001:8000"
     healthcheck:
       test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/db/', timeout=5)"]
       interval: 15s
@@ -56,7 +57,7 @@ services:
       dockerfile: Dockerfile
     command: sh -c "npm ci --no-audit --no-fund && npm run dev -- --host 0.0.0.0 --port 5173 --strictPort"
     volumes:
-      - ./frontend-web:/app:ro
+      - ./frontend-web/app/src:ro
       - web_modules:/app/node_modules
     environment:
       BENEFY_DOCKER_ENV: "1"

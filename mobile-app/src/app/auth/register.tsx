@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Link, useRouter } from 'expo-router';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -72,11 +71,10 @@ export default function RegisterScreen() {
 
       // Si Supabase requiere confirmación de correo, session vendrá en null
       if (!data.session) {
-        Alert.alert(
-          'Revisa tu correo',
-          'Te enviamos un enlace de verificación. Confirma tu cuenta para iniciar sesión.',
-          [{ text: 'Ir a iniciar sesión', onPress: () => router.replace('/auth/login') }],
-        );
+        router.replace({
+          pathname: '/auth/verify-email',
+          params: { email: cleanEmail },
+        });
         return;
       }
 
