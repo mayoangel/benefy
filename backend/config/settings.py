@@ -260,13 +260,16 @@ CSRF_COOKIE_SECURE = _env_bool('CSRF_COOKIE_SECURE', IS_PRODUCTION)
 # Auth verifica tokens en Supabase; los permisos se resuelven con los datos de Django.
 SUPABASE_URL = os.getenv('SUPABASE_URL', '').rstrip('/')
 SUPABASE_PUBLISHABLE_KEY = os.getenv('SUPABASE_PUBLISHABLE_KEY', '')
-# Secreto de servidor para la Admin API (borrado de identidades). Nunca se expone al cliente.
+# Clave de servidor para Admin API y URLs firmadas. Nunca se expone al cliente.
 SUPABASE_SERVICE_ROLE_KEY = os.getenv('SUPABASE_SERVICE_ROLE_KEY', '').strip()
 
-# Avatares: el móvil sube a Supabase Storage y Django valida la URL y el objeto.
+# Buckets públicos; la escritura se limita con RLS o URLs firmadas emitidas por Django.
 SUPABASE_STORAGE_BUCKET_AVATARS = os.getenv(
     'SUPABASE_STORAGE_BUCKET_AVATARS', 'avatars',
 ).strip() or 'avatars'
+SUPABASE_STORAGE_BUCKET_BUSINESS_ASSETS = os.getenv(
+    'SUPABASE_STORAGE_BUCKET_BUSINESS_ASSETS', 'business-assets',
+).strip() or 'business-assets'
 SUPABASE_STORAGE_MAX_BYTES = _env_int(
     'SUPABASE_STORAGE_MAX_BYTES', 5 * 1024 * 1024,
 )
@@ -342,6 +345,7 @@ REST_FRAMEWORK = {
         'cupon_canjear': os.getenv('THROTTLE_CUPON_CANJEAR', '30/min'),
         'cuenta_eliminar': os.getenv('THROTTLE_CUENTA_ELIMINAR', '5/hour'),
         'benef_ai_chat': os.getenv('THROTTLE_BENEF_AI_CHAT', '20/hour'),
+        'negocio_imagen_subida': os.getenv('THROTTLE_NEGOCIO_IMAGEN_SUBIDA', '20/hour'),
     },
 }
 

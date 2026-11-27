@@ -6,8 +6,8 @@ de dominio. La entrada de URLs es `config/urls.py`.
 
 ## Funcionalidad disponible
 
-- 123 rutas API: CRUD administrativo, identidad/contexto/onboarding, baja de cuenta, directorio móvil, lealtad, planes, operaciones, invitaciones, alianzas, facturación Stripe Sandbox y proxy de Benef AI.
-- Verificación de sesiones Supabase Auth y permisos según usuario, negocio y sucursal.
+- 126 rutas API: CRUD administrativo, identidad/contexto/onboarding, baja de cuenta, directorio móvil, lealtad, planes, operaciones, invitaciones, alianzas, subida firmada de imágenes de negocio, facturación Stripe Sandbox y proxy de Benef AI.
+- Verificación de sesiones Supabase Auth y permisos según usuario, negocio y sucursal; URLs firmadas de Storage para imágenes de negocios solo para propietarios.
 - Perfil propio editable con foto validada contra Supabase Storage y baja idempotente con anonimización y borrado de identidad Supabase.
 - Directorio de negocios activos para consumidores con búsqueda, filtro por categoría y paginación.
 - Respuestas móviles enriquecidas con nombre, slug y logo del negocio.
@@ -42,6 +42,7 @@ Consulta [API](../docs/api.md) para las rutas,
 [autenticación](../docs/autenticacion.md) para la matriz de acceso,
 [eliminación de cuenta](../docs/eliminacion-cuenta.md),
 [avatares](../docs/supabase-storage-avatares.md),
+[imágenes de negocio](../docs/supabase-storage-negocios.md),
 [despliegue en Railway](../docs/despliegue-railway.md) y
 [facturación Stripe Sandbox](../docs/facturacion-stripe-sandbox.md) para el
 checkout, webhooks y portal. Las notificaciones push siguen sin integración.
@@ -74,8 +75,10 @@ El arranque no aplica migraciones ni semillas. Una migración remota requiere
 revisión expresa del destino y respaldo. Las pruebas utilizan una base local
 `test_*` aislada y conservan las pruebas de migración y concurrencia.
 
-La URL y clave publicable de Supabase verifican las sesiones; las contraseñas
-PostgreSQL y claves administrativas nunca se envían al navegador. Evita imprimir
+La URL y clave publicable de Supabase verifican las sesiones; la service role
+solo se usa en el servidor para firmar subidas y administrar/borrar objetos e
+identidades. Las contraseñas PostgreSQL y claves administrativas nunca se
+envían al navegador. Evita imprimir
 `docker compose config` sin `--quiet`: muestra valores privados.
 
 Consulta [la guía de desarrollo](../docs/desarrollo-demo.md) y

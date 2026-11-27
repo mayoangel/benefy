@@ -9,7 +9,7 @@ con `python dev.py up`, sin instalar Node ni Django en el host.
 
 | Componente | Implementado | Pendiente |
 | --- | --- | --- |
-| Backend | Django 5.2 + DRF, 30 modelos, 22 migraciones de `core`, 123 rutas API, motor de visitas/puntos/tarjetas/cupones, alianzas bilaterales auditadas con cupos Free/Premium, membresías auditadas, onboarding idempotente, invitaciones, aislamiento por sucursal, planes Free/Premium, Stripe Billing Sandbox y Django Admin | Analítica avanzada, Stripe live y facturación fiscal |
+| Backend | Django 5.2 + DRF, 30 modelos, 22 migraciones de `core`, 126 rutas API, motor de visitas/puntos/tarjetas/cupones, alianzas bilaterales auditadas con cupos Free/Premium, membresías auditadas, onboarding idempotente, invitaciones, aislamiento por sucursal, planes Free/Premium, subida firmada de imágenes de negocio, Stripe Billing Sandbox y Django Admin | Analítica avanzada, Stripe live y facturación fiscal |
 | Identidad | Supabase Auth con login web real, sesión persistente, refresh, recuperación, onboarding automático e invitaciones; perfiles/roles en Django | Google OAuth |
 | Web | Landing React 18 + Vite y portal conectado: dashboards por rol, configuración, sucursales con QR imprimible, puntos, tarjetas, recompensas, alianzas, equipo, visitas, cupones, canjes, clientes, chat de Benef AI y pantalla de suscripción con Checkout/Customer Portal Sandbox | Exportaciones y E2E en CI |
 | Móvil | Expo SDK 58 con Auth Supabase, perfil/foto/baja, cartera, historial, directorio, catálogo, cupones, canje, notificaciones y escáner QR reales | Notificaciones push y E2E en dispositivo |

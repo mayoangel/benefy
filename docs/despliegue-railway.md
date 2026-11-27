@@ -43,10 +43,12 @@ Mínimas:
 | `DB_SSLMODE=require` | Obligatorio en producción |
 | `SUPABASE_URL` | Origen HTTPS del proyecto |
 | `SUPABASE_PUBLISHABLE_KEY` | Verificación de sesiones |
-| `SUPABASE_SERVICE_ROLE_KEY` | Borrado de identidades en Auth; solo servidor |
+| `SUPABASE_SERVICE_ROLE_KEY` | Borrado de identidades y firma de subidas; solo servidor |
 | `SUPABASE_STORAGE_BUCKET_AVATARS` | Bucket de avatares |
+| `SUPABASE_STORAGE_BUCKET_BUSINESS_ASSETS` | Bucket de logos y banners; por defecto `business-assets` |
 | `SUPABASE_STORAGE_MAX_BYTES` | Límite de avatar; por defecto 5 MB |
 | `SUPABASE_STORAGE_ALLOWED_TYPES` | `image/jpeg,image/png,image/webp` |
+| `THROTTLE_NEGOCIO_IMAGEN_SUBIDA` | Solicitudes de firma; por defecto `20/hour` |
 | `CORS_ALLOWED_ORIGINS` | Dominio del portal web |
 | `CSRF_TRUSTED_ORIGINS` | Dominio del portal y del API |
 | `FRONTEND_URL` | Redirecciones de Stripe Sandbox |

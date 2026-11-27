@@ -11,6 +11,7 @@ from core import (
     views_operaciones,
     views_planes,
     views_portal,
+    views_storage,
 )
 
 app_name = "core"
@@ -19,6 +20,7 @@ urlpatterns = [
     path("v1/autenticacion/perfil/", views.PerfilAPIView.as_view(), name="autenticacion-perfil"),
     path("v1/mi/cuenta/eliminar/", views.EliminarCuentaAPIView.as_view(), name="mi-cuenta-eliminar"),
     path("v1/onboarding/comercial/", views_onboarding.CompletarRegistroComercialAPIView.as_view(), name="onboarding-comercial"),
+    path("v1/negocios/<int:pk>/imagenes/subida/", views_storage.NegocioImagenSubidaAPIView.as_view(), name="negocio-imagen-subida"),
 
     # Motor de lealtad
     path("v1/visitas/resolver/", views_lealtad.ResolverVisitaAPIView.as_view(), name="visita-resolver"),

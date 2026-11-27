@@ -86,9 +86,10 @@ SUPABASE_STORAGE_MAX_BYTES=5242880
 SUPABASE_STORAGE_ALLOWED_TYPES=image/jpeg,image/png,image/webp
 ```
 
-`SUPABASE_SERVICE_ROLE_KEY` no se usa para subir avatares desde el móvil. Si en
-el futuro el backend genera URLs firmadas o administra objetos, esa clave debe
-permanecer exclusivamente en el servidor.
+`SUPABASE_SERVICE_ROLE_KEY` no se usa para subir avatares desde el móvil. El
+backend sí la usa para firmar las subidas de imágenes de negocio y para la
+limpieza de Storage al eliminar una cuenta. Debe permanecer exclusivamente en
+el servidor.
 
 ## Errores
 

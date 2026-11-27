@@ -1,8 +1,9 @@
 from datetime import timedelta
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from rest_framework import serializers
+from django.conf import settings
 from django.utils import timezone
+from rest_framework import serializers
 
 from core import models
 from core.services import planes, supabase_storage
@@ -296,6 +297,46 @@ class NegocioSerializerUpdate(serializers.ModelSerializer):
         if value and negocios.exists():
             raise serializers.ValidationError("Este slug ya está siendo utilizado por otro negocio.")
         return value
+
+    def validate_logo_url(self, value):
+        return self._validar_imagen_negocio(value, 'logo')
+
+    def validate_banner_url(self, value):
+        return self._validar_imagen_negocio(value, 'banner')
+
+    def _validar_imagen_negocio(self, value, tipo):
+        if not value or value == getattr(self.instance, f'{tipo}_url'):
+            return value
+        try:
+            return supabase_storage.validar_imagen_negocio(
+                value, self.instance.pk, tipo,
+            )
+        except supabase_storage.ImagenNegocioInvalida as exc:
+            raise serializers.ValidationError(exc.detalle) from None
+
+
+class SolicitudSubidaImagenNegocioSerializer(serializers.Serializer):
+    tipo = serializers.ChoiceField(choices=('logo', 'banner'))
+    content_type = serializers.ChoiceField(
+        choices=('image/jpeg', 'image/png', 'image/webp'),
+    )
+    size_bytes = serializers.IntegerField(min_value=1)
+
+    def validate(self, attrs):
+        campos_permitidos = {'tipo', 'content_type', 'size_bytes'}
+        if set(self.initial_data) - campos_permitidos:
+            raise serializers.ValidationError(
+                'Solo se permiten tipo, content_type y size_bytes.',
+            )
+        if attrs['content_type'] not in settings.SUPABASE_STORAGE_ALLOWED_TYPES:
+            raise serializers.ValidationError({
+                'content_type': 'El formato de imagen no está habilitado.',
+            })
+        if attrs['size_bytes'] > settings.SUPABASE_STORAGE_MAX_BYTES:
+            raise serializers.ValidationError({
+                'size_bytes': 'La imagen excede el tamaño máximo permitido.',
+            })
+        return attrs
 
 #Delete
 class NegocioSerializerDelete(serializers.ModelSerializer):

@@ -42,3 +42,7 @@ class BenefAIChatThrottle(UserRateThrottle):
             wait=self.wait(),
             detail='Has alcanzado el límite de consultas a Benef AI. Intenta más tarde.',
         )
+
+
+class NegocioImagenSubidaThrottle(UserRateThrottle):
+    scope = 'negocio_imagen_subida'

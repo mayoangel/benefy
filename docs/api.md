@@ -69,7 +69,7 @@ modifican con los endpoints transaccionales correspondientes.
 | POST | `/api/v1/negocios/{id}/benef-ai/chat/` | Chat de solo lectura con Benef AI; exige membresía y rate limit |
 | PATCH | `/api/v1/usuario/rol/{id}/` | Cambiar `rol` o `is_active`; solo `admin_sistema` |
 
-Hay 123 rutas de API en total. El login, registro de identidad, refresh y logout
+Hay 126 rutas de API en total. El login, registro de identidad, refresh y logout
 ocurren en Supabase Auth, no bajo `/api/v1`. `usuario/crear/` crea el perfil
 Benefy después del login.
 
@@ -183,6 +183,32 @@ permite una vez por UUID de Supabase; los reintentos devuelven el mismo negocio
 con `ya_existia: true`. Los metadatos aportan datos, nunca roles ni permisos.
 Códigos: `sin_registro_comercial`, `registro_incompleto`, `registro_invalido`,
 `perfil_requiere_vinculacion`, `correo_negocio_en_uso`.
+
+## Imágenes de negocio
+
+| Método | Ruta | Acceso |
+| --- | --- | --- |
+| POST | `/api/v1/negocios/{id}/imagenes/subida/` | Dueño del negocio o `admin_sistema`; solicita autorización de subida |
+
+La solicitud declara el tipo de imagen, el MIME y el tamaño local:
+
+```json
+{"tipo":"logo","content_type":"image/webp","size_bytes":240000}
+```
+
+La respuesta incluye `bucket`, `path`, `token`, `public_url`, `content_type`,
+`max_bytes` y `expires_in`. El cliente usa `bucket`, `path` y `token` con
+`supabase.storage.from(bucket).uploadToSignedUrl(path, token, archivo,
+{contentType, upsert: false})`. Luego debe guardar `public_url` en el campo
+correspondiente mediante `PATCH /api/v1/negocio/actualizar/{id}/`.
+
+La firma se crea únicamente después de verificar que el usuario puede
+administrar el negocio. Los permisos de subida directa a ese bucket no se
+conceden a `anon` ni a todos los usuarios `authenticated`; consulta
+[imágenes de negocio en Supabase Storage](./supabase-storage-negocios.md).
+Formatos permitidos, tamaño máximo y vigencia se devuelven en la respuesta; el
+backend vuelve a verificar host, ruta, tipo y tamaño del objeto al guardar la
+URL. El límite de solicitudes predeterminado es 20 por hora y usuario.
 
 ## Operaciones del portal
 
