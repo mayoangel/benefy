@@ -36,7 +36,7 @@ vi.mock('../../lib/api.ts', () => {
 import BenefAIChat from './BenefAIChat';
 import { ApiError } from '../../lib/api.ts';
 
-function renderChat(businessId = 1, open = true) {
+function renderChat(businessId = 1, open = true, branchId: number | null = null) {
   const triggerRef = { current: document.createElement('button') };
   document.body.appendChild(triggerRef.current);
   const onClose = vi.fn();
@@ -45,6 +45,8 @@ function renderChat(businessId = 1, open = true) {
       open={open}
       businessId={businessId}
       businessName="Café Aurora"
+      branchId={branchId}
+      branchName={branchId ? 'Centro' : null}
       onClose={onClose}
       triggerRef={triggerRef}
     />,
@@ -73,7 +75,7 @@ test('muestra estado vacío, negocio actual y preguntas sugeridas', () => {
   expect(screen.getByRole('dialog', { name: 'Benef AI' })).toBeTruthy();
   expect(screen.getAllByText('Café Aurora')).toHaveLength(2);
   expect(screen.getByText('Pregunta por tu negocio')).toBeTruthy();
-  expect(screen.getByRole('button', { name: /visitas válidas/ })).toBeTruthy();
+  expect(screen.getByRole('button', { name: /alianzas activas/ })).toBeTruthy();
   expect(screen.getByLabelText('Mensaje para Benef AI')).toBeTruthy();
 });
 
@@ -92,6 +94,7 @@ test('envía con Enter y renderiza la respuesta y las tools usadas', async () =>
   await waitFor(() => expect(apiMock.askBenefAI).toHaveBeenCalledTimes(1));
   expect(apiMock.askBenefAI.mock.calls[0][0]).toBe(1);
   expect(apiMock.askBenefAI.mock.calls[0][1]).toBe('¿Cuántas visitas tuvimos?');
+  expect(apiMock.askBenefAI.mock.calls[0][4]).toBeNull();
   expect(await screen.findByText('Tuvimos 12 visitas válidas.')).toBeTruthy();
   expect(screen.getByText('Consultó: visitas, métricas.')).toBeTruthy();
   expect(screen.getByText('¿Cuántas visitas tuvimos?')).toBeTruthy();
@@ -181,4 +184,28 @@ test('cierra con el botón y avisa al contenedor', async () => {
   const { onClose } = renderChat();
   await userEvent.click(screen.getByRole('button', { name: 'Cerrar Benef AI' }));
   expect(onClose).toHaveBeenCalledTimes(1);
+});
+
+test('envía la sucursal seleccionada y reinicia al cambiarla', async () => {
+  apiMock.askBenefAI.mockResolvedValue({ answer: 'Listo.', tools_used: [] });
+  const view = renderChat(1, true, 11);
+  escribir('¿Visitas de esta sucursal?');
+  fireEvent.keyDown(screen.getByLabelText('Mensaje para Benef AI'), { key: 'Enter' });
+  await waitFor(() => expect(apiMock.askBenefAI).toHaveBeenCalledTimes(1));
+  expect(apiMock.askBenefAI.mock.calls[0][4]).toBe(11);
+  expect(await screen.findByText('Listo.')).toBeTruthy();
+
+  view.rerender(
+    <BenefAIChat
+      open
+      businessId={1}
+      businessName="Café Aurora"
+      branchId={12}
+      branchName="Río"
+      onClose={view.onClose}
+      triggerRef={view.triggerRef}
+    />,
+  );
+  expect(screen.getByText('Pregunta por tu negocio')).toBeTruthy();
+  expect(screen.queryByText('Listo.')).toBeNull();
 });

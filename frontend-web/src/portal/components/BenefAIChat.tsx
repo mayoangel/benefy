@@ -15,10 +15,17 @@ type ChatMessage = BenefAIChatTurn & {
 };
 
 const SUGGESTIONS = [
-  '¿Cuántas visitas válidas tuvimos en los últimos 7 días?',
-  '¿Cuántos clientes únicos registramos este mes?',
-  '¿Cómo va el uso de mi plan?',
+  '¿Tengo alianzas activas y con quién?',
+  '¿Cuántas visitas tuvimos en los últimos 30 días?',
   '¿Qué recompensas tengo activas?',
+  '¿Qué puedo hacer con mi plan?',
+] as const;
+
+const SUGGESTIONS_CLIENTES = [
+  '¿Tengo alianzas activas y con quién?',
+  '¿Qué clientes visitaron más en los últimos 30 días?',
+  '¿Qué recompensas tengo activas?',
+  '¿Qué puedo hacer con mi plan?',
 ] as const;
 
 const TOOL_LABELS: Record<string, string> = {
@@ -35,6 +42,10 @@ const TOOL_LABELS: Record<string, string> = {
   sucursales: 'sucursales',
   invitaciones: 'invitaciones',
   alianzas: 'alianzas',
+  resumen: 'resumen',
+  puntos: 'puntos',
+  tarjetas: 'tarjetas',
+  conocimiento: 'conocimiento de Benefy',
 };
 
 let sequence = 0;
@@ -79,12 +90,18 @@ export default function BenefAIChat({
   open,
   businessId,
   businessName,
+  branchId = null,
+  branchName = null,
+  canViewClients = false,
   onClose,
   triggerRef,
 }: {
   open: boolean;
   businessId: number;
   businessName: string;
+  branchId?: number | null;
+  branchName?: string | null;
+  canViewClients?: boolean;
   onClose: () => void;
   triggerRef: RefObject<HTMLButtonElement>;
 }) {
@@ -113,7 +130,7 @@ export default function BenefAIChat({
     setSending(false);
     setError('');
     setLastAttempt('');
-  }, [businessId, session?.user.id]);
+  }, [businessId, branchId, session?.user.id]);
 
   useEffect(() => {
     if (!open) {
@@ -206,6 +223,7 @@ export default function BenefAIChat({
         content.slice(0, MAX_MESSAGE_LENGTH),
         history,
         currentController.signal,
+        branchId,
       );
       if (currentController.signal.aborted || requestId !== requestSequence.current) return;
       setMessages((actual) => [...actual, {
@@ -267,7 +285,7 @@ export default function BenefAIChat({
         </span>
         <div className="portal-ai-heading">
           <h2 id="benef-ai-title">Benef AI</h2>
-          <p>{businessName}</p>
+          <p>{businessName}{branchName ? ` · ${branchName}` : ''}</p>
         </div>
         <button
           type="button"
@@ -306,10 +324,11 @@ export default function BenefAIChat({
             <h3>Pregunta por tu negocio</h3>
             <p>
               Puedo consultar visitas, clientes, canjes, cupones, recompensas,
-              plan, equipo y alianzas de <strong>{businessName}</strong>.
+              plan, equipo y alianzas de <strong>{businessName}</strong>. También
+              puedo explicarte cómo funciona Benefy.
             </p>
             <div className="portal-ai-suggestions">
-              {SUGGESTIONS.map((suggestion) => (
+              {(canViewClients ? SUGGESTIONS_CLIENTES : SUGGESTIONS).map((suggestion) => (
                 <button
                   key={suggestion}
                   type="button"

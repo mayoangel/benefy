@@ -169,11 +169,16 @@ export const api = {
     message: string,
     history: BenefAIChatTurn[],
     signal?: AbortSignal,
+    branchId?: number | null,
   ) => request<BenefAIChatResponse>(
     `/negocios/${businessId}/benef-ai/chat/`,
     {
       method: 'POST',
-      body: JSON.stringify({ message, history }),
+      body: JSON.stringify({
+        message,
+        history,
+        ...(branchId ? { sucursal_id: branchId } : {}),
+      }),
       signal,
     },
   ),

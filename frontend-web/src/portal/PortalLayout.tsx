@@ -80,6 +80,9 @@ export default function PortalLayout() {
   }, [context, id]);
 
   const selectedSucursal = searchParams.get('sucursal') ?? '';
+  const sucursalSeleccionada = sucursales.find(
+    (sucursal) => String(sucursal.id) === selectedSucursal,
+  ) ?? null;
   const base = id ? `/portal/negocio/${id}` : '/portal/admin';
   const relativePath = id && location.pathname.startsWith(base)
     ? location.pathname.slice(base.length).replace(/^\/+/, '')
@@ -299,10 +302,13 @@ export default function PortalLayout() {
       </div>
       {!esAdmin && id && membresia ? (
         <BenefAIChat
-          key={`${id}-${session?.user.id ?? 'anon'}`}
+          key={`${id}-${sucursalSeleccionada?.id ?? 'todas'}-${session?.user.id ?? 'anon'}`}
           open={chatOpen}
           businessId={id}
           businessName={membresia.negocio.nombre}
+          branchId={sucursalSeleccionada?.id ?? null}
+          branchName={sucursalSeleccionada?.nombre ?? null}
+          canViewClients={rol === 'dueno'}
           onClose={cerrarChat}
           triggerRef={chatTrigger}
         />

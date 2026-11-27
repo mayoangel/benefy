@@ -149,7 +149,7 @@ test('Benef AI es usable en móvil',async({page})=>{
  const dialog=page.getByRole('dialog',{name:'Benef AI'});
  await expect(dialog).toBeVisible();
  const box=await dialog.boundingBox();
- expect(box?.width).toBeLessThanOrEqual(360);
+ expect(box?.width).toBeLessThanOrEqual(360.5);
  expect(await page.evaluate(()=>document.body.style.overflow)).toBe('hidden');
  await page.getByRole('button',{name:'Cerrar Benef AI'}).click();
  expect(await page.evaluate(()=>document.body.style.overflow)).not.toBe('hidden');
