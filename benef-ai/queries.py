@@ -8,7 +8,23 @@ import requests
 from fastapi import APIRouter, HTTPException, Security
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from pydantic import BaseModel, Field, PositiveInt
+from pydantic import BaseModel, Field, PositiveInt, model_validator
+
+import knowledge
+
+
+TEMAS_ANALITICA = (
+    'resumen', 'visitas', 'clientes', 'puntos', 'tarjetas',
+    'recompensas', 'cupones', 'canjes', 'sucursales', 'equipo',
+    'alianzas', 'plan', 'negocio',
+)
+PERIODOS_CONSULTA = (
+    'hoy', 'ayer', 'esta_semana', 'semana_pasada', 'este_mes',
+    'mes_pasado', 'ultimos_7_dias', 'ultimos_30_dias', 'ultimos_90_dias',
+    'ano_actual',
+)
+ORDENES_CLIENTES = ('visitas', 'canjes', 'ultima_visita', 'puntos', 'nombre')
+ESTADOS_ALIANZA = ('pendiente', 'activa', 'finalizada', 'rechazada')
 
 
 def _timeout_backend():
@@ -30,6 +46,36 @@ _chat_business_context: ContextVar[int | None] = ContextVar(
 
 class NegocioConsulta(BaseModel):
     negocio_id: PositiveInt
+
+
+class AnaliticaConsulta(BaseModel):
+    negocio_id: PositiveInt
+    tema: Literal[
+        'resumen', 'visitas', 'clientes', 'puntos', 'tarjetas',
+        'recompensas', 'cupones', 'canjes', 'sucursales', 'equipo',
+        'alianzas', 'plan', 'negocio',
+    ]
+    periodo: Literal[
+        'hoy', 'ayer', 'esta_semana', 'semana_pasada', 'este_mes',
+        'mes_pasado', 'ultimos_7_dias', 'ultimos_30_dias', 'ultimos_90_dias',
+        'ano_actual',
+    ] | None = None
+    desde: date | None = None
+    hasta: date | None = None
+    sucursal_id: PositiveInt | None = None
+    comparar: bool = False
+    orden: Literal['visitas', 'canjes', 'ultima_visita', 'puntos', 'nombre'] | None = None
+    limite: int = Field(default=10, ge=1, le=20)
+    incluir_inactivos: bool = False
+    estado: Literal['pendiente', 'activa', 'finalizada', 'rechazada'] | None = None
+
+    @model_validator(mode='after')
+    def periodo_o_fechas(self):
+        if self.periodo and (self.desde or self.hasta):
+            raise ValueError('Usa un periodo relativo o fechas explícitas, no ambos.')
+        if (self.desde is None) != (self.hasta is None):
+            raise ValueError('Indica desde y hasta juntos.')
+        return self
 
 
 class FiltrosOperacion(NegocioConsulta):
@@ -81,6 +127,8 @@ def _backend_request(
     path: str,
     access_token: str,
     params: dict[str, Any] | None = None,
+    *,
+    timeout: float | None = None,
 ) -> tuple[int, Any]:
     backend_api_url = os.getenv("BACKEND_API_URL", "").rstrip("/")
     if not backend_api_url:
@@ -96,7 +144,7 @@ def _backend_request(
                 "Authorization": f"Bearer {access_token}",
             },
             params=params,
-            timeout=BACKEND_TIMEOUT_SECONDS,
+            timeout=timeout or BACKEND_TIMEOUT_SECONDS,
             allow_redirects=False,
         )
     except requests.exceptions.Timeout as exc:
@@ -128,12 +176,15 @@ def _backend_get(
     params: dict[str, Any] | None = None,
     *,
     negocio_id: int,
+    timeout: float | None = None,
 ) -> Any:
     if _chat_business_context.get() != negocio_id:
         access_error = validar_acceso_negocio(access_token, negocio_id)
         if access_error is not None:
             return access_error
-    status_code, payload = _backend_request(path, access_token, params)
+    status_code, payload = _backend_request(
+        path, access_token, params, timeout=timeout,
+    )
     if status_code >= 400:
         return JSONResponse(status_code=status_code, content=payload)
     return payload
@@ -171,6 +222,64 @@ def validar_acceso_negocio(access_token: str, negocio_id: int) -> JSONResponse |
 
 def validar_acceso_chat(access_token: str, negocio_id: int) -> JSONResponse | None:
     return validar_acceso_negocio(access_token, negocio_id)
+
+
+def consultar_contexto(
+    access_token: str,
+    negocio_id: int,
+    sucursal_id: int | None = None,
+) -> Any:
+    """Obtiene el contexto autorizado y calculado por Django."""
+    params = {}
+    if sucursal_id is not None:
+        params['sucursal'] = sucursal_id
+    status_code, payload = _backend_request(
+        f'/negocios/{negocio_id}/benef-ai/contexto/', access_token, params,
+    )
+    if status_code >= 400:
+        return JSONResponse(status_code=status_code, content=payload)
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=502, detail='El backend devolvió un contexto inválido.')
+    return payload
+
+
+def consultar_analitica(
+    consulta: AnaliticaConsulta,
+    access_token: str,
+    *,
+    timeout: float | None = None,
+) -> Any:
+    params = {
+        key: value
+        for key, value in {
+            'tema': consulta.tema,
+            'periodo': consulta.periodo,
+            'desde': consulta.desde.isoformat() if consulta.desde else None,
+            'hasta': consulta.hasta.isoformat() if consulta.hasta else None,
+            'sucursal': consulta.sucursal_id,
+            'comparar': 'true' if consulta.comparar else 'false',
+            'orden': consulta.orden,
+            'limite': consulta.limite,
+            'incluir_inactivos': 'true' if consulta.incluir_inactivos else 'false',
+            'estado': consulta.estado,
+        }.items()
+        if value is not None
+    }
+    return _backend_get(
+        f'/negocios/{consulta.negocio_id}/benef-ai/analitica/',
+        access_token,
+        params,
+        negocio_id=consulta.negocio_id,
+        timeout=timeout,
+    )
+
+
+def consultar_conocimiento(tema: str | None) -> dict:
+    return knowledge.como_dict(tema)
+
+
+def temas_conocimiento() -> list[str]:
+    return [item['tema'] for item in knowledge.indice()]
 
 
 #Consultas por rango de fecha

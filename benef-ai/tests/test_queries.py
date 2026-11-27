@@ -81,5 +81,57 @@ class AccessValidationTests(unittest.TestCase):
         self.assertEqual(ctx.exception.status_code, 502)
 
 
+class ContextoChatTests(unittest.TestCase):
+    def test_contexto_incluye_sucursal_y_conserva_error(self):
+        capturado = {}
+
+        def request(path, token, params=None):
+            capturado.update(path=path, token=token, params=params)
+            return 200, {"usuario": {"nombre_completo": "Ana"}}
+
+        with patch.object(queries, "_backend_request", side_effect=request):
+            datos = queries.consultar_contexto("token", 7, sucursal_id=11)
+        self.assertEqual(datos["usuario"]["nombre_completo"], "Ana")
+        self.assertEqual(capturado["path"], "/negocios/7/benef-ai/contexto/")
+        self.assertEqual(capturado["params"], {"sucursal": 11})
+
+    def test_contexto_invalido_es_502(self):
+        with patch.object(queries, "_backend_request", return_value=(200, [])):
+            with self.assertRaises(HTTPException) as ctx:
+                queries.consultar_contexto("token", 7)
+        self.assertEqual(ctx.exception.status_code, 502)
+
+
+class AnaliticaChatTests(unittest.TestCase):
+    def test_analitica_envia_parametros_acotados(self):
+        capturado = {}
+        consulta = queries.AnaliticaConsulta(
+            negocio_id=7,
+            tema="clientes",
+            periodo="ultimos_30_dias",
+            orden="visitas",
+            limite=5,
+            incluir_inactivos=True,
+        )
+
+        def backend_get(path, token, params=None, *, negocio_id, timeout=None):
+            capturado.update(path=path, params=params, negocio_id=negocio_id)
+            return {"resultados": []}
+
+        with patch.object(queries, "_backend_get", side_effect=backend_get):
+            datos = queries.consultar_analitica(consulta, "token")
+        self.assertEqual(datos, {"resultados": []})
+        self.assertEqual(capturado["path"], "/negocios/7/benef-ai/analitica/")
+        self.assertEqual(capturado["params"]["tema"], "clientes")
+        self.assertEqual(capturado["params"]["limite"], 5)
+        self.assertEqual(capturado["params"]["incluir_inactivos"], "true")
+
+    def test_conocimiento_devuelve_tema_y_temas_disponibles(self):
+        datos = queries.consultar_conocimiento("cupones")
+        self.assertEqual(datos["tema"], "cupones")
+        self.assertIn("contenido", datos)
+        self.assertIn("cupones", queries.temas_conocimiento())
+
+
 if __name__ == "__main__":
     unittest.main()

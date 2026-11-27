@@ -64,8 +64,11 @@ class ChatRouteAuthTests(unittest.TestCase):
         self.assertEqual(response.status_code, 401)
 
     @patch.dict(os.environ, {'BENEF_AI_SERVICE_TOKEN': SECRET, 'GEMINI_API_KEY': ''})
-    @patch('chat.validar_acceso_chat', return_value=None)
-    def test_firma_valida_llega_al_chat_y_sin_gemini_es_503(self, _acceso):
+    @patch('chat.consultar_contexto', return_value={
+        'usuario': {}, 'negocio': {}, 'plan': {'plan': {}},
+        'tiempo': {}, 'capacidades': {},
+    })
+    def test_firma_valida_llega_al_chat_y_sin_gemini_es_503(self, _contexto):
         body = json.dumps(carga(), separators=(',', ':')).encode()
         response = self.client.post('/chat', content=body, headers=self.headers(body))
         self.assertEqual(response.status_code, 503)

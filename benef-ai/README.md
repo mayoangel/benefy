@@ -33,6 +33,7 @@ al menos 32 caracteres.
 ```json
 {
   "negocio_id": 12,
+  "sucursal_id": 11,
   "message": "¿Cuántas visitas tuvimos este mes?",
   "history": [
     {"role": "user", "content": "Hola"},
@@ -51,20 +52,25 @@ Respuesta:
 ```
 
 Límites: mensaje de hasta 4000 caracteres, historial de hasta 12 turnos y 12000
-caracteres. Benef AI consulta `/mi/contexto/` con el bearer del usuario, rechaza
-`admin_sistema` y negocios fuera de su contexto. Cada tool vuelve a llamar a
-Django, que aplica los permisos de recurso y sucursal.
+caracteres. Benef AI consulta `/negocios/{id}/benef-ai/contexto/` con el bearer
+del usuario, rechaza `admin_sistema` y negocios fuera de su contexto. Cada tool
+vuelve a llamar a Django, que aplica los permisos de recurso, sucursal y plan.
 
 ## Tools
 
-`consultar_datos_negocio` permite únicamente:
-`metricas`, `visitas`, `canjes`, `cupones`, `programas`, `recompensas`, `plan`,
-`negocio`, `equipo`, `clientes`, `sucursales`, `invitaciones`, `alianzas`.
+`consultar_analitica` permite únicamente:
+`resumen`, `visitas`, `clientes`, `puntos`, `tarjetas`, `recompensas`,
+`cupones`, `canjes`, `sucursales`, `equipo`, `alianzas`, `plan` y `negocio`.
+
+`consultar_conocimiento_benefy` devuelve la explicación funcional de Benefy desde
+`knowledge.py` para temas de producto, planes, facturación, roles y escritura.
 
 Todas son de lectura. No hay tools para modificar puntos, visitas, cupones,
-pagos, membresías ni alianzas. Cada respuesta se limita a 4 rondas y 4
+pagos, membresías ni alianzas. Cada respuesta se limita a 4 rondas y 6
 llamadas; Gemini usa `store=false`. Los datos devueltos se sanitizan: sin
-identidades, tokens, QR, correos ni información de otros negocios.
+correos, tokens, QR ni información de otros negocios. Los periodos relativos y
+la zona horaria se calculan en Django, no en el modelo. Si todas las tools
+devuelven 5xx, el chat responde 502 y no permite conclusiones inventadas.
 
 ## Variables
 
@@ -76,6 +82,7 @@ BENEF_AI_SERVICE_TOKEN=<token-aleatorio-de-32-o-mas-caracteres>
 GEMINI_API_KEY=<clave>
 GEMINI_MODEL=gemini-3.1-flash-lite
 GEMINI_TIMEOUT_MS=30000
+BENEF_AI_TOTAL_TIMEOUT_MS=40000
 BENEF_AI_ALLOWED_ORIGINS=
 LOG_LEVEL=INFO
 ```
