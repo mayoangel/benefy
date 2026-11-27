@@ -73,6 +73,22 @@ python manage.py corregir_propietario_unico \
 - Cada negocio adicional debe aparecer exactamente en una de las dos opciones.
 - La operación es atómica y vuelve a comprobar que quede un solo negocio activo.
 
+## Cuentas nuevas para una transferencia
+
+Si el destino autorizado aún no existe, crea una cuenta verificada con:
+
+```bash
+python manage.py crear_cuentas_propietarios \
+  --cuenta aurora@benefy.com:Renata:Flores \
+  --apply --allow-remote \
+  --expected-target <huella> \
+  --backup-receipt /backups/<respaldo>.json
+```
+
+Requiere `SUPABASE_SECRET_KEY`, crea el usuario confirmado en Supabase Auth y su
+perfil Django, y muestra las credenciales una sola vez. No crea ni modifica
+negocios; después usa `corregir_propietario_unico` para transferir la propiedad.
+
 ## Verificación
 
 ```bash

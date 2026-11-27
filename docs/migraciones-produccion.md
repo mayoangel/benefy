@@ -63,16 +63,16 @@ Comprueba:
 ## Migraciones pendientes de este repositorio
 
 `0021_eliminacion_cuenta` agrega el estado idempotente de baja de cuenta y
-`0022_eliminacion_cuenta_storage` agrega las marcas de limpieza de avatares. No
-se aplicaron en Supabase remoto durante esta implementación. Las migraciones
-`0019` y `0020` se verificaron como aplicadas en el destino el 2026-11-24; las
-migraciones `0021` y `0022` siguen pendientes de autorización y respaldo.
+`0022_eliminacion_cuenta_storage` agrega las marcas de limpieza de avatares.
+Ambas aparecen aplicadas en el destino al 2026-11-27.
 
 `0023_propietario_unico_negocio` agrega la restricción de un solo negocio activo
-por propietario. Antes de aplicarla, corrige las cuentas indicadas por su
-comprobación previa siguiendo [propietario-unico.md](propietario-unico.md). La
-migración no debe aplicarse en remoto hasta crear y verificar un respaldo y
-resolver esas cuentas.
+por propietario. Se aplicó en remoto el 2026-11-27 después de crear y verificar
+el respaldo `backups/benefy-20261127-042154-180465.dump`, corregir la cuenta
+`business@benefy.com` y transferir sus negocios adicionales. La comprobación
+previa de la migración sigue protegiendo cualquier destino que aún tenga cuentas
+con más de una propiedad activa; el procedimiento está en
+[propietario-unico.md](propietario-unico.md).
 
 ## Respaldo local de referencia
 
