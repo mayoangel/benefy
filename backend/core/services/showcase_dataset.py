@@ -17,10 +17,10 @@ from core.services.showcase_auth import SHOWCASE, accounts
 
 ZONE = ZoneInfo('America/Tijuana')
 BUSINESSES = [
-    ('aurora', 'Café Aurora', 'Cafetería', 'premium', ['Centro', 'Río'], 10, 5, 90),
-    ('norte', 'Barbería Norte', 'Barbería', 'free', ['Centro'], 15, 3, 180),
-    ('impulso', 'Impulso Fitness', 'Gimnasio', 'premium', ['Río', 'Playas'], 20, 8, 120),
-    ('verde', 'Casa Verde', 'Restaurante', 'free', ['Cacho'], 10, 4, 90),
+    ('aurora', 'Café Aurora', 'Cafetería', 'premium', ['Centro', 'Río'], 10, 5, 90, 'business-aurora'),
+    ('norte', 'Barbería Norte', 'Barbería', 'free', ['Centro'], 15, 3, 180, 'business'),
+    ('impulso', 'Impulso Fitness', 'Gimnasio', 'premium', ['Río', 'Playas'], 20, 8, 120, 'business-impulso'),
+    ('verde', 'Casa Verde', 'Restaurante', 'free', ['Cacho'], 10, 4, 90, 'business-verde'),
 ]
 FIRST = ['Mariana', 'Roberto', 'Valeria', 'Daniel', 'Sofía', 'Diego', 'Camila', 'Mateo', 'Lucía', 'Andrés', 'Elena', 'Nicolás']
 LAST = ['García', 'Navarro', 'Cruz', 'López', 'Torres']
@@ -35,9 +35,16 @@ def profile_defaults(name, uid):
         i = int(name.split('-')[1])
         first, last = FIRST[i % len(FIRST)], LAST[i // len(FIRST)]
     else:
-        first, last = {'admin': ('Ana', 'Administración'), 'business': ('Alejandro', 'Martínez'),
-                       'user': ('Mariana', 'García'), 'supervisor': ('Daniel', 'López'),
-                       'employee': ('Sofía', 'Torres')}[name]
+        first, last = {
+            'admin': ('Ana', 'Administración'),
+            'business': ('Alejandro', 'Martínez'),
+            'business-aurora': ('Renata', 'Flores'),
+            'business-impulso': ('Marco', 'Ruiz'),
+            'business-verde': ('Lucía', 'Santos'),
+            'user': ('Mariana', 'García'),
+            'supervisor': ('Daniel', 'López'),
+            'employee': ('Sofía', 'Torres'),
+        }[name]
     return {'supabase_uid': uid, 'nombre': first, 'apellido': last,
             'rol': 'admin_sistema' if name == 'admin' else 'consumidor'}
 
@@ -74,7 +81,8 @@ def seed_showcase(identities, progress=lambda message: None, parallel=False):
 
 
 def _seed_business(spec, profiles, customer_names, progress):
-    biz_index, (slug, title, category_name, plan_code, branch_names, grant, stamps, expiry) = spec
+    biz_index, (slug, title, category_name, plan_code, branch_names, grant, stamps, expiry, owner_name) = spec
+    owner = profiles[owner_name]
     try:
         with transaction.atomic():
             category, _ = models.CategoriaNegocio.objects.get_or_create(nombre=category_name)
@@ -90,7 +98,7 @@ def _seed_business(spec, profiles, customer_names, progress):
                 start = datetime.combine(anchor - timedelta(days=190), time(10), ZONE)
                 models.Negocio.objects.filter(pk=business.pk).update(fecha_registro=start)
                 business.fecha_registro = start
-                planes.asignar_free_inicial(business, actor=profiles['business'], motivo='Inicialización de demostración.')
+                planes.asignar_free_inicial(business, actor=owner, motivo='Inicialización de demostración.')
                 if plan_code == 'premium':
                     planes.cambiar_plan(negocio=business, plan=models.PlanSuscripcion.objects.get(codigo='premium'),
                                         actor=profiles['admin'], motivo='Demostración de capacidades Premium.')
@@ -107,12 +115,12 @@ def _seed_business(spec, profiles, customer_names, progress):
                 if new:
                     models.Sucursal.objects.filter(pk=branch.pk).update(fecha_registro=start)
                 branches.append(branch)
-            for name, role in [('business', 'dueno'), ('supervisor', 'supervisor'), ('employee', 'empleado')]:
+            for name, role in [(owner_name, 'dueno'), ('supervisor', 'supervisor'), ('employee', 'empleado')]:
                 branch = None if role == 'dueno' else branches[0]
                 if not models.UsuarioNegocio.objects.filter(usuario=profiles[name], negocio=business).exists():
                     access.verificar_limite_creacion(models.UsuarioNegocio, {'negocio': business, 'rol_comercio': role, 'status': True})
                     membresias.crear_membresia(usuario=profiles[name], negocio=business, sucursal=branch,
-                        rol_comercio=role, actor=profiles['business'], motivo='Equipo de demostración.')
+                        rol_comercio=role, actor=owner, motivo='Equipo de demostración.')
             program, _ = create_resource(models.Dinamica, {'negocio': business, 'nombre': 'Puntos ' + title}, {
                 'tipo': 'puntos', 'regla_conversion': grant, 'dias_expiracion_puntos': expiry, 'fecha_inicio': start,
             })

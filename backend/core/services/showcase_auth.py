@@ -13,9 +13,16 @@ SHOWCASE = 'benefy-showcase-v2'
 
 
 def accounts():
-    principal = [('admin', 'admin@benefy.com'), ('business', 'business@benefy.com'),
-                 ('user', 'user@benefy.com'), ('supervisor', 'supervisor@benefy.com'),
-                 ('employee', 'employee@benefy.com')]
+    principal = [
+        ('admin', 'admin@benefy.com'),
+        ('business', 'business@benefy.com'),
+        ('business-aurora', 'aurora@benefy.com'),
+        ('business-impulso', 'impulso@benefy.com'),
+        ('business-verde', 'verde@benefy.com'),
+        ('user', 'user@benefy.com'),
+        ('supervisor', 'supervisor@benefy.com'),
+        ('employee', 'employee@benefy.com'),
+    ]
     return dict(principal + [(f'customer-{i:02}', f'cliente{i:02}@benefy.example.invalid') for i in range(1, 60)])
 
 

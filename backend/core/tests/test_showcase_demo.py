@@ -18,7 +18,7 @@ class ShowcaseDemoTests(TestCase):
         call_command('seed_demo', apply=True, offline_profiles=True, stdout=StringIO())
         self.assertEqual(models.Negocio.objects.count(), 4)
         self.assertEqual(models.Sucursal.objects.count(), 6)
-        self.assertEqual(models.Usuario.objects.count(), 64)
+        self.assertEqual(models.Usuario.objects.count(), 67)
         self.assertGreater(models.RegistroActividad.objects.count(), 1000)
         before = {m.__name__: list(m.objects.order_by('pk').values_list('pk', flat=True)) for m in (
             models.Usuario, models.RegistroActividad, models.CuponUsuario, models.Canje, models.MovimientoPuntos)}
