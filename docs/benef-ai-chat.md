@@ -2,8 +2,9 @@
 
 Benef AI es un asistente conversacional de solo lectura para propietarios,
 supervisores y empleados con membresía activa. El portal web no llama a Benef AI
-directamente: Django valida la sesión de Supabase, el negocio y los límites antes
-de reenviar la solicitud.
+directamente: Django valida la sesión de Supabase, el negocio, la sucursal y los
+límites antes de reenviar la solicitud. La matriz vigente de capacidades está en
+[benef-ai-capacidades.md](./benef-ai-capacidades.md).
 
 ## Arquitectura
 
@@ -18,7 +19,8 @@ Django  POST /api/v1/negocios/{id}/benef-ai/chat/
    ▼
 Benef AI  POST /chat
    │  - verifica firma, timestamp y token de servicio
-   │  - vuelve a validar /mi/contexto/ con el bearer del usuario
+   │  - obtiene /negocios/{id}/benef-ai/contexto/ con el bearer del usuario
+   │  - valida negocio, sucursal, rol, plan y tiempo
    │  - ejecuta tools de lectura contra Django
    ▼
 Django API  →  PostgreSQL / Supabase
@@ -36,6 +38,7 @@ Content-Type: application/json
 
 {
   "message": "¿Cuántas visitas tuvimos esta semana?",
+  "sucursal_id": 11,
   "history": [
     {"role": "user", "content": "Hola"},
     {"role": "assistant", "content": "¿Qué necesitas consultar?"}
@@ -110,29 +113,51 @@ redes privadas (`*.railway.internal`, desarrollo local/Docker).
 
 - El negocio queda fijado por la ruta `/negocios/{id}/benef-ai/chat/`; el cliente
   no puede cambiarlo dentro de la misma solicitud.
+- La sucursal seleccionada es opcional y se valida contra las sucursales
+  autorizadas del usuario.
 - Django verifica la membresía antes de llamar a Benef AI.
-- Benef AI consulta `/api/v1/mi/contexto/` con el bearer del usuario y rechaza
-  negocios fuera del contexto o cuentas `admin_sistema`.
+- Benef AI consulta `/api/v1/negocios/{id}/benef-ai/contexto/` con el bearer del
+  usuario y rechaza negocios fuera del contexto o cuentas `admin_sistema`.
+- El contexto incluye identidad, rol, plan, sucursales autorizadas, fecha/hora
+  local del negocio y rangos relativos calculados en Django.
 - Cada tool vuelve a llamar a Django; Django aplica permisos por recurso y
   sucursal.
 - Las tools son de solo lectura. No existen operaciones para modificar puntos,
   visitas, cupones, pagos, membresías o alianzas.
 - El historial vive en memoria del panel React y se envía en cada turno. No hay
   base de datos de conversaciones.
-- Al cambiar de negocio, cerrar sesión o reiniciar la conversación, React aborta
-  la solicitud pendiente y descarta respuestas tardías.
+- Al cambiar de negocio, sucursal, cerrar sesión o reiniciar la conversación,
+  React aborta la solicitud pendiente y descarta respuestas tardías.
 
 ## Tools disponibles
 
-El agente solo puede invocar `consultar_datos_negocio` con uno de estos tipos:
+El agente puede invocar dos tools:
 
-`metricas`, `visitas`, `canjes`, `cupones`, `programas`, `recompensas`, `plan`,
-`negocio`, `equipo`, `clientes`, `sucursales`, `invitaciones`, `alianzas`.
+### `consultar_analitica`
 
-Benef AI limita cada respuesta a 4 rondas de tools y 4 llamadas, usa
-`store=false` en Gemini y sanitiza los campos devueltos (sin identidades,
-tokens, QR, correos ni datos de otros negocios). Si una consulta no tiene datos o
-Django responde `403`, el agente debe explicarlo, no inventar cifras.
+Temas: `resumen`, `visitas`, `clientes`, `puntos`, `tarjetas`, `recompensas`,
+`cupones`, `canjes`, `sucursales`, `equipo`, `alianzas`, `plan` y `negocio`.
+
+Parámetros: `periodo`, `desde`, `hasta`, `sucursal_id`, `comparar`, `orden`,
+`limite` (1-20), `incluir_inactivos` y `estado`.
+
+Los periodos relativos se resuelven en Django con la zona horaria del negocio.
+La analítica devuelve datos reales, nombres de aliados, fechas, rankings y
+tasas con denominador explícito. Los temas de clientes, cupones y puntos
+respetan el alcance del rol.
+
+### `consultar_conocimiento_benefy`
+
+Devuelve la explicación funcional de Benefy desde `benef-ai/knowledge.py` para
+temas como visitas, puntos, tarjetas, recompensas, cupones, canjes, sucursales,
+QR, roles, planes, facturación, alianzas, clientes, privacidad y escritura.
+
+Benef AI limita cada respuesta a 4 rondas de tools y 6 llamadas, usa
+`store=false` en Gemini y no envía identidades, correos, tokens, QR ni datos de
+otros negocios al modelo. Si una consulta no tiene datos o Django responde
+`403`, el agente debe explicarlo, no inventar cifras. Si todas las tools
+devuelven un error técnico, el chat responde `502` en lugar de permitir una
+conclusión falsa.
 
 ## UI del portal
 
@@ -158,6 +183,7 @@ Variables compartidas (no subir secretos):
 BENEF_AI_URL=http://127.0.0.1:5001
 BENEF_AI_SERVICE_TOKEN=<token-aleatorio-de-32-o-mas-caracteres>
 BENEF_AI_TIMEOUT_SECONDS=45
+BENEF_AI_TOTAL_TIMEOUT_MS=40000
 THROTTLE_BENEF_AI_CHAT=20/hour
 GEMINI_API_KEY=<clave-solo-en-el-entorno-del-servicio-IA>
 ```
@@ -200,31 +226,36 @@ están en la misma red privada de Railway. No se debe depender exclusivamente de
 
 - Rate limit de 20 consultas por usuario/hora por defecto.
 - Mensajes de 2000 caracteres y contexto de 12,000 caracteres.
-- Máximo 4 rondas de tools por respuesta.
-- Timeout de Django 45 s y de Gemini 30 s.
+- Máximo 4 rondas de tools y 6 llamadas por respuesta.
+- Timeout total del chat: 40 s; timeout por llamada Gemini: 30 s.
+- Sin reintentos automáticos del cliente experimental de Interactions.
 - No se persisten conversaciones ni se entrenan modelos con los datos.
 - El health check de Benef AI no consume Gemini.
 
 ## Pruebas
 
-- Django: autenticación, permisos, aislamiento entre negocios, validación,
-  rate limit, timeout, errores del proveedor, respuesta exitosa y compatibilidad
-  de firma HMAC.
-- Benef AI: contrato `/chat`, autenticación HMAC, herramientas permitidas,
-  contexto, errores de Gemini, respuesta vacía y límites de historial.
+- Django: autenticación, permisos, aislamiento entre negocios y sucursales,
+  validación, rate limit, timeout, errores del proveedor, respuesta exitosa,
+  compatibilidad de firma HMAC, contexto temporal, identidad, plan y analítica.
+- Benef AI: contrato `/chat`, autenticación HMAC, historial por roles,
+  herramientas permitidas, conocimiento, contexto, errores de Gemini, respuesta
+  vacía, timeout total y límites de historial.
 - React: apertura/cierre, envío, Shift+Enter, carga, error, reinicio, cambio de
-  negocio, respuestas tardías, accesibilidad y ausencia de chat para admin.
+  negocio/sucursal, respuestas tardías, accesibilidad y ausencia de chat para
+  admin.
 
-Resultados de esta entrega: **335 pruebas Django OK**, **39 pruebas Benef AI
-OK**, **52 pruebas Vitest OK** y **40 pruebas Playwright E2E OK**. El build de
-Vite y el typecheck también pasan.
+Resultados de esta entrega: **369 pruebas Django OK**, **54 pruebas Benef AI
+OK**, **56 pruebas Vitest OK** y **40 pruebas Playwright E2E OK**. El build de
+Vite y el typecheck también pasan. La prueba real acotada con Gemini se documenta
+en [benef-ai-capacidades.md](./benef-ai-capacidades.md).
 
-## Limitaciones del MVP
+## Limitaciones actuales
 
 - El historial se pierde al recargar la página; no hay base de conversaciones.
 - No hay streaming token por token; la respuesta llega completa.
 - No hay push ni notificaciones del asistente.
-- La calidad de las respuestas depende de las tools y de Gemini; si no hay
-  datos, el agente debe decirlo.
-- La prueba E2E con Gemini real requiere una sesión de Supabase válida y un
-  entorno con servicios; no se ejecutó en esta entrega.
+- Benef AI no ejecuta escrituras ni acciones con confirmación.
+- No existe un histórico exacto por sello; se informa el progreso actual y los
+  ciclos completados.
+- La disponibilidad y latencia dependen de Gemini; el sistema falla de forma
+  segura, pero no puede garantizar disponibilidad del proveedor.
