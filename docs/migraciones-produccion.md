@@ -68,6 +68,12 @@ se aplicaron en Supabase remoto durante esta implementación. Las migraciones
 `0019` y `0020` se verificaron como aplicadas en el destino el 2026-11-24; las
 migraciones `0021` y `0022` siguen pendientes de autorización y respaldo.
 
+`0023_propietario_unico_negocio` agrega la restricción de un solo negocio activo
+por propietario. Antes de aplicarla, corrige las cuentas indicadas por su
+comprobación previa siguiendo [propietario-unico.md](propietario-unico.md). La
+migración no debe aplicarse en remoto hasta crear y verificar un respaldo y
+resolver esas cuentas.
+
 ## Respaldo local de referencia
 
 `python dev.py backup` crea un respaldo del proyecto de demostración verificado,

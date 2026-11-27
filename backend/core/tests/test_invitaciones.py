@@ -157,6 +157,36 @@ class InvitacionAPITests(InvitacionBaseTests):
             rol_comercio='dueno', sucursal__isnull=True, status=True,
         ).exists())
 
+    def test_admin_no_invita_como_propietario_a_quien_ya_tiene_negocio(self):
+        nuevo = crear_usuario()
+        otro_negocio = crear_negocio('Otro negocio')
+        models.UsuarioNegocio.objects.create(
+            usuario=nuevo, negocio=otro_negocio,
+            sucursal=None, rol_comercio='dueno',
+        )
+        response = self.invitar(nuevo.correo, rol='dueno', actor=self.admin)
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.data['codigo'], 'propietario_unico')
+        self.assertFalse(models.InvitacionMembresia.objects.filter(
+            correo=nuevo.correo, rol_comercio='dueno',
+        ).exists())
+
+    def test_aceptar_propiedad_con_otro_negocio_activo_falla(self):
+        nuevo = crear_usuario()
+        admin = self.invitar(nuevo.correo, rol='dueno', actor=self.admin)
+        self.assertEqual(admin.status_code, 201)
+        otro_negocio = crear_negocio('Propiedad posterior')
+        models.UsuarioNegocio.objects.create(
+            usuario=nuevo, negocio=otro_negocio,
+            sucursal=None, rol_comercio='dueno',
+        )
+        response = self.aceptar(admin.data['token'], nuevo)
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.data['codigo'], 'membresia_invalida')
+        self.assertFalse(models.UsuarioNegocio.objects.filter(
+            usuario=nuevo, negocio=self.business, rol_comercio='dueno',
+        ).exists())
+
     def test_limite_de_plan_al_invitar(self):
         self.invitar(self.employee.correo, sucursal=self.branch)
         # Free permite un supervisor activo; el existente ya ocupa el cupo.

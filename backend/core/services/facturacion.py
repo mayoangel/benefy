@@ -224,7 +224,7 @@ def _plan_premium():
     ).first()
     if plan is None:
         raise PlanNoFacturable(
-            'No existe el plan Premium activo. Es un error de configuración.'
+            'No existe el plan premium activo. Es un error de configuración.'
         )
     return plan
 
@@ -240,11 +240,11 @@ def precio_catalogo(intervalo):
     ).select_related('plan').first()
     if precio is None or precio.monto is None or precio.monto <= 0:
         raise PlanNoFacturable(
-            f'El precio {intervalo} de Premium no está configurado.'
+            f'El precio {intervalo} del plan premium no está configurado.'
         )
     if not (precio.stripe_price_id or '').startswith('price_'):
         raise PlanNoFacturable(
-            f'El precio {intervalo} de Premium no está vinculado a un Price ID '
+            f'El precio {intervalo} del plan premium no está vinculado a un Price ID '
             'de Stripe Sandbox. Ejecuta configurar_stripe_sandbox.'
         )
     return precio
@@ -783,7 +783,7 @@ def crear_sesion_checkout(negocio, usuario, intervalo):
                 actual = planes.suscripcion_actual(negocio)
                 if actual is not None and actual.plan.codigo == 'premium':
                     raise PremiumYaActivo(
-                        'Ya existe una suscripción Premium activa en Stripe. '
+                        'Ya existe una suscripción del plan premium activa en Stripe. '
                         'Administra la suscripción desde el portal.'
                     )
                 raise PremiumYaActivo(
@@ -794,7 +794,7 @@ def crear_sesion_checkout(negocio, usuario, intervalo):
         actual = planes.suscripcion_actual(negocio)
         if actual is not None and actual.plan.codigo == 'premium':
             raise PremiumYaActivo(
-                'El negocio ya tiene Premium vigente. No se creó otro Checkout.'
+                'El negocio ya tiene el plan premium vigente. No se creó otro Checkout.'
             )
 
         customer = _obtener_o_crear_cliente(negocio, cliente)
@@ -1034,7 +1034,7 @@ def datos_facturacion(negocio):
     if habilitada and not any(item['disponible'] for item in precios):
         habilitada = False
         motivo = (
-            'El catálogo de Premium no está vinculado a Price IDs de Stripe '
+            'El catálogo del plan premium no está vinculado a Price IDs de Stripe '
             'Sandbox. Ejecuta configurar_stripe_sandbox.'
         )
 
@@ -1102,8 +1102,7 @@ def datos_facturacion(negocio):
             'modo': 'test' if habilitada else 'deshabilitado',
             'motivo': motivo,
             'aviso': (
-                'Pagos de demostración en Stripe Sandbox. No se realizan '
-                'cargos reales.'
+                'Pagos de prueba. No se realizan cargos reales.'
             ),
             'webhook_configurado': webhook_configurado,
             'precios': precios,

@@ -83,6 +83,17 @@ def crear_invitacion(
             status_code=409,
         )
 
+    if rol_comercio == 'dueno':
+        invitado = models.Usuario.objects.filter(correo__iexact=correo).first()
+        if invitado is not None:
+            propiedad = membresias.propietario_activo(invitado)
+            if propiedad is not None and propiedad.negocio_id != negocio.pk:
+                raise ErrorInvitacion(
+                    'propietario_unico',
+                    membresias.MENSAJE_PROPIETARIO_UNICO,
+                    status_code=409,
+                )
+
     if models.InvitacionMembresia.objects.filter(
         negocio=negocio,
         correo=correo,

@@ -45,9 +45,17 @@ NOMBRES_RECURSOS = {
     'supervisores': 'supervisores',
     'empleados': 'empleados',
     'alianzas_activas': 'alianzas activas',
-    'alianzas_con_free': 'alianzas activas con negocios Free',
-    'alianzas_con_premium': 'alianzas activas con negocios Premium',
+    'alianzas_con_free': 'alianzas activas con negocios del plan gratis',
+    'alianzas_con_premium': 'alianzas activas con negocios del plan premium',
 }
+
+
+def nombre_visible_plan(plan):
+    """Nombre comercial del plan para mensajes dirigidos al negocio."""
+    return {
+        'free': 'plan gratis',
+        'premium': 'plan premium',
+    }.get(getattr(plan, 'codigo', ''), getattr(plan, 'nombre', 'plan actual'))
 
 
 class ErrorConfiguracionPlan(Exception):
@@ -309,7 +317,7 @@ def verificar_capacidad_alianza(negocio, contraparte):
         uso_total = uso_actual(actual, 'alianzas_activas')
         if maximo_total is not None and uso_total + 1 > maximo_total:
             raise LimitePlan(
-                f'El plan {plan.nombre} permite {maximo_total} alianzas activas.'
+                f'El {nombre_visible_plan(plan)} permite {maximo_total} alianzas activas.'
             )
 
         es_free = _codigo_plan(otra, cache) == 'free'
@@ -318,7 +326,7 @@ def verificar_capacidad_alianza(negocio, contraparte):
         uso = uso_actual(actual, clave)
         if maximo is not None and uso + 1 > maximo:
             raise LimitePlan(
-                f'El plan {plan.nombre} permite {maximo} '
+                f'El {nombre_visible_plan(plan)} permite {maximo} '
                 f'{NOMBRES_RECURSOS[clave]}.'
             )
     return True

@@ -211,7 +211,7 @@ class OnboardingAPITests(TestCase):
         negocio = models.Negocio.objects.get(pk=response.data['negocio_id'])
         self.assertEqual(negocio.nombre, 'Fonda Luis')
 
-    def test_segundo_negocio_por_api_es_independiente(self):
+    def test_segundo_negocio_por_api_se_rechaza(self):
         identity = identidad(metadata())
         self.completar(identity)
         usuario = models.Usuario.objects.get(supabase_uid=identity.uid)
@@ -225,17 +225,14 @@ class OnboardingAPITests(TestCase):
             'correo': 'cafe-dos@example.com',
             'categoria': categoria.pk,
         }, format='json')
-        self.assertEqual(response.status_code, 201)
-        negocio_dos = models.Negocio.objects.get(nombre='Café Dos')
-        self.assertNotEqual(negocio_uno.pk, negocio_dos.pk)
-        self.assertTrue(models.UsuarioNegocio.objects.filter(
-            usuario=usuario, negocio=negocio_dos, rol_comercio='dueno',
-        ).exists())
-        self.assertEqual(planes.plan_actual(negocio_dos).codigo, 'free')
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('un solo negocio', str(response.data))
+        self.assertEqual(models.Negocio.objects.count(), 1)
+        self.assertEqual(models.Negocio.objects.get().pk, negocio_uno.pk)
 
-        # Un nuevo intento del onboarding no crea un tercer negocio.
+        # Un nuevo intento del onboarding tampoco crea un segundo negocio.
         self.completar(identity, usuario)
-        self.assertEqual(models.Negocio.objects.count(), 2)
+        self.assertEqual(models.Negocio.objects.count(), 1)
 
 
 class OnboardingConcurrenteTests(TransactionTestCase):

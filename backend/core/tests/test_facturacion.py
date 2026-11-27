@@ -257,7 +257,7 @@ class CheckoutTests(BaseFacturacionTests):
         self.assertEqual(precios['anual']['monto'], '3990.00')
         self.assertTrue(precios['mensual']['disponible'])
         self.assertTrue(precios['anual']['disponible'])
-        self.assertIn('demostración', response.data['facturacion']['aviso'])
+        self.assertIn('prueba', response.data['facturacion']['aviso'])
         serializado = str(response.data)
         self.assertNotIn('price_', serializado)
         self.assertNotIn('sk_test_', serializado)

@@ -245,7 +245,7 @@ class PremiumAlianzasTests(PoliticaAlianzasBaseTests):
         )
         rechazada = self.aceptar(segunda.pk, self.owner_a, self.business_a)
         self.assertEqual(rechazada.status_code, 403)
-        self.assertIn('con negocios Free', rechazada.data['detalle'])
+        self.assertIn('con negocios del plan gratis', rechazada.data['detalle'])
         self.assertEqual(
             models.Alianza.objects.filter(
                 status='activa', negocio2=self.business_a,
@@ -273,7 +273,7 @@ class PremiumAlianzasTests(PoliticaAlianzasBaseTests):
             propuestas[3].pk, self.owner_a, self.business_a,
         )
         self.assertEqual(rechazada.status_code, 403)
-        self.assertIn('con negocios Premium', rechazada.data['detalle'])
+        self.assertIn('con negocios del plan premium', rechazada.data['detalle'])
         self.assertEqual(
             models.Alianza.objects.filter(
                 status='activa', negocio2=self.business_a,

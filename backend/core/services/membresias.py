@@ -9,6 +9,29 @@ from core import models
 class ErrorMembresia(Exception):
     """Error de dominio al gestionar una membresía."""
 
+    def __init__(self, detalle, codigo='membresia_invalida'):
+        super().__init__(detalle)
+        self.codigo = codigo
+
+
+MENSAJE_PROPIETARIO_UNICO = (
+    'Cada cuenta puede ser propietaria de un solo negocio activo. '
+    'Administra tus sucursales o transfiere la propiedad antes de registrar otro negocio.'
+)
+
+
+def propietario_activo(usuario, excluir_pk=None):
+    """Membresía de dueño activa del usuario, si existe."""
+    consulta = models.UsuarioNegocio.objects.filter(
+        usuario=usuario,
+        rol_comercio='dueno',
+        sucursal__isnull=True,
+        status=True,
+    ).select_related('negocio')
+    if excluir_pk is not None:
+        consulta = consulta.exclude(pk=excluir_pk)
+    return consulta.order_by('pk').first()
+
 
 def _snapshot(membresia):
     return {
@@ -89,7 +112,19 @@ def crear_membresia(
     _validar_combinacion(negocio, sucursal, rol_comercio)
     try:
         with transaction.atomic():
+            # Serializa los cambios de propiedad por usuario. La restricción
+            # parcial de base de datos sigue siendo la última barrera.
+            models.Usuario.objects.select_for_update().get(pk=usuario.pk)
             existente = _buscar_existente(usuario, negocio, sucursal)
+            if rol_comercio == 'dueno':
+                otro = propietario_activo(
+                    usuario,
+                    excluir_pk=existente.pk if existente is not None else None,
+                )
+                if otro is not None:
+                    raise ErrorMembresia(
+                        MENSAJE_PROPIETARIO_UNICO, 'propietario_unico',
+                    )
             if existente is not None:
                 if existente.status:
                     raise ErrorMembresia('La membresía ya existe y está activa.')
@@ -138,6 +173,17 @@ def crear_membresia(
 def actualizar_membresia(*, membresia, cambios, actor=None, motivo=''):
     """Actualiza una membresía existente y audita el estado anterior y nuevo."""
     with transaction.atomic():
+        # Mismo orden de bloqueo que crear_membresia: usuario y luego membresía.
+        usuario_ids = {
+            models.UsuarioNegocio.objects.only('usuario_id').get(
+                pk=membresia.pk,
+            ).usuario_id,
+        }
+        if cambios.get('usuario') is not None:
+            usuario_ids.add(cambios['usuario'].pk)
+        list(models.Usuario.objects.select_for_update().filter(
+            pk__in=sorted(usuario_ids),
+        ).order_by('pk'))
         membresia = models.UsuarioNegocio.objects.select_for_update(
             of=('self',),
         ).select_related(
@@ -149,6 +195,7 @@ def actualizar_membresia(*, membresia, cambios, actor=None, motivo=''):
         nuevo_rol = cambios.get('rol_comercio', membresia.rol_comercio)
         nuevo_status = cambios.get('status', membresia.status)
         nuevo_negocio = cambios.get('negocio', membresia.negocio)
+        nuevo_usuario = cambios.get('usuario', membresia.usuario)
         _validar_combinacion(nuevo_negocio, nueva_sucursal, nuevo_rol)
         era_dueno_activo = (
             membresia.rol_comercio == 'dueno'
@@ -163,9 +210,15 @@ def actualizar_membresia(*, membresia, cambios, actor=None, motivo=''):
         )
         if era_dueno_activo and not sigue_dueno_activo:
             _validar_propietario_restante(membresia)
+        if nuevo_rol == 'dueno' and nueva_sucursal is None and nuevo_status:
+            otro = propietario_activo(nuevo_usuario, excluir_pk=membresia.pk)
+            if otro is not None:
+                raise ErrorMembresia(
+                    MENSAJE_PROPIETARIO_UNICO, 'propietario_unico',
+                )
 
         conflicto = models.UsuarioNegocio.objects.filter(
-            usuario=cambios.get('usuario', membresia.usuario),
+            usuario=nuevo_usuario,
             negocio=nuevo_negocio,
             sucursal=nueva_sucursal,
         ).exclude(pk=membresia.pk)

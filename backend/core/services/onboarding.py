@@ -215,7 +215,7 @@ def completar_registro_comercial(identity):
         planes.asignar_free_inicial(
             negocio,
             actor=usuario,
-            motivo='Plan Free del registro comercial inicial.',
+            motivo='Plan gratis del registro comercial inicial.',
         )
 
         registro.usuario = usuario

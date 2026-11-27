@@ -176,6 +176,15 @@ class UsuarioNegocio(models.Model):
                 condition=models.Q(sucursal__isnull=False),
                 name='uniq_membresia_sucursal',
             ),
+            models.UniqueConstraint(
+                fields=['usuario'],
+                condition=models.Q(
+                    rol_comercio='dueno',
+                    sucursal__isnull=True,
+                    status=True,
+                ),
+                name='uniq_propietario_activo_por_usuario',
+            ),
         ]
 
     def __str__(self):

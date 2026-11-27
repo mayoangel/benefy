@@ -398,14 +398,15 @@ class CambiosPlanTests(PlanBaseTests):
 
     def test_dos_negocios_pueden_tener_planes_distintos(self):
         otro_negocio = crear_negocio('Otro')
+        otro_owner = crear_usuario()
         models.UsuarioNegocio.objects.create(
-            usuario=self.owner, negocio=otro_negocio,
+            usuario=otro_owner, negocio=otro_negocio,
             sucursal=None, rol_comercio='dueno',
         )
-        planes.asignar_free_inicial(otro_negocio, actor=self.owner)
+        planes.asignar_free_inicial(otro_negocio, actor=otro_owner)
         asignar_plan(self.business, 'premium')
 
-        response = self.get('/api/v1/mi/contexto/')
+        response = self.get('/api/v1/mi/contexto/', self.admin)
         planes_contexto = {
             negocio['id']: negocio['plan']['codigo']
             for negocio in response.data['negocios']
