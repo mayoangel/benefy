@@ -123,7 +123,7 @@ export default function BranchesPage() {
       await Promise.all([cargar(), recargarPlan(), refreshContext()]);
     } catch (err) {
       if (err instanceof ApiError && err.codigo === 'limite_plan') {
-        setError(`${err.message} Puedes revisar el plan Premium para ampliar el cupo.`);
+        setError(`${err.message} Puedes revisar el plan premium para ampliar el cupo.`);
       } else {
         setError(err instanceof Error ? err.message : 'No se pudo guardar la sucursal.');
       }
@@ -174,7 +174,7 @@ export default function BranchesPage() {
         <div className="portal-state portal-state-error" role="alert">
           <strong>No se pudo completar la operación</strong>
           <p>{error}</p>
-          <Link to="/precios">Conocer Premium</Link>
+          <Link to="/precios">Conocer el plan premium</Link>
         </div>
       ) : null}
       {ok ? <div className="portal-note" role="status">{ok}</div> : null}

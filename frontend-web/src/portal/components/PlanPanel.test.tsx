@@ -56,8 +56,8 @@ test('shows alliance limits and excedents in the plan panel', () => {
   expect(screen.getByText('Alianzas activas (total)')).toBeTruthy();
   expect(screen.getAllByText('2 / 1')).toHaveLength(2);
   expect(screen.getAllByText('Excedente de 1')).toHaveLength(2);
-  expect(screen.getByText('Alianzas con negocios Free')).toBeTruthy();
-  expect(screen.getByText('Alianzas con negocios Premium')).toBeTruthy();
+  expect(screen.getByText('Alianzas con negocios del plan gratis')).toBeTruthy();
+  expect(screen.getByText('Alianzas con negocios del plan premium')).toBeTruthy();
   expect(screen.getByText('Proponer alianzas')).toBeTruthy();
-  expect(screen.getAllByText('Solo Premium')).toHaveLength(1);
+  expect(screen.getAllByText('Solo plan premium')).toHaveLength(1);
 });

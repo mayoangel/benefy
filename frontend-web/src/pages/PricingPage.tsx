@@ -20,7 +20,7 @@ const comparison = [
 export default function PricingPage() {
   useEffect(() => {
     const previousTitle = document.title;
-    document.title = 'Planes Free y Premium | Benefy';
+    document.title = 'Planes gratis y premium | Benefy';
     return () => { document.title = previousTitle; };
   }, []);
 
@@ -29,30 +29,30 @@ export default function PricingPage() {
       <main className="pricing-real-page">
       <PlansSection
         headingLevel="h1"
-        intro="Los límites y precios de esta página provienen del catálogo real del backend. Premium se contrata desde el portal con Stripe Sandbox: los pagos son de demostración y no generan cargos reales."
+        intro="Elige el plan que acompaña el tamaño de tu operación. Puedes empezar gratis y cambiar cuando tu negocio lo necesite."
       />
 
       <section className="landing-section pricing-real-comparison" aria-labelledby="pricing-comparison-title">
         <Reveal className="container pricing-real-grid">
           <div className="landing-section-head">
-            <span className="landing-kicker">Comparación operativa</span>
-            <h2 id="pricing-comparison-title">La diferencia actual está en la capacidad.</h2>
+            <span className="landing-kicker">Comparación de planes</span>
+            <h2 id="pricing-comparison-title">La diferencia está en la capacidad de tu operación.</h2>
             <p>
-              Ambos planes usan los mismos flujos de puntos, sellos, recompensas,
-              cupones, canjes y seguimiento. Premium permite operar más recursos activos.
+              Ambos planes incluyen puntos, sellos, recompensas, cupones, canjes y
+              seguimiento. El plan premium permite operar más recursos activos.
             </p>
             <div className="pricing-real-notes">
               <span><FontAwesomeIcon icon={faLock} /> Los límites se validan al crear o reactivar recursos.</span>
               <span><FontAwesomeIcon icon={faRotate} /> Un cambio de plan no borra datos ni historial.</span>
               <span><FontAwesomeIcon icon={faCircleInfo} /> Los recursos inactivos no consumen cupo.</span>
-              <span><FontAwesomeIcon icon={faLock} /> Free puede recibir y aceptar una alianza activa; proponer es exclusivo de Premium. Premium permite una alianza activa con Free y tres con Premium.</span>
+              <span><FontAwesomeIcon icon={faLock} /> El plan gratis puede recibir y aceptar una alianza activa; proponer es exclusivo del plan premium. El plan premium permite más alianzas activas.</span>
             </div>
           </div>
 
           <div className="pricing-real-table-wrap" role="region" aria-label="Comparación de planes" tabIndex={0}>
             <table className="pricing-real-table">
-              <caption className="sr-only">Límites actuales de los planes Free y Premium</caption>
-              <thead><tr><th scope="col">Recurso</th><th scope="col">Free</th><th scope="col">Premium</th></tr></thead>
+              <caption className="sr-only">Límites de los planes gratis y premium</caption>
+              <thead><tr><th scope="col">Recurso</th><th scope="col">Plan gratis</th><th scope="col">Plan premium</th></tr></thead>
               <tbody>
                 {comparison.map(([resource, free, premium]) => (
                   <tr key={resource}><th scope="row">{resource}</th><td>{free}</td><td>{premium}</td></tr>
@@ -66,16 +66,16 @@ export default function PricingPage() {
       <section className="pricing-real-cta" id="contacto" aria-labelledby="pricing-contact-title">
         <Reveal className="container pricing-real-cta-inner">
           <div>
-            <span className="landing-kicker landing-kicker-light">Activación transparente</span>
-            <h2 id="pricing-contact-title">Free está listo al registrar tu negocio.</h2>
+            <span className="landing-kicker landing-kicker-light">Empieza hoy</span>
+            <h2 id="pricing-contact-title">El plan gratis está listo cuando registras tu negocio.</h2>
             <p>
-              Premium se contrata desde el portal del negocio. En esta fase Stripe
-              opera en Sandbox: se simulan alta, renovación, cancelación y portal
-              de cliente sin procesar dinero real.
+              El plan premium se contrata desde la sección de Suscripción del
+              portal. Antes de confirmar verás el importe y las condiciones. En el
+              entorno actual de facturación de prueba no se realizan cargos reales.
             </p>
           </div>
           <div className="landing-actions">
-            <Link className="landing-button landing-button-mint" to="/registro">Crear negocio con Free</Link>
+            <Link className="landing-button landing-button-mint" to="/registro">Crear mi cuenta gratis</Link>
             <Link className="landing-text-link landing-text-link-light" to="/login">Entrar al portal</Link>
           </div>
         </Reveal>

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
+import { planBadgeLabel, planLabel } from '../../lib/planLabels.ts';
 import type { CaracteristicasPlan, PlanNegocio } from '../../lib/types.ts';
 
 const RECURSOS: { clave: string; etiqueta: string }[] = [
@@ -11,8 +12,8 @@ const RECURSOS: { clave: string; etiqueta: string }[] = [
   { clave: 'empleados', etiqueta: 'Empleados' },
   { clave: 'programas_puntos', etiqueta: 'Programa de puntos' },
   { clave: 'alianzas_activas', etiqueta: 'Alianzas activas (total)' },
-  { clave: 'alianzas_con_free', etiqueta: 'Alianzas con negocios Free' },
-  { clave: 'alianzas_con_premium', etiqueta: 'Alianzas con negocios Premium' },
+  { clave: 'alianzas_con_free', etiqueta: 'Alianzas con negocios del plan gratis' },
+  { clave: 'alianzas_con_premium', etiqueta: 'Alianzas con negocios del plan premium' },
 ];
 
 const CARACTERISTICAS: {
@@ -37,9 +38,9 @@ function estadoCaracteristica(
     return { texto: 'Incluida · próximamente', clase: 'is-soon' };
   }
   if (!incluida && implementada) {
-    return { texto: 'Solo Premium', clase: '' };
+    return { texto: 'Solo plan premium', clase: '' };
   }
-  return { texto: 'Premium · próximamente', clase: '' };
+  return { texto: 'Plan premium · próximamente', clase: '' };
 }
 
 export default function PlanPanel({
@@ -56,11 +57,11 @@ export default function PlanPanel({
       <div className="portal-plan-head">
         <div>
           <span className="portal-eyebrow">Suscripción</span>
-          <h2>Plan {plan.plan.nombre}</h2>
+          <h2>{planLabel(plan.plan)}</h2>
           <p className="portal-muted">{plan.plan.descripcion}</p>
         </div>
         <span className={`portal-plan-badge${esFree ? '' : ' is-premium'}`}>
-          {plan.plan.nombre}
+          {planBadgeLabel(plan.plan)}
         </span>
       </div>
 
@@ -70,7 +71,7 @@ export default function PlanPanel({
           <p>
             No se eliminó ningún dato. Puedes seguir consultando y operando lo
             existente, pero no crear nuevos recursos de las categorías excedidas
-            hasta regularizarlas o volver a Premium.
+            hasta regularizarlas o volver al plan premium.
           </p>
         </div>
       ) : null}
@@ -114,7 +115,7 @@ export default function PlanPanel({
 
       {plan.limites.alianzas_activas ? (
         <p className="portal-muted portal-plan-limits-note">
-          Los topes con negocios Free y Premium se aplican dentro del total de
+          Los topes con negocios del plan gratis y premium se aplican dentro del total de
           alianzas activas; no son cupos adicionales.
         </p>
       ) : null}
@@ -139,7 +140,7 @@ export default function PlanPanel({
       {pie !== undefined ? pie : esFree ? (
         <div className="portal-plan-cta">
           <p>
-            Premium amplía la capacidad de sucursales, tarjetas, recompensas y
+            El plan premium amplía la capacidad de sucursales, tarjetas, recompensas y
             equipo. La contratación se realiza desde la pantalla de Suscripción.
           </p>
           <Link
@@ -151,7 +152,7 @@ export default function PlanPanel({
         </div>
       ) : (
         <p className="portal-muted">
-          Plan Premium activo. Las funciones marcadas como disponibles ya están
+          Plan premium activo. Las funciones marcadas como disponibles ya están
           habilitadas; las demás se incorporarán en próximas fases.
         </p>
       )}

@@ -16,10 +16,10 @@ async function validateLanding(page: Page) {
 
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Premia cada visita');
-  await expect(page.getByRole('heading', { name: 'Funciones que ya forman parte de la operación.' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Free', exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Premium', exact: true })).toBeVisible();
-  await expect(page.getByText('También $3,990 MXN/año. Pago de demostración; no se realizan cargos reales.')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Herramientas pensadas para que tus clientes vuelvan.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Plan gratis', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Plan premium', exact: true })).toBeVisible();
+  await expect(page.getByText('También disponible por $3,990 MXN al año.')).toBeVisible();
   await expect(page.locator('img[src*="points"]')).toHaveCount(3);
   await expect(page.locator('img[src*="coupons"]')).toHaveCount(2);
 
@@ -56,13 +56,13 @@ test('landing móvil conserva jerarquía, navegación y planes', async ({ page }
 test('página de precios mantiene los límites reales', async ({ page }) => {
   await page.goto('/precios');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Empieza gratis');
-  await expect(page.getByRole('table', { name: 'Límites actuales de los planes Free y Premium' })).toBeVisible();
+  await expect(page.getByRole('table', { name: 'Límites de los planes gratis y premium' })).toBeVisible();
   await expect(page.getByRole('row', { name: /Sucursales activas 1 5/ })).toBeVisible();
-  await expect(page.getByText(/Premium se contrata desde el portal del negocio/)).toBeVisible();
+  await expect(page.getByText(/El plan premium se contrata desde la sección de Suscripción del/)).toBeVisible();
 
   await page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('link', { name: 'Producto' }).click();
   await expect(page).toHaveURL(/\/#producto$/);
-  await expect(page.getByRole('heading', { name: 'Funciones que ya forman parte de la operación.' })).toBeInViewport();
+  await expect(page.getByRole('heading', { name: 'Herramientas pensadas para que tus clientes vuelvan.' })).toBeInViewport();
 });
 
 test('About explica el producto real en escritorio y móvil', async ({ page }) => {
@@ -98,6 +98,27 @@ test('pantallas de acceso comparten el nuevo layout sin afectar formularios', as
     await routePage.goto(`${baseURL}${path}`);
     await expect(routePage.getByRole('heading', { level: 1 })).toHaveText(heading);
     await expect(routePage.getByRole('complementary', { name: 'Capacidades del portal de Benefy' })).toBeVisible();
+    const layout = await routePage.evaluate(() => {
+      const header = document.querySelector('.auth-header')!.getBoundingClientRect();
+      const main = document.querySelector('.auth-main')!.getBoundingClientRect();
+      const card = document.querySelector('.auth-card')!.getBoundingClientRect();
+      const footer = document.querySelector('.auth-footer')!.getBoundingClientRect();
+      return {
+        headerBottom: header.bottom,
+        mainTop: main.top,
+        cardTop: card.top,
+        cardBottom: card.bottom,
+        footerTop: footer.top,
+        footerBottom: footer.bottom,
+        viewport: window.innerHeight,
+      };
+    });
+    expect(layout.cardTop).toBeGreaterThanOrEqual(layout.headerBottom - 1);
+    expect(layout.mainTop).toBeGreaterThanOrEqual(layout.headerBottom - 1);
+    expect(layout.footerTop).toBeGreaterThanOrEqual(layout.cardBottom - 1);
+    if (layout.cardBottom < layout.viewport) {
+      expect(layout.footerBottom).toBeGreaterThanOrEqual(layout.viewport - 1);
+    }
     const overflow = await routePage.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     expect(overflow).toBeLessThanOrEqual(1);
     if (path === '/login') {

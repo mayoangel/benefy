@@ -190,18 +190,19 @@ function Transparency() {
     <section className="about-real-transparency" aria-labelledby="about-transparency-title">
       <Reveal className="container about-real-transparency-inner">
         <div>
-          <span className="landing-kicker">Construcción responsable</span>
-          <h2 id="about-transparency-title">La landing distingue lo disponible de lo que sigue en desarrollo.</h2>
+          <span className="landing-kicker">Confianza operativa</span>
+          <h2 id="about-transparency-title">Una plataforma pensada para operar con claridad.</h2>
         </div>
         <div>
           <p>
-            La facturación ya existe como demostración con Stripe Sandbox: alta,
-            renovación, cancelación y portal de cliente se simulan sin dinero real.
-            La analítica avanzada, exportación de reportes y personalización siguen
-            en desarrollo; las alianzas comerciales ya están disponibles.
+            Benefy reúne la configuración del programa, la operación diaria y el
+            seguimiento en un mismo lugar. Cada visita, cupón y canje queda
+            asociado al negocio y a la sucursal donde ocurrió.
           </p>
           <p>
-            Premium amplía hoy la capacidad de sucursales, tarjetas, recompensas y equipo.
+            El plan gratis incluye lo necesario para abrir tu programa. El plan
+            premium amplía la capacidad de sucursales, equipo, tarjetas y
+            recompensas activas.
           </p>
         </div>
       </Reveal>
@@ -214,9 +215,9 @@ function AboutCTA() {
     <section className="landing-final-cta" aria-labelledby="about-cta-title">
       <Reveal className="container landing-final-cta-inner">
         <div>
-          <span className="landing-kicker landing-kicker-light">Empieza con una base real</span>
+          <span className="landing-kicker landing-kicker-light">Tu programa empieza aquí</span>
           <h2 id="about-cta-title">Crea el programa que tu equipo puede operar hoy.</h2>
-          <p>El plan Free se asigna automáticamente al registrar un negocio.</p>
+          <p>El plan gratis se asigna automáticamente al registrar tu negocio.</p>
         </div>
         <div className="landing-actions">
           <Link className="landing-button landing-button-mint" to="/registro">Crear mi negocio</Link>

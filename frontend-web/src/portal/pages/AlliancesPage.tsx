@@ -3,6 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 
 import { useAuth } from '../../auth/AuthProvider.tsx';
 import { api } from '../../lib/api.ts';
+import { planLabel } from '../../lib/planLabels.ts';
 import { membresiaDelNegocio } from '../../lib/portal.ts';
 import type {
   AlianzaDetalle,
@@ -230,7 +231,7 @@ export default function AlliancesPage() {
 
       {!planLoading && plan ? (
         <div className="portal-note portal-alliance-capacity">
-          <strong>Plan {plan.plan.nombre}:</strong>{' '}
+          <strong>{planLabel(plan.plan)}:</strong>{' '}
           {puedeProponer
             ? 'puedes enviar y recibir solicitudes de alianza.'
             : 'puedes recibir, aceptar y rechazar solicitudes, pero no enviar nuevas.'}{' '}
@@ -241,11 +242,11 @@ export default function AlliancesPage() {
           ) : null}{' '}
           {plan.plan.codigo === 'premium' && conFree && conPremium ? (
             <span>
-              Capacidad separada: {conFree.uso} de {limiteTexto(conFree.limite)} con Free y{' '}
-              {conPremium.uso} de {limiteTexto(conPremium.limite)} con Premium.
+              Capacidad separada: {conFree.uso} de {limiteTexto(conFree.limite)} con el plan gratis y{' '}
+              {conPremium.uso} de {limiteTexto(conPremium.limite)} con el plan premium.
             </span>
           ) : null}{' '}
-          {!puedeProponer ? <Link to="/precios">Conocer Premium</Link> : null}
+          {!puedeProponer ? <Link to="/precios">Conocer el plan premium</Link> : null}
         </div>
       ) : null}
       {ok ? <p className="portal-note" role="status">{ok}</p> : null}

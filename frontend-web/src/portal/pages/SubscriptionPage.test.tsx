@@ -68,7 +68,7 @@ function facturacion(overrides: Record<string, unknown> = {}) {
       habilitada: true,
       modo: 'test',
       motivo: '',
-      aviso: 'Pagos de demostración en Stripe Sandbox. No se realizan cargos reales.',
+      aviso: 'Pagos de prueba. No se realizan cargos reales.',
       webhook_configurado: true,
       precios: [
         { intervalo: 'mensual', monto: '399.00', divisa: 'MXN', disponible: true },
@@ -110,7 +110,7 @@ beforeEach(() => {
   authState.refreshContext.mockResolvedValue(undefined);
 });
 
-test('un propietario Free puede contratar Premium desde el checkout', async () => {
+test('un propietario del plan gratis puede contratar el plan premium desde el checkout', async () => {
   vi.mocked(api.getBilling).mockResolvedValue(facturacion() as never);
   vi.mocked(api.createCheckout).mockResolvedValue({
     url: 'https://checkout.stripe.com/test',
@@ -121,17 +121,17 @@ test('un propietario Free puede contratar Premium desde el checkout', async () =
   const redirect = vi.fn();
   renderPage(redirect);
 
-  expect(await screen.findByText('Contratar Premium')).toBeTruthy();
-  expect(screen.getByText(/Modo demostración · Stripe Sandbox/)).toBeTruthy();
+  expect(await screen.findByText('Contratar plan premium')).toBeTruthy();
+  expect(screen.getByText('Pagos de prueba')).toBeTruthy();
   expect(screen.getByText(/No se realizan cargos reales/)).toBeTruthy();
   fireEvent.click(screen.getByRole('radio', { name: /Anual/ }));
-  fireEvent.click(screen.getByRole('button', { name: 'Contratar Premium' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Contratar plan premium' }));
 
   await waitFor(() => expect(api.createCheckout).toHaveBeenCalledWith(1, 'anual'));
   expect(redirect).toHaveBeenCalledWith('https://checkout.stripe.com/test');
 });
 
-test('un Premium con cancelación programada muestra el aviso y administra el portal', async () => {
+test('un plan premium con cancelación programada muestra el aviso y administra el portal', async () => {
   const suscripcion = {
     id: 5,
     status: 'activa',
@@ -184,7 +184,7 @@ test('un Premium con cancelación programada muestra el aviso y administra el po
 
   expect((await screen.findAllByText(/Cancelación programada/)).length).toBeGreaterThan(0);
   expect(screen.getByText(/Las alianzas existentes no se eliminan/)).toBeTruthy();
-  expect(screen.queryByRole('button', { name: 'Contratar Premium' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Contratar plan premium' })).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Administrar suscripción' }));
 
   await waitFor(() => expect(api.createBillingPortal).toHaveBeenCalledWith(1));
@@ -286,10 +286,10 @@ test('el retorno exitoso sincroniza con Stripe y no activa por la URL sola', asy
   expect(await screen.findByText(/Pago de prueba confirmado/)).toBeTruthy();
   expect(api.syncBilling).toHaveBeenCalledWith(1, 'cs_test_123');
   expect(authState.refreshContext).toHaveBeenCalled();
-  expect(await screen.findByText('Premium activo')).toBeTruthy();
+  expect(await screen.findByText('Plan premium activo')).toBeTruthy();
 });
 
-test('si Stripe Sandbox no está configurado no muestra el botón de contratación', async () => {
+test('si la facturación de prueba no está configurada no muestra el botón de contratación', async () => {
   vi.mocked(api.getBilling).mockResolvedValue(facturacion({
     facturacion: {
       habilitada: false,
@@ -306,6 +306,6 @@ test('si Stripe Sandbox no está configurado no muestra el botón de contrataci�
 
   renderPage();
 
-  expect(await screen.findByText(/Stripe Sandbox no está disponible/)).toBeTruthy();
-  expect(screen.queryByRole('button', { name: 'Contratar Premium' })).toBeNull();
+  expect(await screen.findByText(/La facturación de prueba no está disponible/)).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Contratar plan premium' })).toBeNull();
 });

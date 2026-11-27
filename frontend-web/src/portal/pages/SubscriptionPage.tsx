@@ -3,6 +3,7 @@ import { Navigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { useAuth } from '../../auth/AuthProvider.tsx';
 import { ApiError, api } from '../../lib/api.ts';
+import { planLabel } from '../../lib/planLabels.ts';
 import { membresiaDelNegocio } from '../../lib/portal.ts';
 import type {
   FacturacionNegocio,
@@ -47,16 +48,16 @@ function fecha(valor: string | null): string {
 function mensajeError(error: unknown): string {
   if (error instanceof ApiError) {
     if (error.codigo === 'stripe_no_configurado' || error.codigo === 'stripe_modo_invalido') {
-      return 'Stripe Sandbox no está configurado. Un administrador debe completar las variables de prueba.';
+      return 'La facturación de prueba no está configurada. Un administrador debe completar las variables correspondientes.';
     }
     if (error.codigo === 'premium_activo') {
-      return 'Tu negocio ya tiene Premium. Administra la suscripción en lugar de crear otra.';
+      return 'Tu negocio ya tiene el plan premium. Administra la suscripción en lugar de crear otra.';
     }
     if (error.codigo === 'plan_no_facturable') {
-      return 'El catálogo de Premium aún no está vinculado a Stripe Sandbox.';
+      return 'El plan premium aún no está vinculado al entorno de facturación.';
     }
     if (error.codigo === 'stripe_error') {
-      return 'Stripe Sandbox no respondió. No se realizó ningún cargo; intenta de nuevo.';
+      return 'El servicio de facturación no respondió. No se realizó ningún cargo; intenta de nuevo.';
     }
     if (error.codigo === 'portal_no_disponible') {
       return 'No se pudo abrir el Customer Portal. Intenta de nuevo en unos segundos.';
@@ -85,18 +86,18 @@ function estadoFacturacion(datos: FacturacionNegocio) {
     };
   }
   if (premium) {
-    return { texto: 'Premium activo', clase: 'is-premium' };
+    return { texto: 'Plan premium activo', clase: 'is-premium' };
   }
   if (suscripcion?.stripe_status === 'incomplete') {
     return { texto: 'Pago incompleto', clase: 'is-pending' };
   }
   if (suscripcion?.stripe_status === 'canceled') {
-    return { texto: 'Suscripción cancelada · plan Free', clase: 'is-cancel' };
+    return { texto: 'Suscripción cancelada · plan gratis', clase: 'is-cancel' };
   }
   if (suscripcion?.stripe_status === 'unpaid') {
-    return { texto: 'Pago vencido · plan Free', clase: 'is-failed' };
+    return { texto: 'Pago vencido · plan gratis', clase: 'is-failed' };
   }
-  return { texto: 'Plan Free', clase: '' };
+  return { texto: 'Plan gratis', clase: '' };
 }
 
 function precioSeleccionado(
@@ -191,7 +192,7 @@ export default function SubscriptionPage({
           }
           setMensaje(
             respuesta.plan.codigo === 'premium'
-              ? 'Pago de prueba confirmado. Premium ya está activo.'
+              ? 'Pago de prueba confirmado. El plan premium ya está activo.'
               : 'Stripe todavía está confirmando el pago. Actualiza el estado en unos segundos.',
           );
           clearPlanCache();
@@ -267,7 +268,7 @@ export default function SubscriptionPage({
       setDatos(respuesta);
       clearPlanCache();
       await refreshContext();
-      setMensaje('Estado sincronizado con Stripe Sandbox.');
+      setMensaje('Estado sincronizado con el entorno de prueba.');
     } catch (err) {
       setError(mensajeError(err));
     } finally {
@@ -317,7 +318,7 @@ export default function SubscriptionPage({
       <PortalPageHeader
         eyebrow="Administración"
         title="Tu plan y facturación"
-        description="Consulta tu plan, contrata Premium y administra la suscripción de prueba desde Stripe Sandbox."
+        description="Consulta tu plan, contrata el plan premium y administra la suscripción desde el portal."
       >
         <button
           type="button"
@@ -338,16 +339,16 @@ export default function SubscriptionPage({
         <>
           <div className="portal-billing-demo" role="note">
             <div>
-              <strong>Modo demostración · Stripe Sandbox</strong>
+              <strong>Pagos de prueba</strong>
               <p>{facturacion.aviso} No uses números de tarjeta reales.</p>
             </div>
-            <span className="portal-billing-mode">livemode=false</span>
+            <span className="portal-billing-mode">modo de prueba</span>
           </div>
 
           <article className="portal-panel portal-billing-hero">
             <div className="portal-billing-hero-main">
               <span className="portal-eyebrow">Plan actual</span>
-              <h2>Plan {datos.plan.nombre}</h2>
+              <h2>{planLabel(datos.plan)}</h2>
               <p className="portal-muted">{datos.plan.descripcion}</p>
               <span className={`portal-billing-status ${estado.clase}`}>
                 {estado.texto}
@@ -358,7 +359,7 @@ export default function SubscriptionPage({
                 <div className="portal-billing-price" key={item.intervalo}>
                   <span>{item.intervalo === 'mensual' ? 'Mensual' : 'Anual'}</span>
                   <strong>{moneda(item.monto, item.divisa)}</strong>
-                  <small>{item.disponible ? 'Disponible en Sandbox' : 'Sin Price configurado'}</small>
+                  <small>{item.disponible ? 'Disponible para pago de prueba' : 'No disponible'}</small>
                 </div>
               ) : null)}
             </div>
@@ -371,7 +372,7 @@ export default function SubscriptionPage({
               ) : null}
               {suscripcion?.cancelacion_programada ? (
                 <div className="is-warning">
-                  <span>Premium hasta</span>
+                  <span>Plan premium hasta</span>
                   <strong>{fecha(suscripcion.periodo_actual_fin)}</strong>
                 </div>
               ) : null}
@@ -392,8 +393,8 @@ export default function SubscriptionPage({
 
           {suscripcion?.cancelacion_programada ? (
             <p className="portal-billing-notice is-warning" role="status">
-              <strong>Cancelación programada.</strong> Conservas Premium hasta el
-              final del periodo pagado. Después el negocio pasa a Free. Las
+              <strong>Cancelación programada.</strong> Conservas el plan premium hasta el
+              final del periodo pagado. Después el negocio pasa al plan gratis. Las
               alianzas existentes no se eliminan y los cupones conservan su
               vigencia.
             </p>
@@ -401,16 +402,16 @@ export default function SubscriptionPage({
 
           {suscripcion?.gracia_fin && datos.plan.codigo === 'premium' ? (
             <p className="portal-billing-notice is-warning" role="status">
-              <strong>Pago pendiente.</strong> Mantienes Premium durante la gracia
+              <strong>Pago pendiente.</strong> Mantienes el plan premium durante la gracia
               acotada. Actualiza el método de pago antes de{' '}
-              {fecha(suscripcion.gracia_fin)} para evitar el downgrade a Free.
+              {fecha(suscripcion.gracia_fin)} para evitar el cambio al plan gratis.
             </p>
           ) : null}
 
           {!facturacion.habilitada ? (
             <p className="portal-billing-notice is-error" role="status">
-              <strong>Stripe Sandbox no está disponible.</strong>{' '}
-              {facturacion.motivo || 'Configura las claves de prueba para contratar Premium.'}
+              <strong>La facturación de prueba no está disponible.</strong>{' '}
+              {facturacion.motivo || 'Completa la configuración de pagos de prueba para contratar el plan premium.'}
             </p>
           ) : null}
 
@@ -418,8 +419,7 @@ export default function SubscriptionPage({
             <p className="portal-billing-notice is-warning" role="status">
               <strong>Webhook de Stripe sin configurar.</strong> El retorno de
               Checkout puede sincronizar el estado, pero las renovaciones y
-              cancelaciones requieren `STRIPE_WEBHOOK_SECRET` y el endpoint de
-              Stripe Sandbox.
+              cancelaciones requieren completar la configuración del webhook.
             </p>
           ) : null}
 
@@ -461,7 +461,7 @@ export default function SubscriptionPage({
                   onClick={() => void contratar()}
                   disabled={busy !== null || !precio?.disponible}
                 >
-                  {busy === 'checkout' ? 'Abriendo Checkout…' : 'Contratar Premium'}
+                  {busy === 'checkout' ? 'Abriendo Checkout…' : 'Contratar plan premium'}
                 </button>
                 <small className="portal-muted">
                   Serás redirigido a Stripe Checkout. Usa tarjetas de prueba
@@ -494,7 +494,7 @@ export default function SubscriptionPage({
               <p className="portal-muted portal-billing-plan-note">
                 Precio de referencia: {moneda(precioMensual?.monto ?? null, precioMensual?.divisa ?? 'MXN')} al mes
                 o {moneda(precioAnual?.monto ?? null, precioAnual?.divisa ?? 'MXN')} al año.
-                El monto y el Price ID provienen del catálogo de Django y de Stripe Sandbox.
+                El monto y las condiciones provienen del catálogo de facturación.
               </p>
             }
           />

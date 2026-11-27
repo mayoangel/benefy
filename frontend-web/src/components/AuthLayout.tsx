@@ -43,7 +43,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
             <p>Accede al portal para configurar el programa, invitar a tu equipo y revisar la actividad del negocio.</p>
           </div>
           <ul>
-            <li><FontAwesomeIcon icon={faCheck} /> Plan Free asignado automáticamente</li>
+            <li><FontAwesomeIcon icon={faCheck} /> Plan gratis incluido</li>
             <li><FontAwesomeIcon icon={faCheck} /> Roles con alcance por sucursal</li>
             <li><FontAwesomeIcon icon={faCheck} /> Métricas operativas por periodo</li>
           </ul>

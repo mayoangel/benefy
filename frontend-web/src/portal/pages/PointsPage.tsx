@@ -5,6 +5,7 @@ import { Link, useParams } from 'react-router-dom';
 
 import { useAuth } from '../../auth/AuthProvider.tsx';
 import { ApiError, api } from '../../lib/api.ts';
+import { planLabel } from '../../lib/planLabels.ts';
 import { membresiaDelNegocio } from '../../lib/portal.ts';
 import type { DinamicaResumen } from '../../lib/types.ts';
 import { PortalEmpty, PortalError, PortalLoading } from '../components/PortalState.tsx';
@@ -163,7 +164,7 @@ export default function PointsPage() {
 
       {plan ? (
         <div className="portal-note">
-          Plan {plan.plan.nombre}: {plan.limites.programas_puntos.uso} de{' '}
+          {planLabel(plan.plan)}: {plan.limites.programas_puntos.uso} de{' '}
           {plan.limites.programas_puntos.limite ?? '∞'} programas activos.
         </div>
       ) : null}

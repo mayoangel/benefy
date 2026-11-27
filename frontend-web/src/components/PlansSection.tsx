@@ -11,11 +11,12 @@ type PlansSectionProps = {
 const plans = [
   {
     code: 'free',
-    name: 'Free',
+    name: 'Plan gratis',
+    eyebrow: 'Para empezar',
     icon: faSeedling,
     price: '$0',
-    cadence: 'sin límite de tiempo',
-    summary: 'Para poner en marcha un programa completo en un negocio pequeño.',
+    cadence: 'sin costo, sin plazo forzoso',
+    summary: 'Todo lo necesario para abrir tu programa de lealtad y atender a tus primeros clientes.',
     features: [
       '1 sucursal activa',
       '1 programa de puntos activo',
@@ -24,17 +25,18 @@ const plans = [
       '1 supervisor y 3 empleados',
       'Clientes, visitas y cupones ilimitados',
     ],
-    action: 'Empezar con Free',
+    action: 'Empezar gratis',
     to: '/registro',
-    note: 'Se asigna automáticamente al registrar un negocio.',
+    note: 'Incluye acceso completo al portal y a la app para tus clientes.',
   },
   {
     code: 'premium',
-    name: 'Premium',
+    name: 'Plan premium',
+    eyebrow: 'Para crecer',
     icon: faCrown,
     price: '$399',
-    cadence: 'MXN/mes · demo Sandbox',
-    summary: 'Para operaciones que necesitan más sucursales, equipo, tarjetas y recompensas activas.',
+    cadence: 'MXN / mes',
+    summary: 'Más sucursales, más equipo y más beneficios activos para una operación en expansión.',
     features: [
       'Hasta 5 sucursales activas',
       '1 programa de puntos activo',
@@ -43,15 +45,15 @@ const plans = [
       '5 supervisores y 20 empleados',
       'Clientes, visitas y cupones ilimitados',
     ],
-    action: 'Conocer Premium',
+    action: 'Conocer el plan premium',
     to: '/precios#contacto',
-    note: 'También $3,990 MXN/año. Pago de demostración; no se realizan cargos reales.',
+    note: 'También disponible por $3,990 MXN al año.',
   },
 ];
 
 export default function PlansSection({
   headingLevel = 'h2',
-  intro = 'Dos niveles reales, definidos por la capacidad que necesita tu operación.',
+  intro = 'Empieza con el plan gratis y amplía tu operación cuando lo necesites.',
 }: PlansSectionProps) {
   const Heading = headingLevel;
 
@@ -59,8 +61,8 @@ export default function PlansSection({
     <section className="landing-section plans-section" id="planes" aria-labelledby="plans-title">
       <div className="container">
         <Reveal className="landing-section-head plans-section-head">
-          <span className="landing-kicker">Planes reales del producto</span>
-          <Heading id="plans-title">Empieza gratis. Amplía cuando tu operación lo pida.</Heading>
+          <span className="landing-kicker">Planes para tu negocio</span>
+          <Heading id="plans-title">Empieza gratis. Crece cuando tu negocio lo necesite.</Heading>
           <p>{intro}</p>
         </Reveal>
 
@@ -72,7 +74,7 @@ export default function PlansSection({
                   <FontAwesomeIcon icon={plan.icon} />
                 </span>
                 <div>
-                  <span>Plan</span>
+                  <span>{plan.eyebrow}</span>
                   <h3>{plan.name}</h3>
                 </div>
               </div>
@@ -101,9 +103,9 @@ export default function PlansSection({
 
         <Reveal delay={0.08}>
           <p className="plans-truth-note">
-            Premium amplía los límites operativos. Las alianzas ya están disponibles con
-            cupos separados por tipo de contraparte; analítica avanzada, exportación y
-            personalización todavía figuran como funciones futuras.
+            El plan premium amplía la capacidad de sucursales, tarjetas, recompensas
+            y equipo. Puedes cambiar de plan desde el portal cuando tu operación lo
+            necesite; tu historial y tus datos se conservan.
           </p>
         </Reveal>
       </div>

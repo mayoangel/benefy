@@ -1687,6 +1687,8 @@
 }
 
 .auth-header {
+  position: sticky;
+  top: 0;
   background: rgba(255, 255, 255, .92);
   backdrop-filter: blur(16px);
   border-bottom-color: rgba(5, 45, 80, .08);

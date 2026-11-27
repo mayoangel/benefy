@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import logoMark from '../../assets/logo_no_name.png';
 import { api } from '../../lib/api.ts';
+import { planLabel } from '../../lib/planLabels.ts';
 import type { NegocioResumen, UsuarioResumen } from '../../lib/types.ts';
 import { PortalError, PortalLoading } from '../components/PortalState.tsx';
 
@@ -49,7 +50,7 @@ export default function AdminOverviewPage() {
       const planesData = await Promise.all(negociosData.map(async (negocio) => {
         try {
           const detalle = await api.getBusinessPlan(negocio.id);
-          return [negocio.id, detalle.plan.nombre] as const;
+          return [negocio.id, planLabel(detalle.plan)] as const;
         } catch {
           return [negocio.id, '—'] as const;
         }

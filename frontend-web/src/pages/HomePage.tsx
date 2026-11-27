@@ -6,7 +6,6 @@ import {
   faBuilding,
   faChartColumn,
   faCheck,
-  faCircleCheck,
   faGift,
   faMugHot,
   faQrcode,
@@ -28,37 +27,37 @@ import pointsAsset from '../assets/points.png';
 const features = [
   {
     title: 'Puntos por visita',
-    copy: 'Define cuántos puntos entrega cada visita, su vigencia y el costo de cada recompensa. El consumo usa primero los puntos más antiguos.',
+    copy: 'Define cuántos puntos gana cada visita, cuánto duran y qué recompensas puede obtener tu cliente. Así cada compra tiene un siguiente paso claro.',
     image: pointsAsset,
     icon: null,
   },
   {
     title: 'Tarjetas de sellos',
-    copy: 'Configura una meta, enlaza la recompensa y decide si la tarjeta vuelve a empezar cuando el cliente la completa.',
+    copy: 'Crea una meta sencilla, enlaza el premio y decide si la tarjeta se renueva al completarse. Ideal para cafeterías, barberías y servicios recurrentes.',
     image: null,
     icon: faStamp,
   },
   {
     title: 'Cupones y canjes',
-    copy: 'Entrega beneficios gratis, descuentos porcentuales o montos fijos con vigencia, disponibilidad y un canje único por cupón.',
+    copy: 'Entrega beneficios gratis, descuentos porcentuales o montos fijos con vigencia y disponibilidad controladas. Cada cupón se valida una sola vez.',
     image: couponsAsset,
     icon: null,
   },
   {
-    title: 'Negocio y sucursales',
-    copy: 'Organiza la operación por sucursal, conserva un QR propio para cada ubicación y consulta actividad con el alcance correcto.',
+    title: 'Un negocio, todas tus sucursales',
+    copy: 'Administra tu negocio desde un solo lugar y añade sucursales para cada establecimiento. Cada ubicación tiene su propio QR y su actividad.',
     image: null,
     icon: faBuilding,
   },
   {
     title: 'Equipo con alcance claro',
-    copy: 'El dueño administra el negocio; supervisores y empleados operan desde la sucursal a la que fueron asignados.',
+    copy: 'Tú administras el negocio completo. Supervisores y empleados operan desde la sucursal que les corresponde, con accesos claros.',
     image: null,
     icon: faUsers,
   },
   {
     title: 'Seguimiento operativo',
-    copy: 'Revisa visitas válidas, clientes únicos, puntos, cupones, tarjetas completadas, canjes y recompensas más utilizadas.',
+    copy: 'Consulta visitas, clientes únicos, puntos, cupones, tarjetas completadas y las recompensas que más se canjean.',
     image: null,
     icon: faChartColumn,
   },
@@ -67,23 +66,23 @@ const features = [
 const steps = [
   {
     icon: faStore,
-    title: 'Configura el negocio',
-    copy: 'Registra tu negocio, sucursales y equipo. Cada negocio nuevo recibe el plan Free automáticamente.',
-  },
-  {
-    icon: faGift,
-    title: 'Diseña la recompensa',
-    copy: 'Crea un programa de puntos o una tarjeta de sellos y enlaza beneficios con reglas visibles para tu cliente.',
+    title: 'Configura',
+    copy: 'Registra tu negocio, define puntos o tarjetas de sellos y prepara tus recompensas. Empiezas con el plan gratis.',
   },
   {
     icon: faQrcode,
-    title: 'Registra la visita',
-    copy: 'La visita se identifica con el QR del negocio o de la sucursal y actualiza el progreso correspondiente.',
+    title: 'Registra',
+    copy: 'Tu cliente escanea el QR de la sucursal y su visita queda registrada al instante, sin aplicaciones complicadas.',
   },
   {
-    icon: faCircleCheck,
-    title: 'Canjea y da seguimiento',
-    copy: 'El cliente usa su cupón, el equipo valida el canje y el portal conserva el registro para medir la actividad.',
+    icon: faGift,
+    title: 'Recompensa',
+    copy: 'Al alcanzar su meta, tu cliente recibe un cupón o beneficio que el equipo valida una sola vez en caja.',
+  },
+  {
+    icon: faChartColumn,
+    title: 'Mide',
+    copy: 'Consulta visitas, clientes, canjes y actividad por sucursal para ajustar tu programa con información clara.',
   },
 ];
 
@@ -91,53 +90,69 @@ const cases = [
   {
     icon: faMugHot,
     title: 'Cafeterías y panaderías',
-    copy: 'Una tarjeta de visitas para el café habitual y puntos para recompensas adicionales.',
-    example: 'Ejemplo: completa 7 sellos y recibe una bebida.',
+    copy: 'Convierte la visita diaria en una costumbre con una tarjeta de sellos y un premio que invite a volver.',
+    example: 'Idea: completa 7 visitas y recibe una bebida de la casa.',
   },
   {
     icon: faUtensils,
     title: 'Restaurantes',
-    copy: 'Puntos por visita y cupones con vigencia para convertir una recompensa en una próxima ocasión de consumo.',
-    example: 'Ejemplo: 20% de descuento con 120 puntos.',
+    copy: 'Reconoce a tus clientes frecuentes y dales una razón para volver con puntos y cupones de temporada.',
+    example: 'Idea: 20% de descuento en su siguiente visita.',
   },
   {
     icon: faScissors,
     title: 'Belleza y bienestar',
-    copy: 'Reconoce la frecuencia de citas y administra el programa por sucursal y por equipo operativo.',
-    example: 'Ejemplo: un servicio de cortesía al completar la tarjeta.',
+    copy: 'Premia la constancia de tus clientes y organiza el programa por sucursal y por equipo.',
+    example: 'Idea: un servicio de cortesía al completar la tarjeta.',
   },
   {
     icon: faBagShopping,
     title: 'Comercio especializado',
-    copy: 'Combina recompensas con stock, descuentos fijos o porcentuales y un historial claro de canjes.',
-    example: 'Ejemplo: cupón de $100 MXN para la siguiente visita.',
+    copy: 'Combina recompensas, descuentos y un historial de canjes fácil de consultar para tu equipo.',
+    example: 'Idea: cupón de $100 MXN para la siguiente compra.',
   },
 ];
 
 const faqs: [string, string][] = [
   [
-    '¿Qué incluye realmente el plan Free?',
-    'Incluye 1 sucursal, 1 programa de puntos, 2 tarjetas de sellos, 5 recompensas, 1 supervisor y 3 empleados activos. Clientes, visitas y cupones no tienen límite de plan.',
+    '¿Cómo funciona Benefy?',
+    'Creas tu programa de lealtad, registras las visitas de tus clientes y entregas recompensas y cupones. Todo se administra desde un mismo portal, con la actividad separada por negocio y sucursal.',
   ],
   [
-    '¿Qué cambia hoy al pasar a Premium?',
-    'Premium amplía la capacidad a 5 sucursales, 10 tarjetas, 30 recompensas, 5 supervisores y 20 empleados. Las funciones avanzadas configuradas para fases futuras todavía no se anuncian como disponibles.',
+    '¿Qué necesito para registrar mi negocio?',
+    'Una cuenta con correo electrónico, el nombre comercial de tu negocio y su categoría. Puedes completar la dirección, el equipo y las sucursales después.',
   ],
   [
-    '¿Premium se puede comprar en línea?',
-    'Sí, desde el portal del negocio. En esta fase la contratación, renovación y cancelación se simulan con Stripe Sandbox; no se realizan cargos reales ni se emiten facturas fiscales.',
+    '¿Puedo administrar varias sucursales?',
+    'Sí. Cada cuenta administra un negocio y puede añadir varias sucursales, cada una con su propio QR y su actividad. El plan contratado define cuántas sucursales puedes mantener activas.',
   ],
   [
-    '¿Cómo se acumulan y vencen los puntos?',
-    'El negocio define los puntos por visita y puede configurar días de vigencia. Al canjear una recompensa, Benefy consume primero los lotes de puntos más antiguos.',
+    '¿Puedo registrar más de un negocio con la misma cuenta?',
+    'Cada cuenta administra un negocio activo y todas las sucursales que necesite. Si operas marcas independientes, necesitas una cuenta distinta para cada negocio.',
   ],
   [
-    '¿Qué ocurre si un negocio baja de Premium a Free?',
-    'No se elimina información. Los recursos que superen el límite se conservan y pueden consultarse, pero no se permiten nuevas altas en esas categorías hasta regularizar el uso.',
+    '¿Cómo registran sus visitas los clientes?',
+    'Tus clientes escanean el QR del negocio o de la sucursal desde su teléfono. La visita queda asociada a su cuenta y actualiza sus puntos o sellos automáticamente.',
+  ],
+  [
+    '¿Qué incluye el plan gratis?',
+    'Incluye una sucursal, un programa de puntos, dos tarjetas de sellos, cinco recompensas, un supervisor y tres empleados activos. Los clientes, visitas y cupones no tienen límite de plan.',
+  ],
+  [
+    '¿Qué ventajas ofrece el plan premium?',
+    'Amplía la capacidad a cinco sucursales, diez tarjetas de sellos, treinta recompensas, cinco supervisores y veinte empleados. También habilita más capacidad para alianzas comerciales.',
+  ],
+  [
+    '¿Puedo cambiar de plan?',
+    'Sí. Puedes contratar o cambiar tu plan desde la sección de Suscripción del portal. Tus datos e historial se conservan; si vuelves al plan gratis, los recursos que superen el límite se mantienen consultables.',
+  ],
+  [
+    '¿Cómo funcionan las alianzas entre negocios?',
+    'Dos negocios pueden acordar un beneficio para los clientes del otro. El plan gratis permite recibir y aceptar alianzas dentro de su cupo; el plan premium permite proponer alianzas y ampliar la capacidad.',
   ],
   [
     '¿Todos los integrantes del equipo ven lo mismo?',
-    'No. El dueño administra el negocio completo. Supervisores y empleados trabajan con el alcance de su sucursal; el portal adapta navegación y permisos a cada rol.',
+    'No. El propietario administra el negocio completo. Supervisores y empleados trabajan con el alcance de su sucursal, y el portal adapta la navegación y los permisos a cada rol.',
   ],
 ];
 
@@ -157,9 +172,9 @@ function Hero() {
             <Link className="landing-text-link" to="/#como-funciona">Ver cómo funciona</Link>
           </div>
           <ul className="landing-hero-facts" aria-label="Capacidades principales">
-            <li><FontAwesomeIcon icon={faCheck} /> Plan Free permanente</li>
-            <li><FontAwesomeIcon icon={faCheck} /> QR por negocio y sucursal</li>
-            <li><FontAwesomeIcon icon={faCheck} /> Roles de operación</li>
+            <li><FontAwesomeIcon icon={faCheck} /> Plan gratis para empezar</li>
+            <li><FontAwesomeIcon icon={faCheck} /> QR por sucursal</li>
+            <li><FontAwesomeIcon icon={faCheck} /> Un negocio, varias sucursales</li>
           </ul>
         </Reveal>
 
@@ -170,7 +185,7 @@ function Hero() {
           </div>
           <div className="preview-heading">
             <div><small>Resumen del negocio</small><strong>Café Nómada</strong></div>
-            <span>Datos de ejemplo</span>
+            <span>Negocio activo</span>
           </div>
           <div className="preview-metrics">
             <div><span>Visitas válidas</span><strong>1,248</strong><small>Últimos 30 días</small></div>
@@ -218,9 +233,9 @@ function ProductFeatures() {
     <section className="landing-section landing-features" id="producto" aria-labelledby="features-title">
       <div className="container">
         <Reveal className="landing-section-head">
-          <span className="landing-kicker">El producto de hoy</span>
-          <h2 id="features-title">Funciones que ya forman parte de la operación.</h2>
-          <p>Cada módulo responde a un flujo real del sistema, desde crear la dinámica hasta consultar lo que ocurrió en cada sucursal.</p>
+          <span className="landing-kicker">Todo lo que necesitas</span>
+          <h2 id="features-title">Herramientas pensadas para que tus clientes vuelvan.</h2>
+          <p>Puntos, sellos, recompensas y cupones conectados con la operación diaria de tu negocio.</p>
         </Reveal>
         <Reveal className="landing-feature-grid" delay={0.05}>
           {features.map((feature, index) => (
@@ -248,8 +263,8 @@ function HowItWorks() {
       <div className="container">
         <Reveal className="landing-section-head landing-section-head-light">
           <span className="landing-kicker landing-kicker-light">Cómo funciona</span>
-          <h2 id="how-title">Un flujo claro para el negocio y para el cliente.</h2>
-          <p>La configuración, la visita, el beneficio y el seguimiento comparten la misma lógica.</p>
+          <h2 id="how-title">Configura, registra, recompensa y mide.</h2>
+          <p>Un mismo flujo conecta la configuración del programa con el resultado en cada sucursal.</p>
         </Reveal>
         <Reveal className="landing-steps" delay={0.05}>
           {steps.map((step, index) => (
@@ -282,9 +297,9 @@ function UseCases() {
     <section className="landing-section landing-cases" id="casos" aria-labelledby="cases-title">
       <div className="container">
         <Reveal className="landing-section-head landing-cases-head">
-          <span className="landing-kicker">Casos de uso</span>
-          <h2 id="cases-title">La misma base, configurada para hábitos distintos.</h2>
-          <p>Estos ejemplos muestran cómo combinar las capacidades existentes de Benefy según la frecuencia de visita.</p>
+          <span className="landing-kicker">Para tu tipo de negocio</span>
+          <h2 id="cases-title">La misma base, adaptada a tu forma de recibir clientes.</h2>
+          <p>Cada negocio construye su propio programa según la frecuencia de visita y el beneficio que quiere ofrecer.</p>
         </Reveal>
         <Reveal className="landing-case-grid" delay={0.05}>
           {cases.map((item) => (
@@ -308,9 +323,9 @@ function FAQ() {
     <section className="landing-section landing-faq" id="preguntas" aria-labelledby="faq-title">
       <Reveal className="container landing-faq-layout">
         <div className="landing-section-head landing-faq-head">
-          <span className="landing-kicker">Sin letra pequeña</span>
-          <h2 id="faq-title">Preguntas sobre el producto actual.</h2>
-          <p>Respuestas alineadas con lo que está implementado hoy y con los límites reales del sistema.</p>
+          <span className="landing-kicker">Preguntas frecuentes</span>
+          <h2 id="faq-title">Lo que necesitas saber antes de empezar.</h2>
+          <p>Respuestas claras sobre el programa, los planes y la operación diaria.</p>
         </div>
         <div className="landing-faq-list">
           {faqs.map(([question, answer], index) => {
@@ -337,9 +352,9 @@ function FinalCTA() {
     <section className="landing-final-cta" aria-labelledby="final-cta-title">
       <Reveal className="container landing-final-cta-inner">
         <div>
-          <span className="landing-kicker landing-kicker-light">Tu primer programa empieza en Free</span>
-          <h2 id="final-cta-title">Configura una lealtad que tu equipo sí pueda operar.</h2>
-          <p>Crea el negocio, define la recompensa y empieza con los límites reales del plan gratuito.</p>
+          <span className="landing-kicker landing-kicker-light">Tu primer programa empieza gratis</span>
+          <h2 id="final-cta-title">Haz que cada visita cuente.</h2>
+          <p>Crea tu cuenta, configura tu negocio y empieza a fidelizar clientes hoy.</p>
         </div>
         <div className="landing-actions">
           <Link className="landing-button landing-button-mint" to="/registro">Crear mi cuenta</Link>
@@ -354,7 +369,7 @@ export default function HomePage() {
   useEffect(() => {
     const previousTitle = document.title;
     const title = 'Benefy | Puntos, sellos y cupones para tu negocio';
-    const description = 'Benefy permite operar programas de puntos, tarjetas de sellos, recompensas, cupones y canjes con control por sucursal y equipo.';
+    const description = 'Benefy ayuda a cafeterías, barberías, gimnasios y comercios a fidelizar clientes con puntos, tarjetas de sellos, recompensas y cupones.';
     const managedMeta: HTMLMetaElement[] = [];
 
     document.title = title;
