@@ -80,6 +80,17 @@ Para un dispositivo físico usa la IP LAN del equipo que ejecuta Django:
 `http://192.168.1.50:8001/api` con Docker Compose. `localhost` en el teléfono
 apunta al propio teléfono. Comprueba red y firewall.
 
+## Confirmación de correo móvil
+
+El registro confirma la cuenta con un código OTP de 6 dígitos y no depende de
+un enlace que redirija a `localhost`. En Supabase, abre **Authentication >
+Email Templates > Confirm signup** y usa `{{ .Token }}` en el correo para
+mostrar el código. No uses `{{ .ConfirmationURL }}` como único método de
+confirmación para esta app móvil.
+
+La app verifica el código con el correo registrado. Si expiró, vuelve a la
+pantalla **Confirmar correo** y solicita otro con **Reenviar código**.
+
 Configura la plantilla de recuperación de Supabase para enviar el código OTP que
 solicita la pantalla de recuperación. Nunca uses variables `EXPO_PUBLIC_*` para
 passwords, claves secretas o credenciales de PostgreSQL. La app se ejecuta fuera
