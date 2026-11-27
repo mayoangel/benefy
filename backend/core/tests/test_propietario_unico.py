@@ -3,6 +3,7 @@
 from io import StringIO
 
 from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.db import IntegrityError, transaction
 from django.test import TestCase
 from rest_framework.test import APIClient
@@ -170,6 +171,20 @@ class PropietarioUnicoTests(TestCase):
             stdout=salida,
         )
         self.assertIn('ya cumple la regla', salida.getvalue())
+
+    def test_crear_cuentas_valida_formato_y_no_escribe_en_modo_seguro(self):
+        with self.assertRaises(CommandError):
+            call_command('crear_cuentas_propietarios', cuenta=['sin-formato'])
+
+        antes = models.Usuario.objects.count()
+        salida = StringIO()
+        call_command(
+            'crear_cuentas_propietarios',
+            cuenta=['nueva@example.com:Ana:Prueba'],
+            stdout=salida,
+        )
+        self.assertIn('Modo seguro', salida.getvalue())
+        self.assertEqual(models.Usuario.objects.count(), antes)
 
     def test_dueno_puede_transferir_su_negocio(self):
         membership = models.UsuarioNegocio.objects.get(

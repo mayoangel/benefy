@@ -27,8 +27,8 @@ def accounts():
 
 
 class AdminAuth:
-    def __init__(self):
-        self.key = os.getenv('SUPABASE_SEED_ADMIN_KEY', '')
+    def __init__(self, key=None):
+        self.key = key or os.getenv('SUPABASE_SEED_ADMIN_KEY', '')
         if not self.key:
             raise CommandError('Falta la clave administrativa local del seed.')
 
