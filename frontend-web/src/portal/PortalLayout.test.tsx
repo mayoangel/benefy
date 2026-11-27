@@ -146,7 +146,8 @@ test('Administración agrupa Sucursales, Equipo, Suscripción y Configuración',
   expect(nav.getByRole('link', { name: 'Equipo' })).toBeTruthy();
   expect(nav.getByRole('link', { name: 'Suscripción' }).getAttribute('aria-current')).toBe('page');
   expect(nav.getByRole('link', { name: 'Configuración' })).toBeTruthy();
-  expect(screen.getByRole('link', { name: 'Registrar otro negocio' })).toBeTruthy();
+  expect(screen.getByRole('link', { name: 'Gestionar sucursales' })).toBeTruthy();
+  expect(screen.queryByRole('link', { name: 'Registrar mi negocio' })).toBeNull();
 
   await user.click(nav.getByRole('button', { name: 'Actividad' }));
   expect(nav.getByRole('button', { name: 'Administración' }).getAttribute('aria-expanded')).toBe('true');
@@ -172,6 +173,7 @@ test('supervisor solo ve Actividad y Equipo dentro de sus permisos', async () =>
   expect(nav.queryByRole('link', { name: 'Suscripción' })).toBeNull();
   expect(nav.queryByRole('link', { name: 'Configuración' })).toBeNull();
   expect(screen.queryByRole('link', { name: 'Registrar otro negocio' })).toBeNull();
+  expect(screen.getByRole('link', { name: 'Registrar mi negocio' })).toBeTruthy();
 });
 
 test('empleado solo ve Inicio, Visitas y Canjes', () => {

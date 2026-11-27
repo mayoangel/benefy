@@ -12,6 +12,7 @@ import {
 
 import { useAuth } from '../auth/AuthProvider.tsx';
 import logoMark from '../assets/logo_no_name.png';
+import { planLabel } from '../lib/planLabels.ts';
 import { membresiaDelNegocio } from '../lib/portal.ts';
 import BenefAIChat from './components/BenefAIChat';
 import { PortalIcon, PortalRoleBadge } from './components/PortalUI';
@@ -69,6 +70,9 @@ export default function PortalLayout() {
   const planNegocio = id
     ? context?.negocios.find((negocio) => negocio.id === id)?.plan ?? null
     : null;
+  const tieneNegocioPropio = Boolean(context?.membresias.some(
+    (item) => item.rol_comercio === 'dueno' && item.status && item.negocio.status,
+  ));
 
   const sucursales = useMemo(() => {
     if (!context || !id) return [];
@@ -239,8 +243,10 @@ export default function PortalLayout() {
         </nav>
 
         <div className="portal-sidebar-footer">
-          {rol === 'dueno' ? (
-            <Link to="/registrar-negocio">Registrar otro negocio</Link>
+          {rol === 'dueno' && id ? (
+            <Link to={destination('sucursales')}>Gestionar sucursales</Link>
+          ) : !esAdmin && !tieneNegocioPropio ? (
+            <Link to="/registrar-negocio">Registrar mi negocio</Link>
           ) : null}
           <Link to="/">Volver al sitio</Link>
           <button type="button" onClick={() => void signOut()}><PortalIcon name="salir" />Cerrar sesión</button>
@@ -283,7 +289,7 @@ export default function PortalLayout() {
           ) : null}
           {!esAdmin && planNegocio ? (
             <span className={`portal-plan-tag${planNegocio.codigo === 'premium' ? ' is-premium' : ''}`}>
-              Plan {planNegocio.nombre}
+              {planLabel(planNegocio)}
             </span>
           ) : null}
         </header>

@@ -116,8 +116,8 @@ export default function BusinessSettingsPage() {
         >
           Ver QR del negocio
         </button>
-        <Link className="portal-button-secondary" to="/registrar-negocio">
-          Registrar otro negocio
+        <Link className="portal-button-secondary" to={`/portal/negocio/${negocio.id}/sucursales`}>
+          Gestionar sucursales
         </Link>
       </PortalPageHeader>
 

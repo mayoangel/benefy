@@ -7,7 +7,7 @@ import type { CategoriaResumen } from '../lib/types.ts';
 import AuthLayout from '../components/AuthLayout.tsx';
 
 export default function NewBusinessPage() {
-  const { createBusiness, needsProfile } = useAuth();
+  const { createBusiness, needsProfile, context } = useAuth();
   const navigate = useNavigate();
   const [categorias, setCategorias] = useState<CategoriaResumen[]>([]);
   const [nombre, setNombre] = useState('');
@@ -29,6 +29,13 @@ export default function NewBusinessPage() {
 
   if (needsProfile) {
     return <Navigate to="/completar-perfil" replace />;
+  }
+
+  const negocioPropio = context?.membresias.find(
+    (item) => item.rol_comercio === 'dueno' && item.status,
+  );
+  if (negocioPropio) {
+    return <Navigate to={`/portal/negocio/${negocioPropio.negocio.id}`} replace />;
   }
 
   async function submit(event: FormEvent) {
@@ -65,7 +72,7 @@ export default function NewBusinessPage() {
         <div className="auth-card-head">
           <span className="auth-pill"><i />Alta comercial</span>
           <h1>Registra tu negocio</h1>
-          <p>Crea el negocio y tu membresía de dueño en Benefy.</p>
+          <p>Crea tu negocio y tu membresía de dueño. Después podrás añadir sucursales e invitar a tu equipo.</p>
         </div>
         {error ? <div className="auth-alert auth-alert--error" role="alert">{error}</div> : null}
         <form className="auth-form auth-form-tight" onSubmit={submit}>
