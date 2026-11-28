@@ -1,9 +1,9 @@
-# Reglas de lealtad — Benefy MVP
+# Reglas de lealtad
 
-**Estado:** aprobadas.
+**Estado:** reglas vigentes.
 **Alcance:** visitas, puntos, tarjetas de visitas, catálogo y canje de cupones.
-**Fuera del MVP:** alianzas con puntos compartidos, beneficios cruzados, NFC, QR
-dinámicos y analíticas avanzadas.
+**Fuera de alcance:** NFC, QR dinámicos, puntos compartidos entre negocios y
+analítica avanzada.
 
 Los contratos de API están en [api.md](./api.md).
 

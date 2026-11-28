@@ -1,7 +1,10 @@
 // Navegador real, sin mocks, capturas ni credenciales en archivos versionados.
 import { chromium, expect } from '@playwright/test';
 const passwords = JSON.parse(process.env.BENEFY_SHOWCASE_PASSWORDS || '{}');
-const browser = await chromium.launch({ channel: 'msedge' });
+const baseUrl = process.env.BENEFY_SHOWCASE_URL || 'http://127.0.0.1:5173';
+const browser = await chromium.launch(
+  process.env.PLAYWRIGHT_CHANNEL ? { channel: process.env.PLAYWRIGHT_CHANNEL } : {},
+);
 const results = {};
 let step = 'start';
 try {
@@ -9,7 +12,7 @@ try {
     step = name + ':login';
     const context = await browser.newContext();
     const page = await context.newPage();
-    await page.goto('http://127.0.0.1:5173/login');
+    await page.goto(`${baseUrl}/login`);
     await page.locator('#login-user').fill(name + '@benefy.com');
     await page.locator('#login-pass').fill(passwords[name]);
     await page.locator('#btn-primary-login').click();
@@ -47,12 +50,17 @@ try {
     await expect.poll(() => page.evaluate(() => Object.keys(localStorage).filter(key => /^sb-.*-auth-token$/.test(key))), { timeout: 20000 }).toEqual([]);
     await page.waitForURL(url => !url.pathname.startsWith('/portal') && url.pathname !== '/acceso-restringido', { timeout: 15000 });
     step = name + ':signed-out-guard';
-    await page.goto('http://127.0.0.1:5173/portal');
+    await page.goto(`${baseUrl}/portal`);
     await expect(page).toHaveURL(/\/login/);
     results[name] = { login: true, permissions: true, logout: true };
     await context.close();
   }
-  console.log(JSON.stringify({ browser: 'Edge', actual_http: true, screenshots: false, results }));
+  console.log(JSON.stringify({
+    browser: process.env.PLAYWRIGHT_CHANNEL || 'chromium',
+    actual_http: true,
+    screenshots: false,
+    results,
+  }));
 } catch {
   console.error(JSON.stringify({ failed_step: step, sensitive_details_omitted: true }));
   process.exitCode = 1;

@@ -1,0 +1,25 @@
+name: Stripe Sandbox opcional
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verificar catálogo Sandbox
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Verificar Price IDs
+        run: python tools/verify_stripe_sandbox.py
+        env:
+          STRIPE_MODE: test
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_PREMIUM_PRODUCT_ID: ${{ secrets.STRIPE_PREMIUM_PRODUCT_ID }}
+          STRIPE_PREMIUM_PRICE_ID: ${{ secrets.STRIPE_PREMIUM_PRICE_ID }}
+          STRIPE_PREMIUM_ANNUAL_PRICE_ID: ${{ secrets.STRIPE_PREMIUM_ANNUAL_PRICE_ID }}

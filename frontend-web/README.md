@@ -1,8 +1,5 @@
 # Frontend web
 
-> Inicia el portal con `python dev.py up` desde la raíz.
-> Consulta [la guía de desarrollo](../docs/desarrollo-demo.md).
-
 Landing pública y portal de negocios de Benefy, implementados con React 18,
 React Router 7, TypeScript 5, Vite 6 y Supabase Auth. El portal consume la API
 real de Django; no hay datos ni inicios de sesión simulados.
@@ -10,13 +7,13 @@ real de Django; no hay datos ni inicios de sesión simulados.
 ## Código y páginas
 
 La entrada es `src/main.tsx`, que configura `BrowserRouter`, `AuthProvider` y
-carga `src/App.tsx`. Las rutas implementadas son:
+carga `src/App.tsx`. Las rutas principales son:
 
 | Ruta | Página |
 | --- | --- |
 | `/` | Inicio |
 | `/about` | Información del proyecto |
-| `/precios` | Planes y precios de presentación |
+| `/precios` | Planes y precios |
 | `/login` | Inicio de sesión con Supabase |
 | `/registro` | Alta de cuenta de negocio o de invitado con `?invitacion=` |
 | `/recuperar` | Envío de enlace de recuperación |
@@ -28,6 +25,7 @@ carga `src/App.tsx`. Las rutas implementadas son:
 | `/acceso-restringido` | Consumidor sin membresía comercial |
 | `/portal` | Redirección según rol y contexto |
 | `/portal/negocio/:id` | Resumen del negocio, sucursal y panel Benef AI |
+| `/portal/negocio/:id/suscripcion` | Plan actual, Checkout y Customer Portal Sandbox |
 | `/portal/negocio/:id/configuracion` | Datos públicos y de contacto |
 | `/portal/negocio/:id/sucursales` | CRUD de sucursales y QR imprimible |
 | `/portal/negocio/:id/puntos` | Programa de puntos |
@@ -43,9 +41,9 @@ carga `src/App.tsx`. Las rutas implementadas son:
 | Cualquier otra | Muestra Inicio mediante la ruta comodín |
 
 Cabecera y pie se comparten en la landing. El portal usa
-`src/styles/portal.css`. El diseño emplea CSS propio y Font Awesome; Tailwind
-no está instalado. Los textos de planes e IA de la landing son contenido
-comercial: no implican pagos ni analítica implementados.
+`src/styles/portal.css`; el diseño emplea CSS propio y Font Awesome. Tailwind no
+está instalado. Los textos de planes e IA de la landing son contenido comercial:
+no implican pagos ni analítica implementados.
 
 ## Autenticación y API
 
@@ -73,12 +71,14 @@ Un consumidor sin membresías no entra al portal: se le redirige a
 `/acceso-restringido` con el CTA para registrar su negocio. El onboarding
 comercial se completa automáticamente tras confirmar el correo, sin repetir el
 formulario. El portal consulta `/planes/` y `/negocios/{id}/plan/`; Django
-conserva la autoridad sobre los límites. El QR se genera localmente a partir del `qr_uuid` de la sucursal; su descarga e
-impresión están disponibles, pero el escáner de la app móvil sigue pendiente.
+conserva la autoridad sobre los límites. El QR se genera localmente a partir del
+`qr_uuid` de la sucursal; su descarga e impresión están disponibles, y la app
+móvil lo escanea con la cámara.
+
 En alianzas, Free puede recibir y aceptar dentro de su cupo, pero proponer es
-exclusivo de Premium; el portal muestra el uso y los sublímites del plan.
-El detalle está en [autenticación](../docs/autenticacion.md),
-[API](../docs/api.md) y [planes](../docs/planes-free-premium.md).
+exclusivo de Premium; el portal muestra el uso y los sublímites del plan. El
+detalle está en [identidad y cuentas](../docs/identidad-y-cuentas.md),
+[API](../docs/api.md) y [planes](../docs/planes-y-facturacion.md).
 
 ## Benef AI
 
@@ -93,36 +93,51 @@ sesión o reiniciar la conversación se aborta la solicitud pendiente y se
 descartan respuestas tardías. La UI incluye Enter para enviar, Shift+Enter para
 nueva línea, sugerencias, estado de carga, errores recuperables y navegación por
 teclado. La arquitectura completa está en
-[Benef AI en el dashboard](../docs/benef-ai-chat.md).
+[Benef AI](../benef-ai/README.md).
 
-## Ejecución y verificación
+## Producción
 
-El único Dockerfile sirve Vite con HMR en http://localhost:5173. El código se
-monta desde el repositorio y las dependencias residen en un volumen Docker.
-No hay build estático intermedio ni archivos `.env` propios de la web.
+La compilación de producción es un sitio estático:
 
-`compose.yaml` deriva las variables públicas desde el `.env` de la raíz:
-URL Supabase, clave publicable y `/api/v1`. El proxy conecta con Django sin
-exponer credenciales privadas. El launcher valida que la clave sea publicable.
-
-Para verificaciones locales, desde `frontend-web/` con Node instalado:
-
-```powershell
+```bash
+cd frontend-web
 npm ci
+npm run typecheck
+npm test
+npm run build
+```
+
+El resultado está en `dist/`. El hosting debe servir `index.html` para las rutas
+del cliente (SPA fallback) y cachear los assets con hash. Variables de build:
+
+```dotenv
+VITE_API_BASE_URL=https://<api-host>/api/v1
+VITE_SUPABASE_URL=https://<proyecto>.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=<clave publicable>
+```
+
+`VITE_API_BASE_URL` puede ser relativo (`/api/v1`) si el hosting proxya el
+backend. No configures claves secretas con prefijo `VITE_`: Vite las expone al
+navegador. El detalle de despliegue y seguridad está en
+[operaciones](../docs/operaciones.md#portal-web).
+
+## Pruebas
+
+```bash
 npm test
 npm run typecheck
 npm run build
 npm run test:e2e
 ```
 
-En esta entrega se ejecutaron **52 pruebas Vitest**, TypeScript, build de Vite
-y la suite de componentes del chat. Las E2E de Playwright requieren el entorno
-controlado descrito en `tests/`.
+- `npm test` ejecuta Vitest sobre componentes, hooks y flujos de autenticación.
+- `npm run test:e2e` inicia el servidor de pruebas y ejecuta Playwright con la
+  API simulada. Usa Chromium por defecto y no modifica la base remota. Si falta
+  el navegador, ejecuta `npx playwright install chromium`. Define
+  `PLAYWRIGHT_CHANNEL=msedge` para usar Edge. El workflow
+  `.github/workflows/e2e.yml` ejecuta esta suite de forma manual o semanal.
+- `tests/smoke.mjs` comprueba el servidor real y HMR sin credenciales.
+- `npm run analyze:bundle` genera el manifiesto y revisa el tamaño del bundle.
 
-Las E2E usan respuestas controladas en el puerto 5174 y Edge; no modifican la
-base remota. `tests/smoke.mjs` comprueba el servidor real y HMR sin credenciales.
-`tests/showcase-live.mjs` comprueba los roles reales usando contraseñas solo
-por entorno. Las pruebas visuales siguen comprobando el responsive del portal.
-
-`npm run build` produce `dist/` para validar compilación; la demo sirve el código
-actual mediante Vite. No existe un montaje de producción o un túnel incluido.
+Las pruebas visuales y de responsive forman parte de Playwright. Consulta
+[desarrollo local](../docs/desarrollo-local.md) para el entorno completo.

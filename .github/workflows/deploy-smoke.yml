@@ -1,0 +1,40 @@
+name: Smoke de despliegue
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: Origen público del backend, sin /api/v1
+        required: true
+        default: https://api.example.com
+      qr_uuid:
+        description: UUID de QR de sucursal o negocio (opcional)
+        required: false
+      registrar_visita:
+        description: Registrar una visita real (consume el límite diario)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: Health, login y lealtad
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Ejecutar smoke
+        run: python tools/smoke_deploy.py
+        env:
+          SMOKE_BASE_URL: ${{ inputs.base_url }}
+          SMOKE_QR_UUID: ${{ inputs.qr_uuid }}
+          SMOKE_REGISTRAR_VISITA: ${{ inputs.registrar_visita }}
+          SMOKE_SUPABASE_URL: ${{ secrets.SMOKE_SUPABASE_URL }}
+          SMOKE_SUPABASE_KEY: ${{ secrets.SMOKE_SUPABASE_PUBLISHABLE_KEY }}
+          SMOKE_EMAIL: ${{ secrets.SMOKE_EMAIL }}
+          SMOKE_PASSWORD: ${{ secrets.SMOKE_PASSWORD }}

@@ -3,8 +3,10 @@ import { chromium } from '@playwright/test';
 import { readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 
-const base = 'http://127.0.0.1:5173';
-const browser = await chromium.launch({ channel: 'msedge' });
+const base = process.env.BENEFY_SMOKE_URL || 'http://127.0.0.1:5173';
+const browser = await chromium.launch(
+  process.env.PLAYWRIGHT_CHANNEL ? { channel: process.env.PLAYWRIGHT_CHANNEL } : {},
+);
 const page = await browser.newPage();
 const errors = [];
 page.on('pageerror', error => errors.push(error.message));

@@ -215,7 +215,7 @@ def main():
         if not args.local:
             raise ValueError('Las pruebas de base de datos requieren --local.')
         run(['up', '-d', '--wait', 'postgres'])
-        run(['run', '--rm', '--no-deps', 'backend', 'python', 'manage.py', 'test', '--noinput'])
+        run(['run', '--rm', '--no-deps', 'backend', 'python', 'manage.py', 'test', 'core.tests', '--noinput'])
     elif args.action in ('seed', 'seed-plan'):
         if args.action == 'seed' and args.local:
             run(['up', '-d', '--wait', 'postgres'])

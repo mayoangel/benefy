@@ -61,7 +61,7 @@ services:
       dockerfile: Dockerfile
     command: sh -c "npm ci --no-audit --no-fund && npm run dev -- --host 0.0.0.0 --port 5173 --strictPort"
     volumes:
-      - ./frontend-web/app/src:ro
+      - ./frontend-web:/app:ro
       - web_modules:/app/node_modules
     environment:
       BENEFY_DOCKER_ENV: "1"

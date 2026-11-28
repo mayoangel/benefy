@@ -8,13 +8,15 @@ validaciones están en `backend/core/serializers.py`; el alcance de acceso, en
 
 | Entorno | Base de la API |
 | --- | --- |
-| Desarrollo y demostración | `http://localhost:8001/api/v1` |
+| Producción | `https://<api-host>/api/v1` |
+| Desarrollo local | `http://localhost:8001/api/v1` |
 | Dentro de la red Compose | `http://backend:8000/api/v1` |
 
 Todas las rutas de negocio requieren `Authorization: Bearer <access_token>` de
 Supabase y un perfil Benefy activo. La única excepción es el alta propia, que
 admite una identidad verificada sin perfil. Las sesiones de Django Admin no
-autentican la API. Consulta [autenticación y permisos](./autenticacion.md).
+autentican la API. Consulta
+[identidad y cuentas](./identidad-y-cuentas.md).
 
 ## Patrón CRUD
 
@@ -51,8 +53,8 @@ parcial.
 | Pago | `pago` | `pagos` |
 | Notificacion | `notificacion` | `notificaciones` |
 
-Los 16 recursos suman 80 rutas. Su existencia no concede todas las operaciones a
-todos los roles: pagos y suscripciones limitan la escritura al `admin_sistema`;
+La existencia de una ruta CRUD no concede todas las operaciones a todos los
+roles: pagos y suscripciones limitan la escritura al `admin_sistema`;
 el CRUD genérico de alianzas es de solo lectura y la gestión pasa por el flujo de
 dueños. Las escrituras genéricas de `registro-actividad`, `progreso-usuario`,
 `cupon-usuario`, `canje` y `alianza` responden `405`; esos datos solo se crean o
@@ -69,9 +71,8 @@ modifican con los endpoints transaccionales correspondientes.
 | POST | `/api/v1/negocios/{id}/benef-ai/chat/` | Chat de solo lectura con Benef AI; exige membresía y rate limit |
 | PATCH | `/api/v1/usuario/rol/{id}/` | Cambiar `rol` o `is_active`; solo `admin_sistema` |
 
-Hay 123 rutas de API en total. El login, registro de identidad, refresh y logout
-ocurren en Supabase Auth, no bajo `/api/v1`. `usuario/crear/` crea el perfil
-Benefy después del login.
+El login, registro de identidad, refresh y logout ocurren en Supabase Auth, no
+bajo `/api/v1`. `usuario/crear/` crea el perfil Benefy después del login.
 
 ### Perfil propio
 
@@ -84,13 +85,13 @@ Content-Type: application/json
 ```
 
 Solo admite `nombre`, `apellido`, `telefono` y `foto_perfil`. El correo es la
-identidad de Supabase y es de solo lectura en el MVP. Enviar `correo`, `rol`,
+identidad de Supabase y es de solo lectura. Enviar `correo`, `rol`,
 `supabase_uid`, `qr_token` o `is_active` responde `400`.
 
 La foto debe ser una URL pública del bucket de avatares de Supabase Storage,
 dentro de la carpeta del `supabase_uid` autenticado. Django valida host, bucket,
 carpeta, tipo MIME y tamaño mediante una petición `HEAD`. El contrato y las
-políticas RLS están en [avatares en Supabase Storage](./supabase-storage-avatares.md).
+políticas RLS están en [avatares en Supabase Storage](./identidad-y-cuentas.md#avatares-en-supabase-storage).
 
 ### Baja de cuenta
 
@@ -114,7 +115,7 @@ Rechaza con `409`:
 - `propietario_activo`: el usuario es el único propietario activo de uno o más negocios activos;
 - `cuenta_admin`: una cuenta `admin_sistema` no puede autoeliminarse.
 
-Procedimiento completo en [eliminación de cuenta](./eliminacion-cuenta.md).
+Procedimiento completo en [baja de cuenta](./identidad-y-cuentas.md#baja-de-cuenta).
 
 `GET /api/v1/mi/contexto/` es la fuente de verdad del portal: devuelve `usuario`,
 `es_admin_sistema`, `puede_portal`, `membresias`, `negocios` y `sucursales`, con
@@ -132,7 +133,7 @@ caracteres. Rechaza `admin_sistema` y consumidores sin membresía. Aplica
 `THROTTLE_BENEF_AI_CHAT` (20/hour por defecto) y reenvía a Benef AI con firma
 HMAC-SHA256, timestamp y token de servicio. La respuesta es
 `{"answer": "...", "tools_used": ["metricas"]}`. Los detalles de arquitectura,
-errores y configuración están en [Benef AI en el dashboard](./benef-ai-chat.md).
+errores y configuración están en [Benef AI](../benef-ai/README.md).
 
 ## Planes y límites
 
@@ -151,7 +152,7 @@ Crear o reactivar recursos por encima del plan responde `403`:
 
 Aplica a sucursales, tarjetas de sellos (`Dinamica` tipo `sellos`), recompensas,
 supervisores y empleados. Los recursos inactivos no consumen cupo. Reglas y
-política de downgrade en [planes Free y Premium](./planes-free-premium.md).
+política de downgrade en [planes y facturación](./planes-y-facturacion.md).
 
 ## Suscripción y facturación Sandbox
 
@@ -169,7 +170,7 @@ consumidores reciben `403`.
 El precio nunca se acepta desde React: solo el intervalo. Un intento con Premium
 vigente responde `409 premium_activo`. El webhook rechaza firmas inválidas y
 eventos `livemode=true`. Detalle de estados, gracia y Customer Portal en
-[Facturación Stripe Sandbox](./facturacion-stripe-sandbox.md).
+[Planes y facturación](./planes-y-facturacion.md#stripe-sandbox).
 
 ## Registro comercial
 
@@ -272,7 +273,7 @@ El administrador puede consultar, pero no responder por los negocios.
 Todos los usuarios activos pueden consumir. El acceso a un negocio se obtiene
 exclusivamente por una membresía activa. El alias `admin` se acepta
 temporalmente en membresías y se guarda como `supervisor`. La matriz completa
-está en [autenticación](./autenticacion.md#matriz-de-permisos).
+está en [identidad y cuentas](./identidad-y-cuentas.md#roles-y-permisos).
 
 ## Motor de lealtad
 
